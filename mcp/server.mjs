@@ -17,15 +17,17 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 // The SDK depends on zod; import it directly for tool input schemas.
 import { z as zod } from "zod";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const HARNESS_DIR =
-  process.env.HARNESS_DIR || path.resolve(__dirname, "..", ".harness");
+// Resolve .harness against the USER'S project, not this file's location, so the
+// same server works whether it's run locally or installed as a global plugin:
+//   HARNESS_DIR (explicit) → CLAUDE_PROJECT_DIR/.harness (plugin) → cwd/.harness
+const HARNESS_DIR = process.env.HARNESS_DIR
+  ? path.resolve(process.env.HARNESS_DIR)
+  : path.join(process.env.CLAUDE_PROJECT_DIR || process.cwd(), ".harness");
 const STATE_FILE = path.join(HARNESS_DIR, "state.json");
 const RUNTIME_FILE = path.join(HARNESS_DIR, "runtime.json");
 const FEEDBACK_FILE = path.join(HARNESS_DIR, "feedback.json");

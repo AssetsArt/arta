@@ -20,22 +20,56 @@ Three layers, one loop:
    harness_get_feedback (MCP)  ◀──  you click the prototype, leave a note
 ```
 
-## Run it
+## Quick start — use it in your own project
+
+Two pieces: the **plugin** (the skill + MCP that Claude Code uses — install once,
+works in every project) and the **viewer** (a small web app you leave running).
+
+**1. Install the plugin (like any skill):**
+
+```text
+/plugin marketplace add AssetsArt/harness-studio
+/plugin install harness-studio@harness-studio
+```
+
+Now the `harness-studio` skill and its MCP tools are available in any project. The
+MCP reads/writes the *current project's* `.harness/` folder.
+
+**2. Run the viewer in your project:**
+
+```bash
+# one-time: clone + install, then link the `harness` launcher globally
+git clone https://github.com/AssetsArt/harness-studio && cd harness-studio
+bun install && bun link
+
+# then, from ANY project you're designing:
+cd ~/my-app
+harness                 # serves the viewer on :4317, watching ./.harness
+```
+
+`harness` seeds a starter `.harness/` if there isn't one, and points the viewer at
+*your* project. (No clone? `bunx github:AssetsArt/harness-studio` runs the same
+launcher.)
+
+**3. Design:** tell Claude Code *"design this in the harness"* — the skill drives
+the phases, the MCP writes to `./.harness/`, and your viewer repaints live.
+
+Try the viewer by hand: click screens in the **Prototype** sidebar, press **Add to
+cart** and watch the header badge persist across screens, switch device frames
+(Web / Desktop / iOS / Android), **Comment** on an element, follow the **Changes**
+feed, collapse the **Spec** rail, or hit **Edit state** to paste new state.
+
+## Develop the tool itself
 
 ```bash
 bun install
-bun run dev          # opens the viewer on http://localhost:4317
+bun run dev          # viewer on http://localhost:4317, watching this repo's .harness
+bun run build        # typecheck + build viewer + bundle the MCP (mcp/server.bundle.mjs)
 ```
 
-Leave it open. As the AI edits `.harness/state.json`, the screen updates live. A
-seed project (**ClinicQueue**) is included so there's something to look at
-immediately.
-
-Try it by hand: click the screens in the **Prototype** sidebar, press **Add to
-cart** and watch the header badge tick up (and persist as you move between
-screens), follow the nav links, collapse the **Spec** rail, switch tabs, change
-the accent via the settings icon, or hit **Edit state** to paste a new
-`state.json` and **Apply**.
+A seed project (**Aurora Store**) is included so there's something to look at
+immediately. The MCP bundle (`mcp/server.bundle.mjs`) is what the plugin ships;
+rerun `bun run build:mcp` after editing `mcp/server.mjs`.
 
 ### Freeform prototype model
 
@@ -83,8 +117,8 @@ default and wins whenever it changes.
 
 ## How the AI plugs in
 
-The project ships an MCP server (`.mcp.json` registers it automatically for Claude
-Code in this directory) exposing:
+Installing the plugin registers an MCP server (a self-contained bundle, no extra
+install) that operates on the current project's `.harness/`, exposing:
 
 - `harness_get_state` / `harness_set_state` / `harness_patch_state` — read & write the structured canvas + prototype manifest
 - `harness_get_screen` / `harness_set_screen` — read/write one screen body (one file)
@@ -95,28 +129,33 @@ Code in this directory) exposing:
 - `harness_get_view` — the dev's active tab, prototype screen, store, and any prototype errors
 - `harness_get_feedback` — notes the dev left, including the element they clicked to comment on
 
-…and a skill at `.claude/skills/harness-studio/` that tells the agent how to run
-the prototype-based design loop. Ask Claude Code to "design this in the harness"
-and it will build the canvas one phase at a time, reacting to your clicks.
+…and a skill (`skills/harness-studio/`) that tells the agent how to run the
+prototype-based design loop. Ask Claude Code to "design this in the harness" and it
+builds the canvas one phase at a time, reacting to your clicks.
 
-The agent can also simply `Write` to `.harness/state.json` — the file watcher
-catches it either way. The MCP tools just add validation, section merging, and the
+The agent can also just `Write` files under `.harness/` — the watcher catches them
+either way. The MCP tools add validation, manifest upkeep, screenshots, and the
 feedback channel back from the viewer.
 
 ## Layout
 
 ```
-.harness/
-  state.json                  # meta/spec/plan/dataModel/flow + prototype MANIFEST (no HTML)
-  prototype/
-    design-system.css         # shared CSS
-    components/<name>.html     # shared fragments ({{>name}})
-    screens/<id>.html          # each screen body
-.claude/skills/harness-studio # the design-loop skill
-.mcp.json                     # registers the MCP server for Claude Code
-mcp/server.mjs                # MCP server — the agent's eyes & hands on the canvas
-vite/harness-watch.ts         # Vite plugin: assembles split files, file watch → WebSocket push, runtime/feedback endpoints
+.claude-plugin/
+  plugin.json                 # plugin manifest (install target)
+  marketplace.json            # marketplace listing → /plugin marketplace add AssetsArt/harness-studio
+skills/harness-studio/        # the design-loop skill (bundled in the plugin)
+.mcp.json                     # MCP server config (points at the bundle via ${CLAUDE_PLUGIN_ROOT})
+mcp/server.mjs                # MCP server source — the agent's eyes & hands on the canvas
+mcp/server.bundle.mjs         # self-contained bundle the plugin ships (no dep install)
+bin/harness.mjs               # viewer launcher — `harness` in any project
+vite/harness-watch.ts         # Vite plugin: assembles split files, watch → WebSocket push, endpoints
 src/                          # the viewer (React + Tailwind + shadcn-style + lucide)
+
+.harness/                     # the canvas (per project)
+  state.json                  #   meta/spec/plan/dataModel/flow + prototype MANIFEST (no HTML)
+  prototype/design-system.css #   shared CSS
+  prototype/components/*.html #   shared fragments ({{>name}})
+  prototype/screens/*.html    #   each screen body
 ```
 
 ### Why the canvas is split into files

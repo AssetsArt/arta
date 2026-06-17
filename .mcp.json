@@ -1,8 +1,9 @@
 {
   "mcpServers": {
     "harness-studio": {
-      "command": "bun",
-      "args": ["mcp/server.mjs"]
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/server.bundle.mjs"],
+      "env": { "CLAUDE_PROJECT_DIR": "${CLAUDE_PROJECT_DIR}" }
     }
   }
 }

@@ -3,10 +3,15 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "A live design canvas the AI writes into and the dev watches — driven by a single .harness/state.json file.",
+  "description": "A live design canvas the AI writes into and the dev watches — driven by a single .harness/ folder.",
+  "bin": {
+    "harness": "bin/harness.mjs",
+    "harness-mcp": "mcp/server.mjs"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && bun run build:mcp",
+    "build:mcp": "bun build mcp/server.mjs --target=node --outfile mcp/server.bundle.mjs",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "mcp": "bun mcp/server.mjs"

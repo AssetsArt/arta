@@ -131,7 +131,11 @@ export function harnessWatch(): Plugin {
     },
 
     configureServer(srv: ViteDevServer) {
-      dir = path.resolve(srv.config.root, HARNESS_DIR);
+      // HARNESS_DIR lets one viewer watch any project's canvas (the launcher sets
+      // it to the user's project); otherwise default to <root>/.harness.
+      dir = process.env.HARNESS_DIR
+        ? path.resolve(process.env.HARNESS_DIR)
+        : path.resolve(srv.config.root, HARNESS_DIR);
       const stateFile = path.join(dir, STATE_FILE);
       runtimeFile = path.join(dir, RUNTIME_FILE);
       feedbackFile = path.join(dir, FEEDBACK_FILE);
