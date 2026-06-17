@@ -1,0 +1,291 @@
+{
+  "meta": {
+    "name": "Aurora Store",
+    "phase": "prototype"
+  },
+  "spec": {
+    "goal": "Help a first-time shopper find a product and reach checkout in under two minutes.",
+    "users": [
+      "Shopper",
+      "Returning customer",
+      "Merchant"
+    ],
+    "userStories": [
+      "As a shopper, I want to browse featured products on the home page so I can find something fast.",
+      "As a shopper, I want to add to cart without leaving the page so I keep browsing.",
+      "As a returning customer, I want my cart to persist while I look around the store."
+    ],
+    "scope": {
+      "in": [
+        "Storefront",
+        "Product detail",
+        "Cart"
+      ],
+      "out": [
+        "Payments",
+        "Shipping rates",
+        "Reviews"
+      ]
+    },
+    "constraints": [
+      "Mobile-first, responsive",
+      "Guest checkout — no account required",
+      "Mock catalog only — no real inventory"
+    ]
+  },
+  "plan": {
+    "stack": [
+      "React",
+      "Next.js",
+      "Stripe",
+      "Tailwind"
+    ],
+    "milestones": [
+      {
+        "name": "M1 · Storefront",
+        "tasks": [
+          {
+            "title": "Design system + tokens",
+            "status": "done"
+          },
+          {
+            "title": "Home + product grid",
+            "status": "doing"
+          },
+          {
+            "title": "Product detail",
+            "status": "todo"
+          },
+          {
+            "title": "Cart drawer",
+            "status": "todo"
+          }
+        ]
+      },
+      {
+        "name": "M2 · Checkout",
+        "tasks": [
+          {
+            "title": "Stripe session",
+            "status": "todo"
+          },
+          {
+            "title": "Order confirmation",
+            "status": "todo"
+          }
+        ]
+      }
+    ]
+  },
+  "dataModel": {
+    "entities": [
+      {
+        "name": "Product",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "pk": true
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "price",
+            "type": "int",
+            "required": true
+          },
+          {
+            "name": "slug",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "image",
+            "type": "string"
+          }
+        ]
+      },
+      {
+        "name": "CartItem",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "pk": true
+          },
+          {
+            "name": "productId",
+            "type": "uuid",
+            "fk": "Product",
+            "required": true
+          },
+          {
+            "name": "qty",
+            "type": "int",
+            "required": true
+          }
+        ]
+      },
+      {
+        "name": "Order",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "pk": true
+          },
+          {
+            "name": "customerId",
+            "type": "uuid",
+            "fk": "Customer",
+            "required": true
+          },
+          {
+            "name": "total",
+            "type": "int",
+            "required": true
+          },
+          {
+            "name": "status",
+            "type": "enum",
+            "required": true
+          },
+          {
+            "name": "createdAt",
+            "type": "timestamp",
+            "required": true
+          }
+        ]
+      },
+      {
+        "name": "Customer",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "pk": true
+          },
+          {
+            "name": "email",
+            "type": "string",
+            "required": true
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "from": "CartItem",
+        "to": "Product",
+        "type": "N:1",
+        "label": "of"
+      },
+      {
+        "from": "Order",
+        "to": "Customer",
+        "type": "N:1",
+        "label": "by"
+      }
+    ]
+  },
+  "flow": {
+    "nodes": [
+      {
+        "id": "s_home",
+        "kind": "screen",
+        "label": "Home"
+      },
+      {
+        "id": "s_product",
+        "kind": "screen",
+        "label": "Product"
+      },
+      {
+        "id": "s_cart",
+        "kind": "screen",
+        "label": "Cart"
+      },
+      {
+        "id": "a_products",
+        "kind": "api",
+        "label": "GET /products"
+      },
+      {
+        "id": "a_cart",
+        "kind": "api",
+        "label": "POST /cart"
+      },
+      {
+        "id": "e_product",
+        "kind": "entity",
+        "label": "Product"
+      },
+      {
+        "id": "e_cart",
+        "kind": "entity",
+        "label": "CartItem"
+      }
+    ],
+    "edges": [
+      {
+        "from": "s_home",
+        "to": "a_products",
+        "label": "list",
+        "op": "read"
+      },
+      {
+        "from": "a_products",
+        "to": "e_product",
+        "op": "read"
+      },
+      {
+        "from": "s_product",
+        "to": "a_cart",
+        "label": "add to cart",
+        "op": "write"
+      },
+      {
+        "from": "a_cart",
+        "to": "e_cart",
+        "op": "write"
+      },
+      {
+        "from": "s_cart",
+        "to": "e_cart",
+        "label": "read bag",
+        "op": "read"
+      }
+    ]
+  },
+  "prototype": {
+    "start": "home",
+    "store": {
+      "cart": 0
+    },
+    "vars": {
+      "brand": "Aurora",
+      "logo": "A"
+    },
+    "layout": "{{>header}}{{slot}}{{>footer}}",
+    "screens": [
+      {
+        "id": "home",
+        "title": "Home",
+        "url": "aurora.shop"
+      },
+      {
+        "id": "product",
+        "title": "Product detail",
+        "url": "aurora.shop/p/oak-serving-tray"
+      },
+      {
+        "id": "cart",
+        "title": "Cart",
+        "url": "aurora.shop/cart"
+      }
+    ]
+  }
+}

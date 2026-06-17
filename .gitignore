@@ -1,0 +1,11 @@
+node_modules
+dist
+*.local
+*.tsbuildinfo
+.playwright-mcp
+.DS_Store
+
+# Live runtime mirrors written by the viewer — regenerated each session.
+.harness/runtime.json
+.harness/feedback.json
+.harness/snapshots/

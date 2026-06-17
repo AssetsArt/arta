@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+/* ── Harness Studio design tokens ──────────────────────────────────────────
+   The shadcn "zinc dark" language for the IDE chrome, plus the light tokens
+   used to render the prototype device as a real shadcn app. --accent is the
+   one runtime-themeable token (the viewer's accent picker rewrites it). */
+@theme {
+  --font-sans: "Geist", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --color-bg: #09090b;
+  --color-panel: #0c0c0e;
+  --color-card: #131316;
+  --color-panel2: #1c1c20;
+  --color-border: #27272a;
+  --color-border-soft: #1f1f23;
+
+  --color-fg: #fafafa;
+  --color-dim: #a1a1aa;
+  --color-faint: #71717a;
+
+  --color-accent: #38bdf8;
+  --color-ok: #34d399;
+  --color-amber: #fbbf24;
+  --color-danger: #f87171;
+  --color-yellow: #facc15;
+
+  /* light tokens for the prototype device (shadcn light) */
+  --color-l-bg: #ffffff;
+  --color-l-fg: #09090b;
+  --color-l-muted-fg: #71717a;
+  --color-l-faint: #a1a1aa;
+  --color-l-border: #e4e4e7;
+  --color-l-muted: #f4f4f5;
+  --color-l-primary: #18181b;
+  --color-l-primary-fg: #fafafa;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+body {
+  background: var(--color-bg);
+  font-family: var(--font-sans);
+  color: var(--color-fg);
+}
+* {
+  box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+textarea:focus {
+  border-color: #52525b !important;
+}
+
+@keyframes hs-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.6);
+  }
+}
+@keyframes hs-flash {
+  0% {
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color-accent) 0%, transparent);
+  }
+  25% {
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color-accent) 90%, transparent);
+  }
+  100% {
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color-accent) 0%, transparent);
+  }
+}
+@keyframes hs-slide {
+  from {
+    transform: translateX(34px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+.hs-flash {
+  animation: hs-flash 0.72s ease;
+}
+.hs-pulse {
+  animation: hs-pulse 1.4s ease-in-out infinite;
+}
+.hs-slide {
+  animation: hs-slide 0.22s ease;
+}
