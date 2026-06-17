@@ -51,8 +51,10 @@ harness                 # serves the viewer on :4317, watching ./.harness
 *your* project. (No clone? `bunx github:AssetsArt/harness-studio` runs the same
 launcher.)
 
-**3. Design:** tell Claude Code *"design this in the harness"* — the skill drives
-the phases, the MCP writes to `./.harness/`, and your viewer repaints live.
+**3. Design:** run **`/hns <what to build>`** (e.g. `/hns a checkout flow`) — the
+skill drives the phases, the MCP writes to `./.harness/`, and your viewer repaints
+live. To update later: **`/hns update`**. (Or just say *"design this in the
+harness"* — the skill triggers on its own.)
 
 Try the viewer by hand: click screens in the **Prototype** sidebar, press **Add to
 cart** and watch the header badge persist across screens, switch device frames

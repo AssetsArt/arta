@@ -1,0 +1,49 @@
+name: pack
+
+# Keeps `main` always installable: builds the viewer, type-checks, validates the
+# plugin layout, and re-bundles the MCP server so the committed bundle the
+# marketplace ships is never stale.
+#
+# Requires: Settings → Actions → General → Workflow permissions → "Read and write".
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Build (typecheck + viewer + MCP bundle)
+        run: bun run build
+
+      - name: Validate plugin layout
+        run: node scripts/validate-plugin.mjs
+
+      - name: Commit refreshed MCP bundle (main only, if drifted)
+        if: github.event_name == 'push'
+        run: |
+          if ! git diff --quiet -- mcp/server.bundle.mjs; then
+            echo "MCP bundle drifted from source — committing fresh build."
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add mcp/server.bundle.mjs
+            git commit -m "ci: rebuild MCP bundle [skip ci]"
+            git push
+          else
+            echo "MCP bundle already up to date."
+          fi
