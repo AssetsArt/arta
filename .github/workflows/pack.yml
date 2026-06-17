@@ -23,10 +23,10 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: "1.4.0" # must understand bun.lock's lockfileVersion
 
       - name: Install
-        run: bun install --frozen-lockfile
+        run: bun install
 
       - name: Build (typecheck + viewer + MCP bundle)
         run: bun run build
