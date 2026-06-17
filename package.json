@@ -5,6 +5,7 @@
   "type": "module",
   "description": "A live design canvas the AI writes into and the dev watches — driven by a single .harness/ folder.",
   "bin": {
+    "harness-studio": "bin/harness.mjs",
     "harness": "bin/harness.mjs",
     "harness-mcp": "mcp/server.mjs"
   },
@@ -18,20 +19,20 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.13.0",
+    "@tailwindcss/vite": "^4.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
     "html2canvas": "^1.4.1",
     "lucide-react": "^0.469.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "tailwindcss": "^4.0.0",
+    "vite": "^6.0.7",
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.0.0",
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^4.3.4",
-    "tailwindcss": "^4.0.0",
-    "typescript": "^5.7.2",
-    "vite": "^6.0.7"
+    "typescript": "^5.7.2"
   }
 }
