@@ -27,28 +27,39 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 // The SDK depends on zod; import it directly for tool input schemas.
 import { z as zod } from "zod";
 
+// Some launchers pass ${CLAUDE_*} through to `env` UNEXPANDED (a literal
+// "${VAR}") — or don't pass it at all. Read an env path but reject that case so
+// we never build a bogus "<cwd>/${VAR}/..." path; callers then fall back to
+// something reliable. envDir additionally requires the dir to exist on disk.
+function envPath(name) {
+  const v = process.env[name];
+  if (!v || v.includes("${")) return null;
+  return path.resolve(v);
+}
+function envDir(name) {
+  const p = envPath(name);
+  return p && fs.existsSync(p) ? p : null;
+}
+
 // Resolve .harness against the USER'S project, not this file's location, so the
 // same server works whether it's run locally or installed as a global plugin:
 //   HARNESS_DIR (explicit) → CLAUDE_PROJECT_DIR/.harness (plugin) → cwd/.harness
-const HARNESS_DIR = process.env.HARNESS_DIR
-  ? path.resolve(process.env.HARNESS_DIR)
-  : path.join(process.env.CLAUDE_PROJECT_DIR || process.cwd(), ".harness");
+const HARNESS_DIR =
+  envPath("HARNESS_DIR") || path.join(envDir("CLAUDE_PROJECT_DIR") || process.cwd(), ".harness");
 const STATE_FILE = path.join(HARNESS_DIR, "state.json");
 const RUNTIME_FILE = path.join(HARNESS_DIR, "runtime.json");
 const FEEDBACK_FILE = path.join(HARNESS_DIR, "feedback.json");
 
 // The viewer launcher (bin/harness.mjs) ships inside the plugin alongside this
-// server, so we can start the viewer that MATCHES the installed plugin — no stale
-// npx/bunx cache. Resolve the plugin root from the env CLAUDE Code expands in
-// .mcp.json, falling back to this file's own location (mcp/server[.bundle].mjs
-// sits one level under the plugin root) so it works either way.
-const PLUGIN_ROOT = process.env.CLAUDE_PLUGIN_ROOT
-  ? path.resolve(process.env.CLAUDE_PLUGIN_ROOT)
-  : path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+// server. This file sits at <plugin-root>/mcp/server[.bundle].mjs, so dirname/..
+// is the plugin root — a RELIABLE, self-derived path that's correct even when the
+// launcher left ${CLAUDE_PLUGIN_ROOT} unexpanded in env (the bug that forced the
+// stale `bunx` fallback). Prefer a valid env dir only when it actually exists;
+// otherwise use our own location.
+const SELF_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const PLUGIN_ROOT = envDir("CLAUDE_PLUGIN_ROOT") || SELF_ROOT;
 // The viewer wants the PROJECT dir (it appends /.harness itself).
-const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR
-  ? path.resolve(process.env.CLAUDE_PROJECT_DIR)
-  : path.dirname(HARNESS_DIR);
+const PROJECT_DIR = envDir("CLAUDE_PROJECT_DIR") || path.dirname(HARNESS_DIR);
 
 // Split-file prototype layout — edit one piece without touching the rest.
 const PROTO_DIR = path.join(HARNESS_DIR, "prototype");
