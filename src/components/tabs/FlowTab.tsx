@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   Background,
+  BackgroundVariant,
   Controls,
   MiniMap,
   Handle,
@@ -12,19 +13,13 @@ import {
   type Node,
   type Edge,
   type NodeProps,
+  type ReactFlowInstance,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import dagre from "@dagrejs/dagre";
 import { stringify as toYaml } from "yaml";
-import { Copy, Download, Eye, EyeOff, Filter, Layers, Monitor, X } from "lucide-react";
-import type {
-  ApiDoc,
-  ApiOperation,
-  ApiParameter,
-  ApiSchema,
-  HttpMethod,
-  Screen,
-} from "../../lib/types";
+import { Copy, Download, Eye, EyeOff, Filter, Layers, Maximize2, Monitor, Search, X } from "lucide-react";
+import type { ApiDoc, ApiOperation, ApiParameter, ApiSchema, HttpMethod, Screen } from "../../lib/types";
 import { HTTP_METHODS } from "../../lib/types";
 import { MONO, useTheme, type DarkTokens } from "../../lib/theme";
 import { alpha } from "../../lib/utils";
@@ -83,105 +78,139 @@ function flattenOps(api: ApiDoc): Op[] {
 }
 
 // ── React Flow nodes ─────────────────────────────────────────────────────────
-const ROUTE_W = 244;
-const ROUTE_H = 66;
+const ROUTE_W = 252;
+const ROUTE_H = 76;
 const MW_W = 156;
 const MW_H = 46;
+const SCREEN_W = 172;
+const SCREEN_H = 48;
 
 type RouteData = { method: string; path: string; summary?: string; mw: number; params: number; body: boolean };
 type RouteNode = Node<RouteData, "route">;
 type MwNode = Node<{ name: string }, "middleware">;
+type ScreenNode = Node<{ id: string; title: string }, "screen">;
+
+function portStyle(col: string, c: DarkTokens) {
+  return { width: 9, height: 9, background: c.card, border: `2px solid ${col}`, borderRadius: 99 };
+}
+
+function metaChip(c: DarkTokens, label: string) {
+  return (
+    <span
+      key={label}
+      style={{ fontFamily: MONO, fontSize: 9.5, color: c.faint, background: c.panel2, border: `1px solid ${c.borderSoft}`, borderRadius: 5, padding: "1px 6px" }}
+    >
+      {label}
+    </span>
+  );
+}
 
 function RouteNodeView({ data, selected }: NodeProps<RouteNode>) {
   const { c } = useTheme();
+  const [hover, setHover] = useState(false);
   const col = methodColor(data.method, c);
+  const active = selected || hover;
   return (
     <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       style={{
         width: ROUTE_W,
-        background: c.card,
-        border: `1px solid ${selected ? col : c.border}`,
-        boxShadow: selected ? `0 0 0 1px ${col}, 0 4px 16px ${alpha(col, 0.18)}` : "0 1px 2px rgba(0,0,0,0.4)",
-        borderRadius: 10,
-        padding: "9px 12px",
+        borderRadius: 12,
+        overflow: "hidden",
         fontFamily: MONO,
+        background: c.card,
+        border: `1px solid ${selected ? col : active ? alpha(col, 0.6) : c.border}`,
+        boxShadow: selected
+          ? `0 0 0 1px ${col}, 0 10px 28px ${alpha(col, 0.22)}`
+          : active
+          ? "0 8px 22px rgba(0,0,0,0.4)"
+          : "0 1px 2px rgba(0,0,0,0.4)",
+        transform: active ? "translateY(-1px)" : "none",
+        transition: "box-shadow .14s ease, transform .14s ease, border-color .14s ease",
         cursor: "pointer",
       }}
     >
-      <Handle type="target" position={Position.Left} style={{ background: col, border: "none", width: 7, height: 7 }} />
-      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+      <Handle type="target" position={Position.Left} style={portStyle(col, c)} />
+      <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 11px", background: alpha(col, 0.1), borderBottom: `1px solid ${c.borderSoft}` }}>
         <MethodBadge method={data.method} c={c} />
-        <span style={{ color: c.text, fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {data.path}
-        </span>
+        <span style={{ color: c.text, fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{data.path}</span>
       </div>
-      {data.summary && (
-        <div style={{ color: c.dim, fontSize: 11, marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {data.summary}
+      <div style={{ padding: "8px 11px" }}>
+        {data.summary && (
+          <div style={{ color: c.dim, fontSize: 11, marginBottom: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{data.summary}</div>
+        )}
+        <div style={{ display: "flex", gap: 5 }}>
+          {data.mw > 0 && metaChip(c, `${data.mw} mw`)}
+          {data.params > 0 && metaChip(c, `${data.params} params`)}
+          {data.body && metaChip(c, "body")}
         </div>
-      )}
-      <div style={{ display: "flex", gap: 10, marginTop: 5, color: c.faint, fontSize: 10 }}>
-        {data.mw > 0 && <span>⋯ {data.mw} mw</span>}
-        {data.params > 0 && <span>{data.params} params</span>}
-        {data.body && <span>body</span>}
       </div>
-      <Handle type="source" position={Position.Right} style={{ background: col, border: "none", width: 7, height: 7 }} />
+      <Handle type="source" position={Position.Right} style={portStyle(col, c)} />
     </div>
   );
 }
 
 function MiddlewareNodeView({ data, selected }: NodeProps<MwNode>) {
   const { c } = useTheme();
+  const [hover, setHover] = useState(false);
   return (
     <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       style={{
         width: MW_W,
         display: "flex",
         alignItems: "center",
         gap: 8,
         background: c.panel2,
-        border: `1px dashed ${selected ? c.accent : alpha(c.dim, 0.5)}`,
+        border: `1px dashed ${selected || hover ? c.dim : alpha(c.dim, 0.5)}`,
         borderRadius: 999,
         padding: "10px 14px",
         fontFamily: MONO,
         fontSize: 12,
         color: c.text,
+        boxShadow: hover ? "0 6px 16px rgba(0,0,0,0.35)" : "none",
+        transition: "box-shadow .14s ease, border-color .14s ease",
         cursor: "pointer",
       }}
     >
       <Filter size={13} color={c.dim} />
       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{data.name}</span>
-      <Handle type="source" position={Position.Right} style={{ background: c.dim, border: "none", width: 7, height: 7 }} />
+      <Handle type="source" position={Position.Right} style={portStyle(c.dim, c)} />
     </div>
   );
 }
 
-const SCREEN_W = 170;
-const SCREEN_H = 46;
-type ScreenNode = Node<{ id: string; title: string }, "screen">;
-
 function ScreenNodeView({ data, selected }: NodeProps<ScreenNode>) {
   const { c } = useTheme();
+  const [hover, setHover] = useState(false);
+  const active = selected || hover;
   return (
     <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       style={{
         width: SCREEN_W,
         display: "flex",
         alignItems: "center",
         gap: 8,
         background: alpha(c.accent, 0.1),
-        border: `1px solid ${selected ? c.accent : alpha(c.accent, 0.45)}`,
-        borderRadius: 8,
-        padding: "10px 12px",
+        border: `1px solid ${active ? c.accent : alpha(c.accent, 0.45)}`,
+        borderRadius: 10,
+        padding: "11px 13px",
         fontFamily: MONO,
         fontSize: 12,
         color: c.text,
+        boxShadow: active ? `0 8px 20px ${alpha(c.accent, 0.2)}` : "none",
+        transform: active ? "translateY(-1px)" : "none",
+        transition: "box-shadow .14s ease, transform .14s ease, border-color .14s ease",
         cursor: "pointer",
       }}
     >
       <Monitor size={13} color={c.accent} />
       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{data.title}</span>
-      <Handle type="source" position={Position.Right} style={{ background: c.accent, border: "none", width: 7, height: 7 }} />
+      <Handle type="source" position={Position.Right} style={portStyle(c.accent, c)} />
     </div>
   );
 }
@@ -189,23 +218,21 @@ function ScreenNodeView({ data, selected }: NodeProps<ScreenNode>) {
 const nodeTypes = { route: RouteNodeView, middleware: MiddlewareNodeView, screen: ScreenNodeView };
 
 // ── graph build + dagre layout ───────────────────────────────────────────────
-function buildGraph(
-  api: ApiDoc,
-  screens: Screen[],
-  showScreens: boolean,
-  c: DarkTokens
-): { nodes: Node[]; edges: Edge[] } {
-  const ops = flattenOps(api);
-  // middleware registry — declared, plus any referenced by operations.
-  const declared = (api["x-middleware"] || []).map((m) => m.name);
-  const referenced = ops.flatMap((o) => o.op["x-middleware"] || []);
+interface GraphOpts {
+  showScreens: boolean;
+  showMiddleware: boolean;
+  hiddenMethods: Set<string>;
+}
+function buildGraph(api: ApiDoc, screens: Screen[], opts: GraphOpts, c: DarkTokens): { nodes: Node[]; edges: Edge[] } {
+  const ops = flattenOps(api).filter((o) => !opts.hiddenMethods.has(o.method));
+  const referenced = opts.showMiddleware ? ops.flatMap((o) => o.op["x-middleware"] || []) : [];
+  const declared = opts.showMiddleware ? (api["x-middleware"] || []).map((m) => m.name) : [];
   const mwNames = Array.from(new Set([...declared, ...referenced]));
-  // screens that call an operation (the screen→API layer).
   const titleOf = new Map(screens.map((s) => [s.id, s.title || s.id]));
-  const screenRefs = showScreens ? Array.from(new Set(ops.flatMap((o) => o.op["x-screens"] || []))) : [];
+  const screenRefs = opts.showScreens ? Array.from(new Set(ops.flatMap((o) => o.op["x-screens"] || []))) : [];
 
   const g = new dagre.graphlib.Graph();
-  g.setGraph({ rankdir: "LR", nodesep: 24, ranksep: 120, marginx: 24, marginy: 24 });
+  g.setGraph({ rankdir: "LR", nodesep: 26, ranksep: 130, marginx: 28, marginy: 28 });
   g.setDefaultEdgeLabel(() => ({}));
   screenRefs.forEach((s) => g.setNode(`screen:${s}`, { width: SCREEN_W, height: SCREEN_H }));
   mwNames.forEach((m) => g.setNode(`mw:${m}`, { width: MW_W, height: MW_H }));
@@ -213,11 +240,12 @@ function buildGraph(
 
   const edgeDefs: { from: string; to: string; kind: "mw" | "screen" }[] = [];
   ops.forEach((o) => {
-    (o.op["x-middleware"] || []).forEach((m) => {
-      g.setEdge(`mw:${m}`, o.id);
-      edgeDefs.push({ from: `mw:${m}`, to: o.id, kind: "mw" });
-    });
-    if (showScreens)
+    if (opts.showMiddleware)
+      (o.op["x-middleware"] || []).forEach((m) => {
+        g.setEdge(`mw:${m}`, o.id);
+        edgeDefs.push({ from: `mw:${m}`, to: o.id, kind: "mw" });
+      });
+    if (opts.showScreens)
       (o.op["x-screens"] || []).forEach((s) => {
         g.setEdge(`screen:${s}`, o.id);
         edgeDefs.push({ from: `screen:${s}`, to: o.id, kind: "screen" });
@@ -234,22 +262,13 @@ function buildGraph(
   screenRefs.forEach((s) =>
     nodes.push({ id: `screen:${s}`, type: "screen", position: at(`screen:${s}`, SCREEN_W, SCREEN_H), data: { id: s, title: titleOf.get(s) || s } })
   );
-  mwNames.forEach((m) =>
-    nodes.push({ id: `mw:${m}`, type: "middleware", position: at(`mw:${m}`, MW_W, MW_H), data: { name: m } })
-  );
+  mwNames.forEach((m) => nodes.push({ id: `mw:${m}`, type: "middleware", position: at(`mw:${m}`, MW_W, MW_H), data: { name: m } }));
   ops.forEach((o) =>
     nodes.push({
       id: o.id,
       type: "route",
       position: at(o.id, ROUTE_W, ROUTE_H),
-      data: {
-        method: o.method,
-        path: o.path,
-        summary: o.op.summary,
-        mw: (o.op["x-middleware"] || []).length,
-        params: (o.op.parameters || []).length,
-        body: !!o.op.requestBody,
-      },
+      data: { method: o.method, path: o.path, summary: o.op.summary, mw: (o.op["x-middleware"] || []).length, params: (o.op.parameters || []).length, body: !!o.op.requestBody },
     })
   );
 
@@ -260,14 +279,17 @@ function buildGraph(
           source: e.from,
           target: e.to,
           type: "smoothstep",
-          style: { stroke: alpha(c.accent, 0.55), strokeWidth: 1.4 },
-          markerEnd: { type: MarkerType.ArrowClosed, color: alpha(c.accent, 0.6), width: 14, height: 14 },
+          animated: true,
+          pathOptions: { borderRadius: 14 },
+          style: { stroke: alpha(c.accent, 0.6), strokeWidth: 1.6 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: alpha(c.accent, 0.65), width: 15, height: 15 },
         }
       : {
           id: `me${i}`,
           source: e.from,
           target: e.to,
           type: "smoothstep",
+          pathOptions: { borderRadius: 14 },
           style: { stroke: alpha(c.dim, 0.5), strokeWidth: 1.3, strokeDasharray: "5 4" },
           markerEnd: { type: MarkerType.ArrowClosed, color: alpha(c.dim, 0.55), width: 13, height: 13 },
         }
@@ -313,20 +335,7 @@ function SchemaView({ schema, c, depth = 0 }: { schema?: ApiSchema; c: DarkToken
 
 function CodeBlock({ value, c }: { value: unknown; c: DarkTokens }) {
   return (
-    <pre
-      style={{
-        margin: 0,
-        background: c.bg,
-        border: `1px solid ${c.borderSoft}`,
-        borderRadius: 8,
-        padding: 12,
-        fontFamily: MONO,
-        fontSize: 11.5,
-        color: c.dim,
-        overflow: "auto",
-        maxHeight: 220,
-      }}
-    >
+    <pre style={{ margin: 0, background: c.bg, border: `1px solid ${c.borderSoft}`, borderRadius: 8, padding: 12, fontFamily: MONO, fontSize: 11.5, color: c.dim, overflow: "auto", maxHeight: 220 }}>
       {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
     </pre>
   );
@@ -368,10 +377,7 @@ function Inspector({ op, path, method, c, onClose, screens }: { op: ApiOperation
   const usedBy = op["x-screens"] || [];
 
   return (
-    <aside
-      className="flex h-full flex-col"
-      style={{ width: 400, borderLeft: `1px solid ${c.border}`, background: c.panel }}
-    >
+    <aside className="flex h-full flex-col" style={{ width: 400, borderLeft: `1px solid ${c.border}`, background: c.panel }}>
       <div style={{ padding: "14px 16px", borderBottom: `1px solid ${c.border}` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <MethodBadge method={method} c={c} />
@@ -406,24 +412,10 @@ function Inspector({ op, path, method, c, onClose, screens }: { op: ApiOperation
 
       <div style={{ display: "flex", gap: 2, padding: "0 8px", borderBottom: `1px solid ${c.border}` }}>
         {TABS.map((t) => {
-          const count =
-            t === "Params" ? pathQuery.length : t === "Headers" ? headers.length : t === "Responses" ? responses.length : bodyMedia.length;
-          const active = tab === t;
+          const count = t === "Params" ? pathQuery.length : t === "Headers" ? headers.length : t === "Responses" ? responses.length : bodyMedia.length;
+          const activeTab = tab === t;
           return (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              style={{
-                fontFamily: MONO,
-                fontSize: 12,
-                padding: "10px 10px",
-                background: "transparent",
-                border: "none",
-                borderBottom: `2px solid ${active ? c.accent : "transparent"}`,
-                color: active ? c.text : c.faint,
-                cursor: "pointer",
-              }}
-            >
+            <button key={t} onClick={() => setTab(t)} style={{ fontFamily: MONO, fontSize: 12, padding: "10px 10px", background: "transparent", border: "none", borderBottom: `2px solid ${activeTab ? c.accent : "transparent"}`, color: activeTab ? c.text : c.faint, cursor: "pointer" }}>
               {t}
               {count > 0 && <span style={{ color: c.faint, marginLeft: 5 }}>{count}</span>}
             </button>
@@ -434,8 +426,8 @@ function Inspector({ op, path, method, c, onClose, screens }: { op: ApiOperation
       <div style={{ flex: 1, overflow: "auto", padding: 16 }}>
         {tab === "Params" && <ParamTable params={pathQuery} c={c} />}
         {tab === "Headers" && <ParamTable params={headers} c={c} />}
-        {tab === "Body" && (
-          bodyMedia.length === 0 ? (
+        {tab === "Body" &&
+          (bodyMedia.length === 0 ? (
             <div style={{ color: c.faint, fontSize: 12, fontFamily: MONO }}>No request body</div>
           ) : (
             bodyMedia.map(([ct, media]) => (
@@ -448,10 +440,9 @@ function Inspector({ op, path, method, c, onClose, screens }: { op: ApiOperation
                 {media.example !== undefined && <CodeBlock value={media.example} c={c} />}
               </div>
             ))
-          )
-        )}
-        {tab === "Responses" && (
-          responses.length === 0 ? (
+          ))}
+        {tab === "Responses" &&
+          (responses.length === 0 ? (
             <div style={{ color: c.faint, fontSize: 12, fontFamily: MONO }}>None</div>
           ) : (
             responses.map(([code, res]) => {
@@ -474,8 +465,7 @@ function Inspector({ op, path, method, c, onClose, screens }: { op: ApiOperation
                 </div>
               );
             })
-          )
-        )}
+          ))}
       </div>
     </aside>
   );
@@ -498,11 +488,7 @@ function ScreenInspector({ title, ops, c, onClose, onPick }: { title: string; op
           <div style={{ color: c.faint, fontSize: 12, fontFamily: MONO }}>No API calls declared for this screen.</div>
         ) : (
           ops.map((o) => (
-            <button
-              key={o.id}
-              onClick={() => onPick(o.path, o.method)}
-              style={{ display: "block", width: "100%", textAlign: "left", marginBottom: 8, padding: "9px 11px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.card, cursor: "pointer" }}
-            >
+            <button key={o.id} onClick={() => onPick(o.path, o.method)} style={{ display: "block", width: "100%", textAlign: "left", marginBottom: 8, padding: "9px 11px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.card, cursor: "pointer" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                 <MethodBadge method={o.method} c={c} />
                 <span style={{ fontFamily: MONO, fontSize: 12.5, color: c.text }}>{o.path}</span>
@@ -547,25 +533,13 @@ function ExportModal({ api, c, onClose }: { api: ApiDoc; c: DarkTokens; onClose:
     });
   };
   return (
-    <div
-      onClick={onClose}
-      className="absolute inset-0 z-50 flex items-center justify-center p-8"
-      style={{ background: alpha("#000000", 0.6) }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="flex max-h-full w-full max-w-[760px] flex-col overflow-hidden rounded-xl"
-        style={{ background: c.panel, border: `1px solid ${c.border}` }}
-      >
+    <div onClick={onClose} className="absolute inset-0 z-50 flex items-center justify-center p-8" style={{ background: alpha("#000000", 0.6) }}>
+      <div onClick={(e) => e.stopPropagation()} className="flex max-h-full w-full max-w-[760px] flex-col overflow-hidden rounded-xl" style={{ background: c.panel, border: `1px solid ${c.border}` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderBottom: `1px solid ${c.border}` }}>
           <span style={{ fontFamily: MONO, fontSize: 13, color: c.text, flex: 1 }}>Export · OpenAPI 3</span>
           <div style={{ display: "flex", border: `1px solid ${c.border}`, borderRadius: 7, overflow: "hidden" }}>
             {(["yaml", "json"] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFmt(f)}
-                style={{ fontFamily: MONO, fontSize: 11.5, padding: "5px 11px", border: "none", cursor: "pointer", background: fmt === f ? c.accent : "transparent", color: fmt === f ? "#06121b" : c.dim }}
-              >
+              <button key={f} onClick={() => setFmt(f)} style={{ fontFamily: MONO, fontSize: 11.5, padding: "5px 11px", border: "none", cursor: "pointer", background: fmt === f ? c.accent : "transparent", color: fmt === f ? "#06121b" : c.dim }}>
                 {f.toUpperCase()}
               </button>
             ))}
@@ -583,136 +557,241 @@ function ExportModal({ api, c, onClose }: { api: ApiDoc; c: DarkTokens; onClose:
   );
 }
 
+// ── left rail: legend, layer toggles, method filter, route list ───────────────
+function ToggleRow({ on, label, count, onClick, c }: { on: boolean; label: string; count: number; onClick: () => void; c: DarkTokens }) {
+  return (
+    <button onClick={onClick} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "6px 8px", borderRadius: 7, border: "none", background: "transparent", color: on ? c.text : c.faint, cursor: "pointer", fontFamily: MONO, fontSize: 12 }}>
+      {on ? <Eye size={13} /> : <EyeOff size={13} />}
+      <span style={{ flex: 1, textAlign: "left" }}>{label}</span>
+      <span style={{ color: c.faint, fontSize: 11 }}>{count}</span>
+    </button>
+  );
+}
+
+function LeftRail({
+  ops, api, screenCount, hiddenMethods, toggleMethod, showMiddleware, setShowMiddleware, showScreens, setShowScreens, search, setSearch, sel, onPick, c,
+}: {
+  ops: Op[];
+  api: ApiDoc;
+  screenCount: number;
+  hiddenMethods: Set<string>;
+  toggleMethod: (m: string) => void;
+  showMiddleware: boolean;
+  setShowMiddleware: (v: boolean) => void;
+  showScreens: boolean;
+  setShowScreens: (v: boolean) => void;
+  search: string;
+  setSearch: (s: string) => void;
+  sel: Sel;
+  onPick: (path: string, method: HttpMethod) => void;
+  c: DarkTokens;
+}) {
+  const presentMethods = useMemo(() => Array.from(new Set(ops.map((o) => o.method))), [ops]);
+  const q = search.trim().toLowerCase();
+  const listed = ops.filter((o) => !q || o.path.toLowerCase().includes(q) || (o.op.summary || "").toLowerCase().includes(q));
+  const groups = useMemo(() => {
+    const m = new Map<string, Op[]>();
+    listed.forEach((o) => {
+      const tag = o.op.tags?.[0] || "Other";
+      (m.get(tag) || m.set(tag, []).get(tag)!).push(o);
+    });
+    return Array.from(m.entries());
+  }, [listed]);
+  const head = (t: string) => <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: 0.7, color: c.faint, margin: "14px 0 6px" }}>{t}</div>;
+
+  return (
+    <aside className="flex h-full flex-col" style={{ width: 236, borderRight: `1px solid ${c.border}`, background: c.panel }}>
+      <div style={{ flex: 1, overflow: "auto", padding: "10px 12px" }}>
+        {head("LAYERS")}
+        <ToggleRow on={showMiddleware} label="Middleware" count={(api["x-middleware"] || []).length} onClick={() => setShowMiddleware(!showMiddleware)} c={c} />
+        <ToggleRow on={showScreens} label="Screens" count={screenCount} onClick={() => setShowScreens(!showScreens)} c={c} />
+
+        {head("METHODS")}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {presentMethods.map((m) => {
+            const col = methodColor(m, c);
+            const off = hiddenMethods.has(m);
+            return (
+              <button key={m} onClick={() => toggleMethod(m)} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontFamily: MONO, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 5, cursor: "pointer", color: off ? c.faint : col, background: off ? "transparent" : alpha(col, 0.14), border: `1px solid ${off ? c.borderSoft : alpha(col, 0.4)}`, opacity: off ? 0.55 : 1 }}>
+                {m.toUpperCase()}
+              </button>
+            );
+          })}
+        </div>
+
+        {head("ROUTES")}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, background: c.bg, border: `1px solid ${c.border}`, borderRadius: 7, padding: "5px 8px", marginBottom: 8 }}>
+          <Search size={12} color={c.faint} />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Filter routes…" style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", outline: "none", color: c.text, fontFamily: MONO, fontSize: 11.5 }} />
+        </div>
+        {groups.map(([tag, list]) => (
+          <div key={tag} style={{ marginBottom: 8 }}>
+            <div style={{ fontFamily: MONO, fontSize: 10, color: c.faint, margin: "6px 2px 4px" }}>{tag}</div>
+            {list.map((o) => {
+              const on = sel?.kind === "route" && sel.path === o.path && sel.method === o.method;
+              return (
+                <button key={o.id} onClick={() => onPick(o.path, o.method)} style={{ display: "flex", alignItems: "center", gap: 7, width: "100%", textAlign: "left", padding: "6px 8px", borderRadius: 7, border: "none", background: on ? alpha(c.accent, 0.12) : "transparent", cursor: "pointer", marginBottom: 1 }}>
+                  <MethodBadge method={o.method} c={c} />
+                  <span style={{ fontFamily: MONO, fontSize: 11.5, color: on ? c.text : c.dim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.path}</span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+        {listed.length === 0 && <div style={{ color: c.faint, fontFamily: MONO, fontSize: 11, padding: "6px 2px" }}>No matches.</div>}
+      </div>
+    </aside>
+  );
+}
+
 // ── the tab ───────────────────────────────────────────────────────────────────
 type Sel = { kind: "route"; path: string; method: HttpMethod } | { kind: "screen"; id: string } | null;
 
 export function FlowTab({ api, screens }: { api: ApiDoc; screens: Screen[] }) {
   const { c } = useTheme();
   const [showScreens, setShowScreens] = useState(true);
-  const { nodes: laidNodes, edges: laidEdges } = useMemo(
-    () => buildGraph(api, screens, showScreens, c),
-    [api, screens, showScreens, c]
-  );
-  const [nodes, setNodes, onNodesChange] = useNodesState(laidNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(laidEdges);
+  const [showMiddleware, setShowMiddleware] = useState(true);
+  const [hiddenMethods, setHiddenMethods] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState("");
   const [sel, setSel] = useState<Sel>(null);
   const [exporting, setExporting] = useState(false);
+  const instRef = useRef<ReactFlowInstance | null>(null);
+
+  const opts = useMemo<GraphOpts>(() => ({ showScreens, showMiddleware, hiddenMethods }), [showScreens, showMiddleware, hiddenMethods]);
+  const { nodes: laidNodes, edges: laidEdges } = useMemo(() => buildGraph(api, screens, opts, c), [api, screens, opts, c]);
+  const [nodes, setNodes, onNodesChange] = useNodesState(laidNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(laidEdges);
 
   useEffect(() => {
     setNodes(laidNodes);
     setEdges(laidEdges);
   }, [laidNodes, laidEdges, setNodes, setEdges]);
 
-  const ops = useMemo(() => flattenOps(api), [api]);
+  const allOps = useMemo(() => flattenOps(api), [api]);
   const titleOf = useMemo(() => new Map(screens.map((s) => [s.id, s.title || s.id])), [screens]);
-  const screenCount = useMemo(() => new Set(ops.flatMap((o) => o.op["x-screens"] || [])).size, [ops]);
+  const screenCount = useMemo(() => new Set(allOps.flatMap((o) => o.op["x-screens"] || [])).size, [allOps]);
   const sig = useMemo(
-    () => ops.map((o) => o.id).join("|") + "#" + (api["x-middleware"] || []).length + (showScreens ? `+S${screenCount}` : ""),
-    [ops, api, showScreens, screenCount]
+    () => laidNodes.map((n) => n.id).join("|") + `#${showScreens ? "S" : ""}${showMiddleware ? "M" : ""}`,
+    [laidNodes, showScreens, showMiddleware]
   );
 
-  // keep a route selection valid as the model changes
   useEffect(() => {
-    if (sel?.kind === "route" && !ops.some((o) => o.path === sel.path && o.method === sel.method)) setSel(null);
-  }, [ops, sel]);
+    if (sel?.kind === "route" && !allOps.some((o) => o.path === sel.path && o.method === sel.method)) setSel(null);
+  }, [allOps, sel]);
 
-  const selectedOp = sel?.kind === "route" ? ops.find((o) => o.path === sel.path && o.method === sel.method) : undefined;
-  const screenOps = sel?.kind === "screen" ? ops.filter((o) => (o.op["x-screens"] || []).includes(sel.id)) : [];
+  const selectedOp = sel?.kind === "route" ? allOps.find((o) => o.path === sel.path && o.method === sel.method) : undefined;
+  const screenOps = sel?.kind === "screen" ? allOps.filter((o) => (o.op["x-screens"] || []).includes(sel.id)) : [];
 
-  if (!ops.length) {
+  const focusRoute = (path: string, method: HttpMethod) => {
+    setSel({ kind: "route", path, method });
+    const id = `${method.toUpperCase()} ${path}`;
+    const n = nodes.find((x) => x.id === id);
+    if (n && instRef.current) instRef.current.setCenter(n.position.x + ROUTE_W / 2, n.position.y + ROUTE_H / 2, { zoom: 1.15, duration: 450 });
+  };
+  const toggleMethod = (m: string) =>
+    setHiddenMethods((prev) => {
+      const next = new Set(prev);
+      next.has(m) ? next.delete(m) : next.add(m);
+      return next;
+    });
+
+  if (!allOps.length) {
     return (
       <div className="flex h-full w-full items-center justify-center">
         <div className="flex flex-col items-center gap-2.5 text-center" style={{ color: c.faint, fontFamily: MONO }}>
           <Layers size={28} />
-          <div className="max-w-[300px] text-[13px] leading-relaxed">
-            No API routes yet — they appear here (OpenAPI 3) as the AI designs the endpoints.
-          </div>
+          <div className="max-w-[300px] text-[13px] leading-relaxed">No API routes yet — they appear here (OpenAPI 3) as the AI designs the endpoints.</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-full w-full">
-      <div className="relative min-w-0 flex-1">
-        <ReactFlow
-          key={sig}
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onNodeClick={(_, n) => {
-            if (n.type === "route") {
-              const d = n.data as RouteData;
-              setSel({ kind: "route", path: d.path, method: d.method as HttpMethod });
-            } else if (n.type === "screen") {
-              setSel({ kind: "screen", id: (n.data as { id: string }).id });
-            }
-          }}
-          onPaneClick={() => setSel(null)}
-          nodeTypes={nodeTypes}
-          colorMode="dark"
-          fitView
-          fitViewOptions={{ padding: 0.2 }}
-          minZoom={0.2}
-          maxZoom={1.8}
-          nodesConnectable={false}
-          proOptions={{ hideAttribution: true }}
-          style={{ background: c.bg }}
-        >
-          <Background color={c.border} gap={22} size={1} />
-          <Controls showInteractive={false} style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 8, overflow: "hidden" }} />
-          <MiniMap
-            pannable
-            zoomable
-            nodeColor={(n) => (n.type === "route" ? methodColor((n.data as RouteData).method, c) : n.type === "screen" ? c.accent : c.dim)}
-            maskColor={alpha(c.bg, 0.6)}
-            style={{ background: c.panel, border: `1px solid ${c.border}`, borderRadius: 8 }}
-          />
-        </ReactFlow>
-
-        <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
-          <span style={{ fontFamily: MONO, fontSize: 11, color: c.faint }}>
-            {ops.length} routes · {(api["x-middleware"] || []).length} middleware{screenCount > 0 ? ` · ${screenCount} screens` : ""}
-          </span>
-          {screenCount > 0 && (
-            <button
-              onClick={() => {
-                setShowScreens((s) => {
-                  const next = !s;
-                  if (!next && sel?.kind === "screen") setSel(null);
-                  return next;
-                });
-              }}
-              title="Toggle the screen → API layer"
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: MONO, fontSize: 11.5, padding: "6px 11px", borderRadius: 8, border: `1px solid ${showScreens ? alpha(c.accent, 0.5) : c.border}`, background: showScreens ? alpha(c.accent, 0.14) : c.card, color: showScreens ? c.accent : c.dim, cursor: "pointer" }}
-            >
-              {showScreens ? <Eye size={13} /> : <EyeOff size={13} />} Screens
-            </button>
-          )}
-          <button
-            onClick={() => setExporting(true)}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: MONO, fontSize: 11.5, padding: "6px 11px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.card, color: c.text, cursor: "pointer" }}
-          >
-            <Download size={13} /> Export OpenAPI 3
-          </button>
-        </div>
-
-        {exporting && <ExportModal api={api} c={c} onClose={() => setExporting(false)} />}
+    <div className="flex h-full w-full flex-col">
+      {/* top toolbar */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 14px", height: 46, borderBottom: `1px solid ${c.border}`, background: c.panel, flexShrink: 0 }}>
+        <Layers size={15} color={c.accent} />
+        <span style={{ fontFamily: MONO, fontSize: 13, color: c.text }}>{api.info?.title || "API"}</span>
+        {api.info?.version && <span style={{ fontFamily: MONO, fontSize: 10.5, color: c.faint, background: c.panel2, border: `1px solid ${c.borderSoft}`, borderRadius: 5, padding: "1px 6px" }}>v{api.info.version}</span>}
+        <span style={{ fontFamily: MONO, fontSize: 11, color: c.faint, marginLeft: 4 }}>
+          {allOps.length} routes · {(api["x-middleware"] || []).length} middleware{screenCount > 0 ? ` · ${screenCount} screens` : ""}
+        </span>
+        <div style={{ flex: 1 }} />
+        <button onClick={() => instRef.current?.fitView({ padding: 0.2, duration: 400 })} title="Fit to view" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: MONO, fontSize: 11.5, padding: "6px 10px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.card, color: c.dim, cursor: "pointer" }}>
+          <Maximize2 size={13} /> Fit
+        </button>
+        <button onClick={() => setExporting(true)} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: MONO, fontSize: 11.5, padding: "6px 11px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.card, color: c.text, cursor: "pointer" }}>
+          <Download size={13} /> Export OpenAPI 3
+        </button>
       </div>
 
-      {selectedOp && sel?.kind === "route" && (
-        <Inspector op={selectedOp.op} path={sel.path} method={sel.method} c={c} screens={screens} onClose={() => setSel(null)} />
-      )}
-      {sel?.kind === "screen" && (
-        <ScreenInspector
-          title={titleOf.get(sel.id) || sel.id}
-          ops={screenOps}
+      <div className="flex min-h-0 flex-1">
+        <LeftRail
+          ops={allOps}
+          api={api}
+          screenCount={screenCount}
+          hiddenMethods={hiddenMethods}
+          toggleMethod={toggleMethod}
+          showMiddleware={showMiddleware}
+          setShowMiddleware={setShowMiddleware}
+          showScreens={showScreens}
+          setShowScreens={(v) => {
+            if (!v && sel?.kind === "screen") setSel(null);
+            setShowScreens(v);
+          }}
+          search={search}
+          setSearch={setSearch}
+          sel={sel}
+          onPick={focusRoute}
           c={c}
-          onClose={() => setSel(null)}
-          onPick={(path, method) => setSel({ kind: "route", path, method })}
         />
-      )}
+
+        <div className="relative min-w-0 flex-1">
+          <ReactFlow
+            key={sig}
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onInit={(inst) => {
+              instRef.current = inst;
+            }}
+            onNodeClick={(_, n) => {
+              if (n.type === "route") {
+                const d = n.data as RouteData;
+                setSel({ kind: "route", path: d.path, method: d.method as HttpMethod });
+              } else if (n.type === "screen") {
+                setSel({ kind: "screen", id: (n.data as { id: string }).id });
+              }
+            }}
+            onPaneClick={() => setSel(null)}
+            nodeTypes={nodeTypes}
+            colorMode="dark"
+            fitView
+            fitViewOptions={{ padding: 0.2 }}
+            minZoom={0.2}
+            maxZoom={1.8}
+            nodesConnectable={false}
+            proOptions={{ hideAttribution: true }}
+            style={{ background: c.bg }}
+          >
+            <Background variant={BackgroundVariant.Dots} color={alpha(c.dim, 0.35)} gap={22} size={1.4} />
+            <Controls showInteractive={false} style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 8, overflow: "hidden" }} />
+            <MiniMap
+              pannable
+              zoomable
+              nodeColor={(n) => (n.type === "route" ? methodColor((n.data as RouteData).method, c) : n.type === "screen" ? c.accent : c.dim)}
+              maskColor={alpha(c.bg, 0.6)}
+              style={{ background: c.panel, border: `1px solid ${c.border}`, borderRadius: 8 }}
+            />
+          </ReactFlow>
+
+          {exporting && <ExportModal api={api} c={c} onClose={() => setExporting(false)} />}
+        </div>
+
+        {selectedOp && sel?.kind === "route" && <Inspector op={selectedOp.op} path={sel.path} method={sel.method} c={c} screens={screens} onClose={() => setSel(null)} />}
+        {sel?.kind === "screen" && <ScreenInspector title={titleOf.get(sel.id) || sel.id} ops={screenOps} c={c} onClose={() => setSel(null)} onPick={focusRoute} />}
+      </div>
     </div>
   );
 }
