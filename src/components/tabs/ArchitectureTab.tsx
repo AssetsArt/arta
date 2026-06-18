@@ -18,7 +18,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import dagre from "@dagrejs/dagre";
 import {
-  Boxes, Cloud, Database, Globe, Inbox, Maximize2, Monitor, Network, Server, ShieldAlert, Gauge, Zap, X,
+  Box, Boxes, Cloud, Database, Globe, Inbox, Maximize2, Monitor, Network, Server, ShieldAlert, Gauge, Zap, X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { Architecture, ArchEdge, ArchKind, ArchNode } from "../../lib/types";
@@ -318,19 +318,23 @@ export function ArchitectureTab({ architecture }: { architecture: Architecture }
             </button>
           ))}
         </div>
-        {(architecture.stack || []).length > 0 && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto", flexWrap: "wrap" }}>
-            {(architecture.stack || []).map((s) => (
-              <span key={s} style={{ fontFamily: MONO, fontSize: 10.5, color: c.dim, background: c.panel2, border: `1px solid ${c.borderSoft}`, borderRadius: 6, padding: "2px 7px" }}>{s}</span>
-            ))}
-          </div>
-        )}
         {view === "diagram" && (
-          <button onClick={() => instRef.current?.fitView({ padding: 0.2, duration: 400 })} style={{ marginLeft: (architecture.stack || []).length ? 0 : "auto", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: MONO, fontSize: 11.5, padding: "6px 10px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.card, color: c.dim, cursor: "pointer" }}>
+          <button onClick={() => instRef.current?.fitView({ padding: 0.2, duration: 400 })} style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: MONO, fontSize: 11.5, padding: "6px 10px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.card, color: c.dim, cursor: "pointer" }}>
             <Maximize2 size={13} /> Fit
           </button>
         )}
       </div>
+
+      {(architecture.stack || []).length > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderBottom: `1px solid ${c.border}`, background: c.panel, flexShrink: 0, overflowX: "auto" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0, fontFamily: MONO, fontSize: 10, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase", color: c.faint }}>
+            <Box size={12} /> Stack
+          </span>
+          {(architecture.stack || []).map((s) => (
+            <span key={s} style={{ flexShrink: 0, fontFamily: MONO, fontSize: 11, color: c.dim, background: c.panel2, border: `1px solid ${c.borderSoft}`, borderRadius: 6, padding: "3px 8px", whiteSpace: "nowrap" }}>{s}</span>
+          ))}
+        </div>
+      )}
 
       {view === "diagram" &&
         (archNodes.length === 0 ? (

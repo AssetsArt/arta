@@ -87,19 +87,22 @@ export function PlanTab({ plan }: { plan: Plan }) {
 
   return (
     <div className="flex h-full w-full flex-col">
-      {/* header: title + tech stack */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 18px", minHeight: 46, borderBottom: `1px solid ${c.border}`, background: c.panel, flexShrink: 0, flexWrap: "wrap" }}>
+      {/* header: title + counts */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 18px", minHeight: 46, borderBottom: `1px solid ${c.border}`, background: c.panel, flexShrink: 0 }}>
         <span style={{ fontFamily: MONO, fontSize: 13, color: c.text }}>Plan</span>
         <span style={{ fontFamily: MONO, fontSize: 11, color: c.faint }}>{milestones.length} milestones · {totalTasks} tasks</span>
-        {(plan.stack || []).length > 0 && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto", flexWrap: "wrap" }}>
-            <Box size={13} color={c.faint} />
-            {(plan.stack || []).map((s) => (
-              <span key={s} style={{ fontFamily: MONO, fontSize: 10.5, color: c.dim, background: c.panel2, border: `1px solid ${c.borderSoft}`, borderRadius: 6, padding: "2px 7px" }}>{s}</span>
-            ))}
-          </div>
-        )}
       </div>
+
+      {(plan.stack || []).length > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 18px", borderBottom: `1px solid ${c.border}`, background: c.panel, flexShrink: 0, overflowX: "auto" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0, fontFamily: MONO, fontSize: 10, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase", color: c.faint }}>
+            <Box size={12} /> Stack
+          </span>
+          {(plan.stack || []).map((s) => (
+            <span key={s} style={{ flexShrink: 0, fontFamily: MONO, fontSize: 11, color: c.dim, background: c.panel2, border: `1px solid ${c.borderSoft}`, borderRadius: 6, padding: "3px 8px", whiteSpace: "nowrap" }}>{s}</span>
+          ))}
+        </div>
+      )}
 
       {/* board */}
       {totalTasks === 0 && milestones.length === 0 ? (

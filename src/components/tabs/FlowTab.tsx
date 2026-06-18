@@ -645,6 +645,114 @@ function LeftRail({
 // ── the tab ───────────────────────────────────────────────────────────────────
 type Sel = { kind: "route"; path: string; method: HttpMethod } | { kind: "screen"; id: string } | null;
 
+type FlowView = "graph" | "endpoints" | "middleware";
+
+function MetaChip({ children, c }: { children: React.ReactNode; c: DarkTokens }) {
+  return (
+    <span style={{ fontFamily: MONO, fontSize: 10.5, color: c.faint, background: c.panel2, border: `1px solid ${c.borderSoft}`, borderRadius: 5, padding: "1px 7px" }}>
+      {children}
+    </span>
+  );
+}
+
+// A readable API reference: routes grouped by tag, each with method, path,
+// summary, middleware and a params/body/responses summary. Clicking a row jumps
+// to the graph and focuses that route.
+function EndpointsView({ ops, c, onPick, setView }: { ops: Op[]; c: DarkTokens; onPick: (p: string, m: HttpMethod) => void; setView: (v: FlowView) => void }) {
+  const groups: Record<string, Op[]> = {};
+  ops.forEach((o) => {
+    const k = o.op.tags?.[0] || "Other";
+    (groups[k] ||= []).push(o);
+  });
+  return (
+    <section style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 24, background: c.bg }}>
+      <div style={{ maxWidth: 960, margin: "0 auto", display: "flex", flexDirection: "column", gap: 22 }}>
+        {Object.entries(groups).map(([tag, list]) => (
+          <div key={tag}>
+            <div style={{ fontFamily: MONO, fontSize: 11, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase", color: c.faint, marginBottom: 10 }}>{tag}</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {list.map((o) => {
+                const mw = o.op["x-middleware"] || [];
+                const params = (o.op.parameters || []).length;
+                const resps = Object.keys(o.op.responses || {}).length;
+                return (
+                  <button
+                    key={o.id}
+                    onClick={() => {
+                      setView("graph");
+                      onPick(o.path, o.method);
+                    }}
+                    style={{ textAlign: "left", display: "flex", flexDirection: "column", gap: 9, border: `1px solid ${c.border}`, borderRadius: 11, background: c.panel, padding: "12px 14px", cursor: "pointer" }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <MethodBadge method={o.method} c={c} />
+                      <span style={{ fontFamily: MONO, fontSize: 13, color: c.text }}>{o.path}</span>
+                      {o.op.summary && <span style={{ fontSize: 12.5, color: c.dim, marginLeft: "auto", textAlign: "right" }}>{o.op.summary}</span>}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      {mw.map((m) => (
+                        <span key={m} style={{ fontFamily: MONO, fontSize: 10.5, color: c.amber, background: alpha(c.amber, 0.12), border: `1px solid ${alpha(c.amber, 0.35)}`, borderRadius: 5, padding: "1px 7px" }}>{m}</span>
+                      ))}
+                      <MetaChip c={c}>{params} params</MetaChip>
+                      {o.op.requestBody && <MetaChip c={c}>body</MetaChip>}
+                      {resps > 0 && <MetaChip c={c}>{resps} responses</MetaChip>}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// Each middleware as a card: name, description, and the routes that run through it.
+function MiddlewareView({ api, ops, c }: { api: ApiDoc; ops: Op[]; c: DarkTokens }) {
+  const declared = api["x-middleware"] || [];
+  if (!declared.length)
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <div className="flex flex-col items-center gap-2.5 text-center" style={{ color: c.faint, fontFamily: MONO }}>
+          <Filter size={26} />
+          <div className="max-w-[300px] text-[13px] leading-relaxed">No middleware declared — auth, rate-limit, CORS and friends appear here as the AI adds them.</div>
+        </div>
+      </div>
+    );
+  return (
+    <section style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 24, background: c.bg }}>
+      <div style={{ maxWidth: 960, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
+        {declared.map((m) => {
+          const users = ops.filter((o) => (o.op["x-middleware"] || []).includes(m.name));
+          return (
+            <div key={m.name} style={{ border: `1px solid ${c.border}`, borderRadius: 12, background: c.panel, overflow: "hidden" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: `1px solid ${c.border}` }}>
+                <span style={{ width: 6, height: 6, borderRadius: 99, background: c.amber }} />
+                <span style={{ fontFamily: MONO, fontSize: 13, fontWeight: 600, color: c.text, flex: 1 }}>{m.name}</span>
+                <span style={{ fontFamily: MONO, fontSize: 11, color: c.faint }}>{users.length} routes</span>
+              </div>
+              {m.description && <p style={{ margin: 0, padding: "12px 16px 0", fontSize: 12.5, color: c.dim, lineHeight: 1.55 }}>{m.description}</p>}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: "12px 16px" }}>
+                {users.length === 0 ? (
+                  <span style={{ fontFamily: MONO, fontSize: 12, color: c.faint }}>not attached to any route</span>
+                ) : (
+                  users.map((o) => (
+                    <span key={o.id} style={{ display: "inline-flex", alignItems: "center", gap: 7, border: `1px solid ${c.border}`, borderRadius: 8, background: c.bg, padding: "4px 8px" }}>
+                      <MethodBadge method={o.method} c={c} />
+                      <span style={{ fontFamily: MONO, fontSize: 12, color: c.text }}>{o.path}</span>
+                    </span>
+                  ))
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export function FlowTab({ api, screens }: { api: ApiDoc; screens: Screen[] }) {
   const { c, mode } = useTheme();
   const [showScreens, setShowScreens] = useState(true);
@@ -653,6 +761,7 @@ export function FlowTab({ api, screens }: { api: ApiDoc; screens: Screen[] }) {
   const [search, setSearch] = useState("");
   const [sel, setSel] = useState<Sel>(null);
   const [exporting, setExporting] = useState(false);
+  const [view, setView] = useState<FlowView>("graph");
   const instRef = useRef<ReactFlowInstance | null>(null);
 
   const opts = useMemo<GraphOpts>(() => ({ showScreens, showMiddleware, hiddenMethods }), [showScreens, showMiddleware, hiddenMethods]);
@@ -693,6 +802,12 @@ export function FlowTab({ api, screens }: { api: ApiDoc; screens: Screen[] }) {
       return next;
     });
 
+  const seg: { id: FlowView; label: string; n?: number }[] = [
+    { id: "graph", label: "Graph" },
+    { id: "endpoints", label: "Endpoints", n: allOps.length },
+    { id: "middleware", label: "Middleware", n: (api["x-middleware"] || []).length },
+  ];
+
   if (!allOps.length) {
     return (
       <div className="flex h-full w-full items-center justify-center">
@@ -714,15 +829,26 @@ export function FlowTab({ api, screens }: { api: ApiDoc; screens: Screen[] }) {
         <span style={{ fontFamily: MONO, fontSize: 11, color: c.faint, marginLeft: 4 }}>
           {allOps.length} routes · {(api["x-middleware"] || []).length} middleware{screenCount > 0 ? ` · ${screenCount} screens` : ""}
         </span>
+        <div style={{ display: "flex", gap: 2, background: c.panel2, border: `1px solid ${c.borderSoft}`, borderRadius: 8, padding: 2, marginLeft: 6 }}>
+          {seg.map((s) => (
+            <button key={s.id} onClick={() => setView(s.id)} style={{ fontFamily: MONO, fontSize: 11.5, padding: "5px 11px", borderRadius: 6, border: "none", cursor: "pointer", background: view === s.id ? c.card : "transparent", color: view === s.id ? c.text : c.dim }}>
+              {s.label}
+              {s.n ? <span style={{ color: c.faint, marginLeft: 5 }}>{s.n}</span> : ""}
+            </button>
+          ))}
+        </div>
         <div style={{ flex: 1 }} />
-        <button onClick={() => instRef.current?.fitView({ padding: 0.2, duration: 400 })} title="Fit to view" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: MONO, fontSize: 11.5, padding: "6px 10px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.card, color: c.dim, cursor: "pointer" }}>
-          <Maximize2 size={13} /> Fit
-        </button>
+        {view === "graph" && (
+          <button onClick={() => instRef.current?.fitView({ padding: 0.2, duration: 400 })} title="Fit to view" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: MONO, fontSize: 11.5, padding: "6px 10px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.card, color: c.dim, cursor: "pointer" }}>
+            <Maximize2 size={13} /> Fit
+          </button>
+        )}
         <button onClick={() => setExporting(true)} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: MONO, fontSize: 11.5, padding: "6px 11px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.card, color: c.text, cursor: "pointer" }}>
           <Download size={13} /> Export OpenAPI 3
         </button>
       </div>
 
+      {view === "graph" && (
       <div className="flex min-h-0 flex-1">
         <LeftRail
           ops={allOps}
@@ -783,13 +909,15 @@ export function FlowTab({ api, screens }: { api: ApiDoc; screens: Screen[] }) {
               style={{ background: c.panel, border: `1px solid ${c.border}`, borderRadius: 8 }}
             />
           </ReactFlow>
-
-          {exporting && <ExportModal api={api} c={c} onClose={() => setExporting(false)} />}
         </div>
 
         {selectedOp && sel?.kind === "route" && <Inspector op={selectedOp.op} path={sel.path} method={sel.method} c={c} screens={screens} onClose={() => setSel(null)} />}
         {sel?.kind === "screen" && <ScreenInspector title={titleOf.get(sel.id) || sel.id} ops={screenOps} c={c} onClose={() => setSel(null)} onPick={focusRoute} />}
       </div>
+      )}
+      {view === "endpoints" && <EndpointsView ops={allOps} c={c} onPick={focusRoute} setView={setView} />}
+      {view === "middleware" && <MiddlewareView api={api} ops={allOps} c={c} />}
+      {exporting && <ExportModal api={api} c={c} onClose={() => setExporting(false)} />}
     </div>
   );
 }
