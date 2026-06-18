@@ -55,7 +55,7 @@ export function StateDrawer({
           </span>
           <button
             onClick={onClose}
-            className="ml-auto flex rounded-md p-1 transition-colors hover:bg-white/[0.06]"
+            className="ml-auto flex rounded-md p-1 transition-opacity hover:opacity-70"
             style={{ color: c.dim }}
           >
             <X size={17} />
@@ -81,19 +81,19 @@ export function StateDrawer({
         <div className="flex justify-end gap-2.5 border-t px-[18px] py-[13px]" style={{ borderColor: c.border }}>
           <button
             onClick={onClose}
-            className="h-[38px] rounded-lg px-4 text-[13px] font-medium transition-colors hover:bg-white/[0.05]"
-            style={{ border: `1px solid ${c.border}`, background: "transparent", color: c.dim }}
+            className="h-[38px] rounded-lg px-4 text-[13px] font-medium transition-opacity hover:opacity-80"
+            style={{ border: `1px solid ${c.border2}`, background: c.bg, color: c.dim }}
           >
             Cancel
           </button>
           <button
             onClick={apply}
             className="inline-flex h-[38px] items-center gap-[7px] rounded-lg px-[18px] text-[13px] font-semibold transition-colors"
-            style={{ border: `1px solid ${c.accent}`, background: c.accent, color: "#09090b" }}
+            style={{ border: `1px solid ${c.accent}`, background: c.accent, color: "#ffffff" }}
             onMouseEnter={(e) => (e.currentTarget.style.background = alpha(c.accent, 0.85))}
             onMouseLeave={(e) => (e.currentTarget.style.background = c.accent)}
           >
-            <Check size={15} color="#09090b" />
+            <Check size={15} color="#ffffff" />
             Apply
           </button>
         </div>

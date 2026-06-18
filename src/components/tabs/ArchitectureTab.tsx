@@ -70,7 +70,7 @@ function ArchNodeView({ data, selected }: NodeProps<ArchFlowNode>) {
         fontFamily: MONO,
         background: c.card,
         border: `1px solid ${selected ? col : active ? alpha(col, 0.6) : c.border}`,
-        boxShadow: selected ? `0 0 0 1px ${col}, 0 10px 26px ${alpha(col, 0.2)}` : active ? "0 8px 20px rgba(0,0,0,0.4)" : "0 1px 2px rgba(0,0,0,0.4)",
+        boxShadow: selected ? `0 0 0 1px ${col}, 0 10px 26px ${alpha(col, 0.2)}` : c.shadow,
         transform: active ? "translateY(-1px)" : "none",
         transition: "box-shadow .14s ease, transform .14s ease, border-color .14s ease",
         cursor: "pointer",
@@ -277,7 +277,7 @@ function Muted({ c, text }: { c: DarkTokens; text: string }) {
 type View = "diagram" | "decisions" | "security";
 
 export function ArchitectureTab({ architecture }: { architecture: Architecture }) {
-  const { c } = useTheme();
+  const { c, mode } = useTheme();
   const [view, setView] = useState<View>("diagram");
   const { nodes: laidNodes, edges: laidEdges } = useMemo(() => buildGraph(architecture, c), [architecture, c]);
   const [nodes, setNodes, onNodesChange] = useNodesState<ArchFlowNode>(laidNodes);
@@ -348,7 +348,7 @@ export function ArchitectureTab({ architecture }: { architecture: Architecture }
                 onNodeClick={(_, n) => setSelId(n.id)}
                 onPaneClick={() => setSelId(null)}
                 nodeTypes={nodeTypes}
-                colorMode="dark"
+                colorMode={mode}
                 fitView
                 fitViewOptions={{ padding: 0.2 }}
                 minZoom={0.2}

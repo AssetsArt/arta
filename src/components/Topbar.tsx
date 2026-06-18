@@ -1,63 +1,70 @@
 import { useState } from "react";
-import { Check, Layout, SlidersHorizontal } from "lucide-react";
+import { Check, Moon, Sun, SlidersHorizontal } from "lucide-react";
 import type { Meta, Phase } from "../lib/types";
 import { TAB_ORDER, normalizePhase } from "../lib/types";
 import { MONO, useTheme, ACCENT_PRESETS } from "../lib/theme";
-import { alpha } from "../lib/utils";
 
 const STEP_LABEL: Record<Phase, string> = {
   prototype: "Prototype",
   data: "Data",
   flow: "Flow",
-  architecture: "Arch",
+  architecture: "Architecture",
   plan: "Plan",
 };
 
 export function Topbar({ meta, setTab }: { meta: Meta; setTab: (t: Phase) => void }) {
-  const { c } = useTheme();
+  const { c, mode, toggleMode } = useTheme();
   const curIdx = Math.max(0, TAB_ORDER.indexOf(normalizePhase(meta.phase)));
 
   return (
     <div
-      className="flex h-14 shrink-0 items-center gap-4 border-b px-4"
-      style={{ borderColor: c.border, background: c.bg }}
+      className="flex h-12 shrink-0 items-center gap-[14px] px-[14px]"
+      style={{ borderBottom: `1px solid ${c.border}`, background: c.bg }}
     >
-      <div className="flex items-center gap-[11px]">
+      <div className="flex items-center gap-[9px] whitespace-nowrap">
         <div
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
-          style={{ background: c.accent }}
+          className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md text-[13px] font-bold"
+          style={{ background: c.invBg, color: c.invFg, letterSpacing: "-0.5px" }}
         >
-          <Layout size={16} color="#09090b" />
+          H
         </div>
-        <div className="flex flex-col whitespace-nowrap leading-[1.2]">
-          <span className="text-[14px] font-semibold tracking-[-0.2px]" style={{ color: c.text }}>
-            Harness Studio
-          </span>
-          <span className="text-[10.5px]" style={{ fontFamily: MONO, color: c.faint }}>
-            {meta.name}
-          </span>
-        </div>
+        <span className="text-[14px] font-semibold tracking-[-0.2px]" style={{ color: c.text }}>
+          Harness&nbsp;Studio
+        </span>
+        <span style={{ color: c.borderStrong }}>/</span>
+        <span className="text-[14px] font-medium" style={{ color: c.dim }}>
+          {meta.name}
+        </span>
       </div>
 
       <div className="flex flex-1 justify-center">
         <Stepper curIdx={curIdx} setTab={setTab} />
       </div>
 
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2">
         <Settings />
+        <button
+          onClick={toggleMode}
+          className="flex h-7 items-center gap-1.5 rounded-[7px] px-[9px] text-[12px]"
+          style={{ border: `1px solid ${c.border2}`, background: c.panel, color: c.dim }}
+          title="Toggle theme"
+        >
+          {mode === "dark" ? <Moon size={13} /> : <Sun size={13} />}
+          <span>{mode === "dark" ? "Dark" : "Light"}</span>
+        </button>
         <div
-          className="flex items-center gap-[7px] rounded-full py-1 pl-[9px] pr-2.5"
-          style={{ border: `1px solid ${alpha(c.accent, 0.3)}`, background: alpha(c.accent, 0.08) }}
+          className="flex h-7 items-center gap-[7px] rounded-[7px] pl-2 pr-2.5"
+          style={{ border: `1px solid ${c.border2}`, background: c.panel }}
         >
           <span
-            className="hs-pulse h-[7px] w-[7px] rounded-full"
-            style={{ background: c.accent, boxShadow: `0 0 8px ${c.accent}` }}
+            className="h-[7px] w-[7px] rounded-full"
+            style={{ background: c.green, animation: "livePulse 2.2s ease-out infinite" }}
           />
-          <span
-            className="text-[10.5px] font-medium tracking-[1px]"
-            style={{ fontFamily: MONO, color: c.accent }}
-          >
+          <span className="text-[11px] font-semibold tracking-[0.4px]" style={{ color: c.text }}>
             LIVE
+          </span>
+          <span className="text-[11px]" style={{ fontFamily: MONO, color: c.faint }}>
+            agent
           </span>
         </div>
       </div>
@@ -72,29 +79,34 @@ function Stepper({ curIdx, setTab }: { curIdx: number; setTab: (t: Phase) => voi
       {TAB_ORDER.map((key, i) => {
         const done = i < curIdx;
         const active = i === curIdx;
-        const col = done ? c.green : active ? c.accent : c.faint;
         return (
           <div key={key} className="flex items-center">
             <button
               onClick={() => setTab(key)}
-              className="flex cursor-pointer items-center gap-2 rounded-[7px] px-1.5 py-1 transition-colors hover:bg-white/[0.04]"
+              className="flex cursor-pointer items-center gap-[7px]"
             >
               <span
-                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold"
-                style={{
-                  fontFamily: MONO,
-                  color: active ? "#09090b" : col,
-                  background: active ? c.accent : done ? alpha(c.green, 0.15) : "transparent",
-                  border: `1px solid ${active ? c.accent : done ? alpha(c.green, 0.45) : c.border}`,
-                }}
+                className="flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-full text-[9.5px] font-bold"
+                style={
+                  done
+                    ? { background: c.invBg, color: c.invFg }
+                    : active
+                      ? {
+                          background: c.accentSoft,
+                          border: `1.5px solid ${c.accent}`,
+                          color: c.accent2,
+                          boxShadow: `0 0 10px ${c.accentSoft}`,
+                        }
+                      : { border: `1px solid ${c.borderStrong}`, color: c.faint }
+                }
               >
-                {done ? <Check size={12} color={c.green} /> : i + 1}
+                {done ? <Check size={11} /> : i + 1}
               </span>
               <span
-                className="text-[12.5px]"
+                className="text-[12px]"
                 style={{
                   fontWeight: active ? 600 : 500,
-                  color: active ? c.text : done ? c.dim : c.faint,
+                  color: active || done ? c.text : c.faint,
                 }}
               >
                 {STEP_LABEL[key]}
@@ -102,8 +114,8 @@ function Stepper({ curIdx, setTab }: { curIdx: number; setTab: (t: Phase) => voi
             </button>
             {i < TAB_ORDER.length - 1 && (
               <span
-                className="mx-[3px] h-px w-[22px]"
-                style={{ background: i < curIdx ? alpha(c.green, 0.4) : c.border }}
+                className="mx-[9px] h-px w-[22px]"
+                style={{ background: i < curIdx ? c.faint : c.border2 }}
               />
             )}
           </div>
@@ -130,8 +142,8 @@ function Settings() {
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div
-            className="absolute right-0 z-20 mt-2 w-56 rounded-xl p-3.5 shadow-2xl"
-            style={{ background: c.panel, border: `1px solid ${c.border}` }}
+            className="absolute right-0 z-20 mt-2 w-56 rounded-xl p-3.5"
+            style={{ background: c.panel, border: `1px solid ${c.border2}`, boxShadow: c.shadow }}
           >
             <div
               className="mb-2.5 text-[9.5px] font-medium uppercase tracking-[0.6px]"
@@ -161,11 +173,11 @@ function Settings() {
               <span>Canvas grid</span>
               <span
                 className="flex h-[18px] w-8 items-center rounded-full px-0.5 transition-colors"
-                style={{ background: grid ? c.accent : c.border }}
+                style={{ background: grid ? c.accent : c.borderStrong }}
               >
                 <span
-                  className="h-3.5 w-3.5 rounded-full bg-white transition-transform"
-                  style={{ transform: grid ? "translateX(13px)" : "translateX(0)" }}
+                  className="h-3.5 w-3.5 rounded-full transition-transform"
+                  style={{ background: "#fff", transform: grid ? "translateX(13px)" : "translateX(0)" }}
                 />
               </span>
             </button>

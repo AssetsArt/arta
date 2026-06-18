@@ -84,9 +84,13 @@ export function PrototypeTab({
                 onClick={() => go(sc.id)}
                 className={cn(
                   "flex items-center gap-[9px] rounded-[7px] px-2.5 py-2 text-[13px] transition-colors",
-                  !active && "hover:bg-white/[0.04]"
+                  !active && "hover:opacity-80"
                 )}
-                style={{ color: active ? c.text : c.dim, background: active ? c.panel2 : "transparent" }}
+                style={{
+                  color: active ? c.text : c.dim,
+                  background: active ? c.card : "transparent",
+                  boxShadow: active ? `inset 0 0 0 1px ${c.border2}` : "none",
+                }}
               >
                 <AppWindow size={15} color={active ? c.accent : c.faint} />
                 <span className="overflow-hidden text-ellipsis whitespace-nowrap">{sc.title}</span>
@@ -135,8 +139,8 @@ export function PrototypeTab({
         )}
         style={{
           background: c.bg,
-          backgroundImage: grid ? `radial-gradient(${alpha("#ffffff", 0.06)} 1px, transparent 1px)` : "none",
-          backgroundSize: "24px 24px",
+          backgroundImage: grid ? `radial-gradient(${c.gridDot} 1px, transparent 1px)` : "none",
+          backgroundSize: "22px 22px",
         }}
       >
         {freeform && (
@@ -147,9 +151,9 @@ export function PrototypeTab({
             }}
             className="absolute right-4 top-4 z-10 flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors"
             style={{
-              color: annotate ? "#09090b" : c.dim,
-              background: annotate ? c.accent : c.panel2,
-              border: `1px solid ${annotate ? c.accent : c.border}`,
+              color: annotate ? c.accent2 : c.dim,
+              background: annotate ? c.accentSoft : c.panel,
+              border: `1px solid ${annotate ? c.accent : c.border2}`,
             }}
             title="Click an element to comment on it"
           >
@@ -282,7 +286,7 @@ function AnnotationComposer({
         <button
           onClick={submit}
           className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-semibold"
-          style={{ background: c.accent, color: "#09090b" }}
+          style={{ background: c.invBg, color: c.invFg }}
         >
           <Send size={12} />
           Send

@@ -80,7 +80,7 @@ export function SpecRail({
         </span>
         <button
           onClick={onToggle}
-          className="ml-auto flex rounded-[5px] p-0.5 transition-colors hover:bg-white/[0.06]"
+          className="ml-auto flex rounded-[5px] p-0.5 transition-opacity hover:opacity-70"
           style={{ color: c.faint }}
         >
           <ChevronRight size={16} />

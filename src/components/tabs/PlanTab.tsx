@@ -22,17 +22,16 @@ function priorityColor(p: TaskPriority | undefined, c: DarkTokens): string | nul
   }
 }
 
-function TaskCard({ task, columnColor, c }: { task: Task; columnColor: string; c: DarkTokens }) {
+function TaskCard({ task, c }: { task: Task; c: DarkTokens }) {
   const pri = priorityColor(task.priority, c);
   return (
     <div
       style={{
         background: c.card,
-        border: `1px solid ${c.border}`,
-        borderLeft: `3px solid ${columnColor}`,
-        borderRadius: 8,
+        border: `1px solid ${c.border2}`,
+        borderRadius: 9,
         padding: "9px 11px",
-        boxShadow: "0 1px 2px rgba(0,0,0,0.35)",
+        boxShadow: c.shadow,
       }}
     >
       <div style={{ display: "flex", alignItems: "flex-start", gap: 7 }}>
@@ -64,14 +63,13 @@ function Swimlane({ milestone, statuses, c }: { milestone: Milestone; statuses: 
       </div>
       <div style={{ display: "flex", gap: 12 }}>
         {statuses.map((s) => {
-          const col = s.color || c.dim;
           const cards = tasks.filter((t) => t.status === s.id);
           return (
             <div key={s.id} style={{ width: COL_W, flexShrink: 0, display: "flex", flexDirection: "column", gap: 8 }}>
               {cards.length === 0 ? (
                 <div style={{ border: `1px dashed ${c.borderSoft}`, borderRadius: 8, padding: "10px 11px", fontFamily: MONO, fontSize: 11, color: c.faint }}>—</div>
               ) : (
-                cards.map((t, i) => <TaskCard key={i} task={t} columnColor={col} c={c} />)
+                cards.map((t, i) => <TaskCard key={i} task={t} c={c} />)
               )}
             </div>
           );
@@ -120,7 +118,7 @@ export function PlanTab({ plan }: { plan: Plan }) {
                 const col = s.color || c.dim;
                 const count = milestones.reduce((n, m) => n + (m.tasks || []).filter((t) => t.status === s.id).length, 0);
                 return (
-                  <div key={s.id} style={{ width: COL_W, flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: c.panel2, border: `1px solid ${c.borderSoft}`, borderTop: `2px solid ${col}` }}>
+                  <div key={s.id} style={{ width: COL_W, flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: c.panel2, border: `1px solid ${c.border2}` }}>
                     <span style={{ width: 8, height: 8, borderRadius: 99, background: col }} />
                     <span style={{ fontFamily: MONO, fontSize: 12, fontWeight: 600, color: c.text, flex: 1 }}>{s.name}</span>
                     <span style={{ fontFamily: MONO, fontSize: 11, color: c.faint }}>{count}</span>

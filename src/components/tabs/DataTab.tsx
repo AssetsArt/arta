@@ -45,7 +45,7 @@ function EntityNodeView({ data }: NodeProps<EntityNode>) {
         borderRadius: 10,
         overflow: "hidden",
         fontFamily: MONO,
-        boxShadow: "0 1px 2px rgba(0,0,0,0.4)",
+        boxShadow: c.shadow,
       }}
     >
       <Handle type="target" position={Position.Left} style={handle} />
@@ -153,7 +153,7 @@ function buildGraph(dm: DataModel, c: DarkTokens): { nodes: EntityNode[]; edges:
 }
 
 export function DataTab({ dataModel }: { dataModel: DataModel }) {
-  const { c } = useTheme();
+  const { c, mode } = useTheme();
   const { nodes: laidNodes, edges: laidEdges } = useMemo(() => buildGraph(dataModel, c), [dataModel, c]);
   const [nodes, setNodes, onNodesChange] = useNodesState<EntityNode>(laidNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(laidEdges);
@@ -196,7 +196,7 @@ export function DataTab({ dataModel }: { dataModel: DataModel }) {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
-        colorMode="dark"
+        colorMode={mode}
         fitView
         fitViewOptions={{ padding: 0.2 }}
         minZoom={0.2}

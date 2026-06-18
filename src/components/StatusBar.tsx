@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Braces, History, MessageSquarePlus, Send, SquarePen } from "lucide-react";
 import type { Meta, Phase } from "../lib/types";
 import type { ChangeEntry } from "../lib/useHarness";
-import { MONO, useTheme } from "../lib/theme";
+import { MONO, SANS, useTheme } from "../lib/theme";
 import { sendFeedback } from "../lib/useHarness";
 
 interface Props {
@@ -19,23 +18,25 @@ export function StatusBar({ meta, updatedAt, tab, screen, changes, onEditState, 
   const { c } = useTheme();
   return (
     <div
-      className="flex h-[30px] shrink-0 items-center gap-2.5 border-t px-3.5 text-[11px]"
-      style={{ borderColor: c.border, background: c.bg, fontFamily: MONO, color: c.faint }}
+      className="flex h-[30px] shrink-0 items-center gap-[14px] px-3 text-[11.5px]"
+      style={{ borderTop: `1px solid ${c.border}`, background: c.panel }}
     >
-      <Braces size={13} color={c.dim} />
-      <span>.harness/state.json</span>
-      <span style={{ color: c.border }}>/</span>
-      <span>phase: {meta.phase}</span>
+      <span className="flex items-center gap-[7px]" style={{ fontFamily: MONO, color: c.dim }}>
+        <span className="h-1.5 w-1.5 rounded-full" style={{ background: c.accent }} />
+        .harness/state.json
+      </span>
+      <span style={{ color: c.faint }}>·</span>
+      <span style={{ color: c.faint }}>phase: {meta.phase}</span>
       <div className="ml-auto flex items-center gap-3.5">
+        <span style={{ color: c.faint, fontFamily: MONO }}>updated {updatedAt}</span>
+        <span style={{ color: c.borderStrong }}>|</span>
         <ChangesButton changes={changes} onJump={onJump} />
         <FeedbackButton tab={tab} screen={screen} />
-        <span>updated {updatedAt}</span>
         <button
           onClick={onEditState}
-          className="flex items-center gap-1.5 rounded-[7px] px-2.5 py-1 transition-colors"
-          style={{ color: c.dim, border: `1px solid ${c.border}`, background: c.panel2 }}
+          className="flex h-[22px] items-center gap-1.5 rounded-md px-[9px] transition-colors"
+          style={{ color: c.dim, border: `1px solid ${c.border2}`, background: c.bg }}
         >
-          <SquarePen size={12} />
           Edit state
         </button>
       </div>
@@ -58,51 +59,65 @@ function ChangesButton({ changes, onJump }: { changes: ChangeEntry[]; onJump: (c
     <div className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 rounded-[7px] px-2.5 py-1 transition-colors"
-        style={{ color: open ? c.text : c.dim, border: `1px solid ${c.border}`, background: open ? "#26262b" : c.panel2 }}
+        className="flex h-[22px] items-center gap-[7px] rounded-md px-[9px] transition-colors"
+        style={{
+          color: c.text,
+          border: `1px solid ${open ? c.borderStrong : c.border2}`,
+          background: open ? c.card : c.bg,
+        }}
       >
-        <History size={12} />
+        <span className="h-1.5 w-1.5 rounded-full" style={{ background: c.green }} />
         Changes
-        {changes.length > 0 && (
-          <span
-            className="rounded-full px-1.5 text-[9px] font-semibold"
-            style={{ background: c.accent, color: "#09090b" }}
-          >
-            {changes.length}
-          </span>
-        )}
+        <span style={{ fontFamily: MONO, color: c.faint }}>{changes.length}</span>
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div
-            className="absolute bottom-8 right-0 z-20 max-h-72 w-80 overflow-auto rounded-xl p-2 shadow-2xl"
-            style={{ background: c.panel, border: `1px solid ${c.border}` }}
+            className="hs-pop absolute bottom-8 right-0 z-20 flex max-h-[420px] w-[340px] flex-col overflow-hidden rounded-xl"
+            style={{ background: c.panel, border: `1px solid ${c.border2}`, boxShadow: c.shadow }}
           >
-            {changes.length === 0 ? (
-              <div className="px-2 py-3 text-center text-[11px]" style={{ color: c.faint }}>
-                No edits yet — changes the AI makes will appear here.
-              </div>
-            ) : (
-              changes.map((ch, i) => (
-                <button
-                  key={i}
-                  onClick={() => {
-                    onJump(ch);
-                    setOpen(false);
-                  }}
-                  className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-white/[0.04]"
-                >
-                  <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: KIND_COLOR[ch.kind] || c.faint }} />
-                  <span className="flex-1 truncate text-[12px]" style={{ color: c.text, fontFamily: "var(--font-sans)" }}>
-                    {ch.label}
-                  </span>
-                  <span className="shrink-0 text-[10px]" style={{ color: c.faint }}>
-                    {ch.at}
-                  </span>
-                </button>
-              ))
-            )}
+            <div
+              className="flex items-center justify-between px-3.5 py-3"
+              style={{ borderBottom: `1px solid ${c.border}` }}
+            >
+              <span className="text-[13px] font-semibold" style={{ color: c.text }}>
+                Changes
+              </span>
+              <span className="text-[11px]" style={{ fontFamily: MONO, color: c.faint }}>
+                live feed
+              </span>
+            </div>
+            <div className="overflow-y-auto p-1.5">
+              {changes.length === 0 ? (
+                <div className="px-2 py-3 text-center text-[11px]" style={{ color: c.faint }}>
+                  No edits yet — changes the AI makes will appear here.
+                </div>
+              ) : (
+                changes.map((ch, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      onJump(ch);
+                      setOpen(false);
+                    }}
+                    className="flex w-full items-start gap-2.5 rounded-[9px] p-2.5 text-left transition-colors"
+                    style={{ color: c.text }}
+                  >
+                    <span
+                      className="mt-[5px] h-[7px] w-[7px] shrink-0 rounded-full"
+                      style={{ background: KIND_COLOR[ch.kind] || c.faint }}
+                    />
+                    <span className="flex-1 truncate text-[12.5px]" style={{ fontFamily: SANS }}>
+                      {ch.label}
+                    </span>
+                    <span className="shrink-0 text-[11px]" style={{ fontFamily: MONO, color: c.faint }}>
+                      {ch.at}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
           </div>
         </>
       )}
@@ -136,52 +151,53 @@ function FeedbackButton({ tab, screen }: { tab: Phase; screen: string | undefine
     <div className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 rounded-[7px] px-2.5 py-1 transition-colors"
-        style={{ color: open ? c.text : c.dim, border: `1px solid ${c.border}`, background: open ? "#26262b" : c.panel2 }}
+        className="flex h-[22px] items-center rounded-md px-[9px] transition-colors"
+        style={{
+          color: c.dim,
+          border: `1px solid ${open ? c.borderStrong : c.border2}`,
+          background: open ? c.card : c.bg,
+        }}
       >
-        <MessageSquarePlus size={12} />
         Feedback
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div
-            className="absolute bottom-8 right-0 z-20 w-80 rounded-xl p-3 shadow-2xl"
-            style={{ background: c.panel, border: `1px solid ${c.border}` }}
+            className="hs-pop absolute bottom-8 right-0 z-20 w-80 overflow-hidden rounded-xl"
+            style={{ background: c.panel, border: `1px solid ${c.border2}`, boxShadow: c.shadow }}
           >
-            <div className="mb-2 text-[10px] uppercase tracking-[0.6px]" style={{ color: c.faint }}>
-              Note for the agent · {tab}
-              {screen ? ` · ${screen}` : ""}
+            <div
+              className="px-3.5 py-3 text-[13px] font-semibold"
+              style={{ color: c.text, borderBottom: `1px solid ${c.border}` }}
+            >
+              Send feedback to agent
             </div>
-            <textarea
-              autoFocus
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit();
-              }}
-              placeholder="e.g. Call-next should confirm before skipping…"
-              spellCheck={false}
-              className="h-20 w-full resize-none rounded-lg p-2.5 text-[12px] leading-[1.5] outline-none"
-              style={{
-                fontFamily: "var(--font-sans)",
-                background: c.bg,
-                border: `1px solid ${c.border}`,
-                color: c.text,
-              }}
-            />
-            <div className="mt-2 flex items-center justify-between">
-              <span className="text-[10px]" style={{ color: c.faint }}>
-                {sent ? "✓ sent to agent" : "⌘↵ to send"}
-              </span>
-              <button
-                onClick={submit}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-semibold transition-colors"
-                style={{ background: c.accent, color: "#09090b" }}
-              >
-                <Send size={12} />
-                Send
-              </button>
+            <div className="flex flex-col gap-2.5 px-3.5 py-3">
+              <textarea
+                autoFocus
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit();
+                }}
+                placeholder="e.g. tighten the amount keypad spacing…"
+                spellCheck={false}
+                className="h-[78px] w-full resize-none rounded-[9px] p-2.5 text-[12.5px] leading-[1.5] outline-none"
+                style={{ fontFamily: SANS, background: c.bg, border: `1px solid ${c.border2}`, color: c.text }}
+              />
+              <div className="flex items-center justify-between">
+                <span className="text-[11px]" style={{ color: c.faint }}>
+                  {sent ? "✓ sent to agent" : `Attaches ${screen ? screen : tab}`}
+                </span>
+                <button
+                  onClick={submit}
+                  className="flex h-[30px] items-center rounded-lg px-3.5 text-[12.5px] font-semibold transition-colors"
+                  style={{ background: c.invBg, color: c.invFg }}
+                >
+                  Send
+                </button>
+              </div>
             </div>
           </div>
         </>

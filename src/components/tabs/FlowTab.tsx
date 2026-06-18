@@ -123,9 +123,7 @@ function RouteNodeView({ data, selected }: NodeProps<RouteNode>) {
         border: `1px solid ${selected ? col : active ? alpha(col, 0.6) : c.border}`,
         boxShadow: selected
           ? `0 0 0 1px ${col}, 0 10px 28px ${alpha(col, 0.22)}`
-          : active
-          ? "0 8px 22px rgba(0,0,0,0.4)"
-          : "0 1px 2px rgba(0,0,0,0.4)",
+          : c.shadow,
         transform: active ? "translateY(-1px)" : "none",
         transition: "box-shadow .14s ease, transform .14s ease, border-color .14s ease",
         cursor: "pointer",
@@ -170,7 +168,7 @@ function MiddlewareNodeView({ data, selected }: NodeProps<MwNode>) {
         fontFamily: MONO,
         fontSize: 12,
         color: c.text,
-        boxShadow: hover ? "0 6px 16px rgba(0,0,0,0.35)" : "none",
+        boxShadow: hover ? c.shadow : "none",
         transition: "box-shadow .14s ease, border-color .14s ease",
         cursor: "pointer",
       }}
@@ -648,7 +646,7 @@ function LeftRail({
 type Sel = { kind: "route"; path: string; method: HttpMethod } | { kind: "screen"; id: string } | null;
 
 export function FlowTab({ api, screens }: { api: ApiDoc; screens: Screen[] }) {
-  const { c } = useTheme();
+  const { c, mode } = useTheme();
   const [showScreens, setShowScreens] = useState(true);
   const [showMiddleware, setShowMiddleware] = useState(true);
   const [hiddenMethods, setHiddenMethods] = useState<Set<string>>(new Set());
@@ -766,7 +764,7 @@ export function FlowTab({ api, screens }: { api: ApiDoc; screens: Screen[] }) {
             }}
             onPaneClick={() => setSel(null)}
             nodeTypes={nodeTypes}
-            colorMode="dark"
+            colorMode={mode}
             fitView
             fitViewOptions={{ padding: 0.2 }}
             minZoom={0.2}
