@@ -35,43 +35,77 @@
   },
   "plan": {
     "stack": [
-      "React",
-      "Next.js",
-      "Stripe",
-      "Tailwind"
+      "React 19",
+      "Vite",
+      "Tailwind",
+      "Node/Express",
+      "Postgres"
+    ],
+    "statuses": [
+      {
+        "id": "backlog",
+        "name": "Backlog",
+        "color": "#71717a"
+      },
+      {
+        "id": "doing",
+        "name": "In progress",
+        "color": "#fbbf24"
+      },
+      {
+        "id": "review",
+        "name": "In review",
+        "color": "#a78bfa"
+      },
+      {
+        "id": "done",
+        "name": "Done",
+        "color": "#34d399"
+      }
     ],
     "milestones": [
       {
         "name": "M1 · Storefront",
         "tasks": [
           {
-            "title": "Design system + tokens",
-            "status": "done"
+            "title": "Product list + search",
+            "status": "done",
+            "priority": "high"
           },
           {
-            "title": "Home + product grid",
-            "status": "doing"
+            "title": "Product detail page",
+            "status": "review",
+            "priority": "normal"
           },
           {
-            "title": "Product detail",
-            "status": "todo"
+            "title": "Cart + mock checkout",
+            "status": "doing",
+            "priority": "high"
           },
           {
-            "title": "Cart drawer",
-            "status": "todo"
+            "title": "Empty / loading states",
+            "status": "backlog",
+            "priority": "low"
           }
         ]
       },
       {
-        "name": "M2 · Checkout",
+        "name": "M2 · Queue",
         "tasks": [
           {
-            "title": "Stripe session",
-            "status": "todo"
+            "title": "Walk-in API + QR",
+            "status": "doing",
+            "priority": "urgent"
           },
           {
-            "title": "Order confirmation",
-            "status": "todo"
+            "title": "Realtime queue stream (SSE)",
+            "status": "backlog",
+            "priority": "high"
+          },
+          {
+            "title": "Staff dashboard",
+            "status": "backlog",
+            "priority": "normal"
           }
         ]
       }

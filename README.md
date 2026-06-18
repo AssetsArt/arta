@@ -175,6 +175,7 @@ on the current project's `.harness/`:
 - `harness_get_design_system` / `harness_set_design_system` — the shared CSS
 - `harness_set_phase` / `harness_set_frame` — advance the stepper / set the device frame
 - `harness_get_api` / `harness_set_api` — the `api` section (the Flow tab): an OpenAPI 3 document — routes, middleware, params, body, responses, and `x-screens` (which screens call each route → screen→API edges)
+- `harness_get_plan` / `harness_set_plan` / `harness_set_task` — the `plan` Kanban board (custom statuses = columns, milestones = swimlanes, tasks = cards w/ priority); `set_task` moves a card between columns
 - `harness_start_viewer` — launch the viewer from the installed plugin (idempotent; no stale cache)
 - `harness_get_screenshot` — a PNG of how a screen actually renders (the pixels you see)
 - `harness_get_view` — your active tab, prototype screen, store, and any prototype errors

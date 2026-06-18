@@ -42,6 +42,10 @@ Never describe a screen in prose when you could render it. Show, ask, adjust.
   route to the prototype screens that call it with `x-screens: ["screenId"]` — the
   Flow graph then draws screen → API edges (which screen hits which endpoint,
   through which middleware).
+- `harness_get_plan` / `harness_set_plan` — read/write the `plan` Kanban board:
+  `statuses` (columns), `milestones` (swimlanes), and tasks (`status` id +
+  `priority`). `harness_set_task` adds/updates one card by milestone + title —
+  use it to **move a card** (set its `status`) without resending the whole plan.
 - `harness_get_feedback` — drain notes the dev left in the viewer. Check it after
   every meaningful change and act on what you find. Notes may include an `element`
   (tag/text/selector) when the dev clicked a specific element to comment on it —
@@ -141,7 +145,9 @@ a document.
    (path/query/header), request body, and responses. The viewer shows it as a
    React Flow graph (routes + middleware chain) with a Postman-style inspector
    (Params · Headers · Body · Responses) and an Export OpenAPI 3 button.
-4. **Plan** — stack + milestones with task status. This falls out of the above.
+4. **Plan** — a **Kanban board** (ClickUp-style): you define the columns as custom
+   **statuses** (`plan.statuses`), milestones become **swimlanes** (rows), and tasks
+   are cards (each with a `status` id and optional `priority`). Plus the tech `stack`.
 
 Move the phase with `harness_set_phase` as each is settled. Don't race ahead — let
 the dev react at each step.
@@ -221,9 +227,16 @@ the dev react at each step.
       }
     }
   },
-  "plan": {
+  "plan": {                                   // the Plan tab — a Kanban board
     "stack": ["React", "Node"],
-    "milestones": [ { "name": "M1", "tasks": [ { "title": "…", "status": "doing" } ] } ]
+    "statuses": [                              // the columns (ClickUp-style); omit for to-do/in-progress/done
+      { "id": "backlog", "name": "Backlog", "color": "#71717a" },
+      { "id": "doing", "name": "In progress", "color": "#fbbf24" },
+      { "id": "done", "name": "Done", "color": "#34d399" }
+    ],
+    "milestones": [                            // each milestone is a swimlane (row)
+      { "name": "M1", "tasks": [ { "title": "…", "status": "doing", "priority": "high" } ] }  // priority ∈ urgent|high|normal|low
+    ]
   }
 }
 ```

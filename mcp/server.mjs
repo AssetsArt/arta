@@ -223,6 +223,78 @@ server.registerTool(
   }
 );
 
+server.registerTool(
+  "harness_get_plan",
+  {
+    description:
+      "Read the `plan` section — the Kanban board: stack, statuses (the columns), and milestones (swimlanes) with their tasks.",
+    inputSchema: {},
+  },
+  async () => {
+    const state = readJson(STATE_FILE) || {};
+    if (!state.plan) return text({ exists: false, note: "No plan yet — write one with harness_set_plan." });
+    return text(state.plan);
+  }
+);
+
+server.registerTool(
+  "harness_set_plan",
+  {
+    description:
+      'Write the `plan` section (the Kanban board). Shape: { stack?: ["React", ...], statuses?: [{ id, name, color? }] — the columns (ClickUp-style custom statuses; defaults to to-do/in-progress/done if omitted), milestones: [{ name, tasks: [{ title, status: "<status id>", priority?: "urgent"|"high"|"normal"|"low" }] }] — each milestone is a swimlane (row). Replaces the whole plan; the viewer repaints.',
+    inputSchema: { plan: zod.record(zod.any()).describe("The plan object (statuses + milestones[].tasks).") },
+  },
+  async ({ plan }) => {
+    if (!plan || typeof plan !== "object") return err("plan must be an object.");
+    const state = readJson(STATE_FILE) || { meta: { name: "Untitled", phase: "plan" } };
+    state.plan = plan;
+    writeState(state);
+    const milestones = (plan.milestones || []).length;
+    const tasks = (plan.milestones || []).reduce((n, m) => n + (m.tasks || []).length, 0);
+    return text({ ok: true, statuses: (plan.statuses || []).length, milestones, tasks });
+  }
+);
+
+server.registerTool(
+  "harness_set_task",
+  {
+    description:
+      "Add or update one Kanban card. Finds the task by title within the milestone (creating the milestone if needed): updates its status / priority / title, or adds it if new. Use this to MOVE a card between columns (just set `status`) without resending the whole plan.",
+    inputSchema: {
+      milestone: zod.string().describe("Milestone (swimlane) name."),
+      title: zod.string().describe("Task title to find (or create)."),
+      status: zod.string().optional().describe("Status id (a Plan.statuses[].id). Moving a card = setting this."),
+      priority: zod.enum(["urgent", "high", "normal", "low"]).optional(),
+      newTitle: zod.string().optional().describe("Rename the task."),
+    },
+  },
+  async ({ milestone, title, status, priority, newTitle }) => {
+    const state = readJson(STATE_FILE) || { meta: { name: "Untitled", phase: "plan" } };
+    state.plan = state.plan || {};
+    const statuses = state.plan.statuses || [];
+    if (status && statuses.length && !statuses.some((s) => s.id === status))
+      return err(`Unknown status "${status}". Valid: ${statuses.map((s) => s.id).join(", ")}`);
+    state.plan.milestones = state.plan.milestones || [];
+    let m = state.plan.milestones.find((x) => x.name === milestone);
+    if (!m) {
+      m = { name: milestone, tasks: [] };
+      state.plan.milestones.push(m);
+    }
+    m.tasks = m.tasks || [];
+    let t = m.tasks.find((x) => x.title === title);
+    const created = !t;
+    if (!t) {
+      t = { title, status: status || statuses[0]?.id || "todo" };
+      m.tasks.push(t);
+    }
+    if (status !== undefined) t.status = status;
+    if (priority !== undefined) t.priority = priority;
+    if (newTitle !== undefined) t.title = newTitle;
+    writeState(state);
+    return text({ ok: true, milestone, task: t.title, status: t.status, created });
+  }
+);
+
 // ── Granular prototype edits — touch one file, not the whole design ─────────
 
 server.registerTool(

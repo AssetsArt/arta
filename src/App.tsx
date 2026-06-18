@@ -118,11 +118,7 @@ export default function App() {
             they fill the area directly instead of living in the scroll wrapper. */}
         {tab === "data" && <DataTab dataModel={data.dataModel ?? {}} />}
         {tab === "flow" && <FlowTab api={data.api ?? {}} screens={data.prototype?.screens ?? []} />}
-        {tab === "plan" && (
-          <div className="w-full overflow-auto px-[30px] py-7">
-            <PlanTab plan={data.plan ?? {}} />
-          </div>
-        )}
+        {tab === "plan" && <PlanTab plan={data.plan ?? {}} />}
       </div>
 
       <StatusBar

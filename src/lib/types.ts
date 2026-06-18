@@ -17,17 +17,29 @@ export interface Spec {
   constraints?: string[];
 }
 
-export type TaskStatus = "todo" | "doing" | "done";
+export type TaskStatus = "todo" | "doing" | "done"; // legacy default ids
+export type TaskPriority = "urgent" | "high" | "normal" | "low";
 export interface Task {
   title: string;
-  status: TaskStatus;
+  /** Status id — references a Plan.statuses[].id (or a legacy "todo"|"doing"|"done"). */
+  status: string;
+  priority?: TaskPriority;
 }
 export interface Milestone {
   name: string;
   tasks?: Task[];
 }
+/** A Kanban column (ClickUp-style). */
+export interface PlanStatus {
+  id: string;
+  name: string;
+  color?: string;
+}
 export interface Plan {
   stack?: string[];
+  /** Kanban columns. If omitted, defaults to To do / In progress / Done. */
+  statuses?: PlanStatus[];
+  /** Milestones become the board's swimlanes (rows). */
   milestones?: Milestone[];
 }
 
