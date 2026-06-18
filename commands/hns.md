@@ -1,6 +1,6 @@
 ---
-description: Harness Studio — design in the live canvas, `update` to pull the latest, or `restart` to re-run the viewer
-argument-hint: <what to design> | update | restart
+description: Harness Studio — design in the live canvas; `update`, `restart`, or `feedback` to act on the dev's notes
+argument-hint: <what to design> | update | restart | feedback
 ---
 
 The user ran `/hns` with arguments: **$ARGUMENTS**
@@ -40,6 +40,23 @@ viewer got into a bad state:
 2. Tell the user the URL it returns and to **hard-refresh** the tab (the browser may have
    cached the old assets). If the tool reports the launcher is missing, fall back to
    `bunx github:AssetsArt/harness-studio`.
+
+## If the argument is `feedback` (or begins with "feedback")
+
+Act on the notes the dev left from inside the viewer. The viewer is read-only and can't
+wake you on its own, so this is the chat-side trigger that closes the comment loop:
+
+1. Call the `harness_get_feedback` MCP tool to drain unread notes. Each note carries the
+   **text**, the **tab/screen** it was left on, and (for prototype comments) the
+   **element** the dev clicked. Draining marks them read.
+2. If nothing is unread, say so and stop — don't invent work.
+3. Otherwise handle each note in turn: ground yourself on the screen it points at
+   (`harness_get_view` / `harness_get_screen`), make the change in `.harness/` with the
+   `harness_*` tools (edit one piece at a time so the viewer repaints cleanly), and use
+   `harness_get_screenshot` to confirm visually when it helps.
+4. Briefly summarize what you addressed per note so the dev can follow along.
+
+Stay scoped to what the notes ask — don't redesign beyond them.
 
 ## Otherwise — design "$ARGUMENTS" in the harness
 

@@ -75,6 +75,7 @@ Everything you can type, in one place.
 | `/hns <what to build>` | Brainstorm the idea, then design it in the harness |
 | `/hns update` | Update the plugin to the latest **and re-run the viewer** on the new build |
 | `/hns restart` | Re-run the viewer from the installed plugin (pick up a new build, no manual cache-clearing) |
+| `/hns feedback` | Drain the comments the dev left in the viewer and act on them (`harness_get_feedback`) |
 | *"design this in the harness"* | Natural-language trigger — same as `/hns` |
 
 `/hns update` wraps `/plugin marketplace update harness-studio` then
