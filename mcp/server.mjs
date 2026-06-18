@@ -207,7 +207,7 @@ server.registerTool(
   "harness_set_api",
   {
     description:
-      'Write the `api` section (the Flow tab) as an OpenAPI 3 document. Shape: { info?, servers?, "x-middleware"?: [{ name, description }], paths: { "/route/{id}": { get|post|put|patch|delete: { summary?, tags?, "x-middleware"?: ["auth"], parameters?: [{ name, in: "path"|"query"|"header", required?, schema, description?, example? }], requestBody?: { required?, content: { "application/json": { schema, example? } } }, responses?: { "200": { description, content? } } } } } }. Replaces the whole api section and the viewer repaints. Vendor extensions (x-*) are valid OpenAPI and export cleanly.',
+      'Write the `api` section (the Flow tab) as an OpenAPI 3 document. Shape: { info?, servers?, "x-middleware"?: [{ name, description }], paths: { "/route/{id}": { get|post|put|patch|delete: { summary?, tags?, "x-middleware"?: ["auth"], "x-screens"?: ["screenId"], parameters?: [{ name, in: "path"|"query"|"header", required?, schema, description?, example? }], requestBody?: { required?, content: { "application/json": { schema, example? } } }, responses?: { "200": { description, content? } } } } } }. `x-screens` lists the prototype screen ids that call the route, drawing screen→API edges in the graph. Replaces the whole api section and the viewer repaints. Vendor extensions (x-*) are valid OpenAPI and export cleanly.',
     inputSchema: {
       api: zod.record(zod.any()).describe("OpenAPI-3-shaped document. Must include a `paths` object."),
     },

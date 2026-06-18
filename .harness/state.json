@@ -387,7 +387,10 @@
                 }
               }
             }
-          }
+          },
+          "x-screens": [
+            "home"
+          ]
         },
         "post": {
           "summary": "Create a product",
@@ -497,7 +500,10 @@
             "404": {
               "description": "Not found"
             }
-          }
+          },
+          "x-screens": [
+            "product"
+          ]
         }
       },
       "/queue/walk-in": {
@@ -569,7 +575,10 @@
                 }
               }
             }
-          }
+          },
+          "x-screens": [
+            "cart"
+          ]
         }
       }
     }

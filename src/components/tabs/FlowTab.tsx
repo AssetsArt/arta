@@ -16,13 +16,14 @@ import {
 import "@xyflow/react/dist/style.css";
 import dagre from "@dagrejs/dagre";
 import { stringify as toYaml } from "yaml";
-import { Copy, Download, Filter, Layers, X } from "lucide-react";
+import { Copy, Download, Eye, EyeOff, Filter, Layers, Monitor, X } from "lucide-react";
 import type {
   ApiDoc,
   ApiOperation,
   ApiParameter,
   ApiSchema,
   HttpMethod,
+  Screen,
 } from "../../lib/types";
 import { HTTP_METHODS } from "../../lib/types";
 import { MONO, useTheme, type DarkTokens } from "../../lib/theme";
@@ -155,46 +156,92 @@ function MiddlewareNodeView({ data, selected }: NodeProps<MwNode>) {
   );
 }
 
-const nodeTypes = { route: RouteNodeView, middleware: MiddlewareNodeView };
+const SCREEN_W = 170;
+const SCREEN_H = 46;
+type ScreenNode = Node<{ id: string; title: string }, "screen">;
+
+function ScreenNodeView({ data, selected }: NodeProps<ScreenNode>) {
+  const { c } = useTheme();
+  return (
+    <div
+      style={{
+        width: SCREEN_W,
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        background: alpha(c.accent, 0.1),
+        border: `1px solid ${selected ? c.accent : alpha(c.accent, 0.45)}`,
+        borderRadius: 8,
+        padding: "10px 12px",
+        fontFamily: MONO,
+        fontSize: 12,
+        color: c.text,
+        cursor: "pointer",
+      }}
+    >
+      <Monitor size={13} color={c.accent} />
+      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{data.title}</span>
+      <Handle type="source" position={Position.Right} style={{ background: c.accent, border: "none", width: 7, height: 7 }} />
+    </div>
+  );
+}
+
+const nodeTypes = { route: RouteNodeView, middleware: MiddlewareNodeView, screen: ScreenNodeView };
 
 // ── graph build + dagre layout ───────────────────────────────────────────────
-function buildGraph(api: ApiDoc, c: DarkTokens): { nodes: Node[]; edges: Edge[] } {
+function buildGraph(
+  api: ApiDoc,
+  screens: Screen[],
+  showScreens: boolean,
+  c: DarkTokens
+): { nodes: Node[]; edges: Edge[] } {
   const ops = flattenOps(api);
   // middleware registry — declared, plus any referenced by operations.
   const declared = (api["x-middleware"] || []).map((m) => m.name);
   const referenced = ops.flatMap((o) => o.op["x-middleware"] || []);
   const mwNames = Array.from(new Set([...declared, ...referenced]));
+  // screens that call an operation (the screen→API layer).
+  const titleOf = new Map(screens.map((s) => [s.id, s.title || s.id]));
+  const screenRefs = showScreens ? Array.from(new Set(ops.flatMap((o) => o.op["x-screens"] || []))) : [];
 
   const g = new dagre.graphlib.Graph();
-  g.setGraph({ rankdir: "LR", nodesep: 26, ranksep: 110, marginx: 24, marginy: 24 });
+  g.setGraph({ rankdir: "LR", nodesep: 24, ranksep: 120, marginx: 24, marginy: 24 });
   g.setDefaultEdgeLabel(() => ({}));
+  screenRefs.forEach((s) => g.setNode(`screen:${s}`, { width: SCREEN_W, height: SCREEN_H }));
   mwNames.forEach((m) => g.setNode(`mw:${m}`, { width: MW_W, height: MW_H }));
   ops.forEach((o) => g.setNode(o.id, { width: ROUTE_W, height: ROUTE_H }));
-  const edgeDefs: { from: string; to: string }[] = [];
+
+  const edgeDefs: { from: string; to: string; kind: "mw" | "screen" }[] = [];
   ops.forEach((o) => {
     (o.op["x-middleware"] || []).forEach((m) => {
       g.setEdge(`mw:${m}`, o.id);
-      edgeDefs.push({ from: `mw:${m}`, to: o.id });
+      edgeDefs.push({ from: `mw:${m}`, to: o.id, kind: "mw" });
     });
+    if (showScreens)
+      (o.op["x-screens"] || []).forEach((s) => {
+        g.setEdge(`screen:${s}`, o.id);
+        edgeDefs.push({ from: `screen:${s}`, to: o.id, kind: "screen" });
+      });
   });
   dagre.layout(g);
 
+  const at = (id: string, w: number, h: number) => {
+    const p = g.node(id);
+    return { x: (p?.x ?? 0) - w / 2, y: (p?.y ?? 0) - h / 2 };
+  };
+
   const nodes: Node[] = [];
-  mwNames.forEach((m) => {
-    const p = g.node(`mw:${m}`);
-    nodes.push({
-      id: `mw:${m}`,
-      type: "middleware",
-      position: { x: (p?.x ?? 0) - MW_W / 2, y: (p?.y ?? 0) - MW_H / 2 },
-      data: { name: m },
-    });
-  });
-  ops.forEach((o) => {
-    const p = g.node(o.id);
+  screenRefs.forEach((s) =>
+    nodes.push({ id: `screen:${s}`, type: "screen", position: at(`screen:${s}`, SCREEN_W, SCREEN_H), data: { id: s, title: titleOf.get(s) || s } })
+  );
+  mwNames.forEach((m) =>
+    nodes.push({ id: `mw:${m}`, type: "middleware", position: at(`mw:${m}`, MW_W, MW_H), data: { name: m } })
+  );
+  ops.forEach((o) =>
     nodes.push({
       id: o.id,
       type: "route",
-      position: { x: (p?.x ?? 0) - ROUTE_W / 2, y: (p?.y ?? 0) - ROUTE_H / 2 },
+      position: at(o.id, ROUTE_W, ROUTE_H),
       data: {
         method: o.method,
         path: o.path,
@@ -203,17 +250,28 @@ function buildGraph(api: ApiDoc, c: DarkTokens): { nodes: Node[]; edges: Edge[] 
         params: (o.op.parameters || []).length,
         body: !!o.op.requestBody,
       },
-    });
-  });
+    })
+  );
 
-  const edges: Edge[] = edgeDefs.map((e, i) => ({
-    id: `me${i}`,
-    source: e.from,
-    target: e.to,
-    type: "smoothstep",
-    style: { stroke: alpha(c.dim, 0.55), strokeWidth: 1.4, strokeDasharray: "5 4" },
-    markerEnd: { type: MarkerType.ArrowClosed, color: alpha(c.dim, 0.6), width: 14, height: 14 },
-  }));
+  const edges: Edge[] = edgeDefs.map((e, i) =>
+    e.kind === "screen"
+      ? {
+          id: `se${i}`,
+          source: e.from,
+          target: e.to,
+          type: "smoothstep",
+          style: { stroke: alpha(c.accent, 0.55), strokeWidth: 1.4 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: alpha(c.accent, 0.6), width: 14, height: 14 },
+        }
+      : {
+          id: `me${i}`,
+          source: e.from,
+          target: e.to,
+          type: "smoothstep",
+          style: { stroke: alpha(c.dim, 0.5), strokeWidth: 1.3, strokeDasharray: "5 4" },
+          markerEnd: { type: MarkerType.ArrowClosed, color: alpha(c.dim, 0.55), width: 13, height: 13 },
+        }
+  );
 
   return { nodes, edges };
 }
@@ -297,7 +355,7 @@ function ParamTable({ params, c }: { params: ApiParameter[]; c: DarkTokens }) {
   );
 }
 
-function Inspector({ op, path, method, c, onClose }: { op: ApiOperation; path: string; method: string; c: DarkTokens; onClose: () => void }) {
+function Inspector({ op, path, method, c, onClose, screens }: { op: ApiOperation; path: string; method: string; c: DarkTokens; onClose: () => void; screens: Screen[] }) {
   const [tab, setTab] = useState<Tab>("Params");
   const params = op.parameters || [];
   const pathQuery = params.filter((p) => p.in === "path" || p.in === "query");
@@ -306,6 +364,8 @@ function Inspector({ op, path, method, c, onClose }: { op: ApiOperation; path: s
   const bodyMedia = body?.content ? Object.entries(body.content) : [];
   const responses = op.responses ? Object.entries(op.responses) : [];
   const mw = op["x-middleware"] || [];
+  const titleOf = new Map(screens.map((s) => [s.id, s.title || s.id]));
+  const usedBy = op["x-screens"] || [];
 
   return (
     <aside
@@ -328,6 +388,18 @@ function Inspector({ op, path, method, c, onClose }: { op: ApiOperation; path: s
                 <Filter size={10} /> {m}
               </span>
             ))}
+          </div>
+        )}
+        {usedBy.length > 0 && (
+          <div style={{ marginTop: 10 }}>
+            <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: 0.6, color: c.faint, marginBottom: 5 }}>USED BY</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {usedBy.map((s) => (
+                <span key={s} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontFamily: MONO, fontSize: 10.5, color: c.accent, background: alpha(c.accent, 0.1), border: `1px solid ${alpha(c.accent, 0.4)}`, borderRadius: 999, padding: "2px 8px" }}>
+                  <Monitor size={10} /> {titleOf.get(s) || s}
+                </span>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -409,6 +481,49 @@ function Inspector({ op, path, method, c, onClose }: { op: ApiOperation; path: s
   );
 }
 
+// Screen inspector — which APIs this screen calls, and the middleware each goes through.
+function ScreenInspector({ title, ops, c, onClose, onPick }: { title: string; ops: Op[]; c: DarkTokens; onClose: () => void; onPick: (path: string, method: HttpMethod) => void }) {
+  return (
+    <aside className="flex h-full flex-col" style={{ width: 400, borderLeft: `1px solid ${c.border}`, background: c.panel }}>
+      <div style={{ padding: "14px 16px", borderBottom: `1px solid ${c.border}`, display: "flex", alignItems: "center", gap: 8 }}>
+        <Monitor size={14} color={c.accent} />
+        <span style={{ fontFamily: MONO, fontSize: 13, color: c.text, flex: 1 }}>{title}</span>
+        <button onClick={onClose} style={{ color: c.dim, background: "transparent", border: "none", cursor: "pointer", padding: 2 }}>
+          <X size={16} />
+        </button>
+      </div>
+      <div style={{ flex: 1, overflow: "auto", padding: 16 }}>
+        <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: 0.6, color: c.faint, marginBottom: 8 }}>CALLS {ops.length} API{ops.length === 1 ? "" : "S"}</div>
+        {ops.length === 0 ? (
+          <div style={{ color: c.faint, fontSize: 12, fontFamily: MONO }}>No API calls declared for this screen.</div>
+        ) : (
+          ops.map((o) => (
+            <button
+              key={o.id}
+              onClick={() => onPick(o.path, o.method)}
+              style={{ display: "block", width: "100%", textAlign: "left", marginBottom: 8, padding: "9px 11px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.card, cursor: "pointer" }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <MethodBadge method={o.method} c={c} />
+                <span style={{ fontFamily: MONO, fontSize: 12.5, color: c.text }}>{o.path}</span>
+              </div>
+              {(o.op["x-middleware"] || []).length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 7 }}>
+                  {(o.op["x-middleware"] || []).map((m) => (
+                    <span key={m} style={{ display: "inline-flex", alignItems: "center", gap: 3, fontFamily: MONO, fontSize: 10, color: c.dim, background: c.panel2, border: `1px solid ${c.borderSoft}`, borderRadius: 999, padding: "1px 7px" }}>
+                      <Filter size={9} /> {m}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </button>
+          ))
+        )}
+      </div>
+    </aside>
+  );
+}
+
 // ── OpenAPI export ────────────────────────────────────────────────────────────
 function toOpenApi(api: ApiDoc): Record<string, unknown> {
   return {
@@ -469,12 +584,18 @@ function ExportModal({ api, c, onClose }: { api: ApiDoc; c: DarkTokens; onClose:
 }
 
 // ── the tab ───────────────────────────────────────────────────────────────────
-export function FlowTab({ api }: { api: ApiDoc }) {
+type Sel = { kind: "route"; path: string; method: HttpMethod } | { kind: "screen"; id: string } | null;
+
+export function FlowTab({ api, screens }: { api: ApiDoc; screens: Screen[] }) {
   const { c } = useTheme();
-  const { nodes: laidNodes, edges: laidEdges } = useMemo(() => buildGraph(api, c), [api, c]);
+  const [showScreens, setShowScreens] = useState(true);
+  const { nodes: laidNodes, edges: laidEdges } = useMemo(
+    () => buildGraph(api, screens, showScreens, c),
+    [api, screens, showScreens, c]
+  );
   const [nodes, setNodes, onNodesChange] = useNodesState(laidNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(laidEdges);
-  const [sel, setSel] = useState<{ path: string; method: HttpMethod } | null>(null);
+  const [sel, setSel] = useState<Sel>(null);
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
@@ -483,14 +604,20 @@ export function FlowTab({ api }: { api: ApiDoc }) {
   }, [laidNodes, laidEdges, setNodes, setEdges]);
 
   const ops = useMemo(() => flattenOps(api), [api]);
-  const sig = useMemo(() => ops.map((o) => o.id).join("|") + "#" + (api["x-middleware"] || []).length, [ops, api]);
+  const titleOf = useMemo(() => new Map(screens.map((s) => [s.id, s.title || s.id])), [screens]);
+  const screenCount = useMemo(() => new Set(ops.flatMap((o) => o.op["x-screens"] || [])).size, [ops]);
+  const sig = useMemo(
+    () => ops.map((o) => o.id).join("|") + "#" + (api["x-middleware"] || []).length + (showScreens ? `+S${screenCount}` : ""),
+    [ops, api, showScreens, screenCount]
+  );
 
-  // keep the selection valid as the model changes
+  // keep a route selection valid as the model changes
   useEffect(() => {
-    if (sel && !ops.some((o) => o.path === sel.path && o.method === sel.method)) setSel(null);
+    if (sel?.kind === "route" && !ops.some((o) => o.path === sel.path && o.method === sel.method)) setSel(null);
   }, [ops, sel]);
 
-  const selected = sel ? ops.find((o) => o.path === sel.path && o.method === sel.method) : undefined;
+  const selectedOp = sel?.kind === "route" ? ops.find((o) => o.path === sel.path && o.method === sel.method) : undefined;
+  const screenOps = sel?.kind === "screen" ? ops.filter((o) => (o.op["x-screens"] || []).includes(sel.id)) : [];
 
   if (!ops.length) {
     return (
@@ -517,7 +644,9 @@ export function FlowTab({ api }: { api: ApiDoc }) {
           onNodeClick={(_, n) => {
             if (n.type === "route") {
               const d = n.data as RouteData;
-              setSel({ path: d.path, method: d.method as HttpMethod });
+              setSel({ kind: "route", path: d.path, method: d.method as HttpMethod });
+            } else if (n.type === "screen") {
+              setSel({ kind: "screen", id: (n.data as { id: string }).id });
             }
           }}
           onPaneClick={() => setSel(null)}
@@ -533,13 +662,34 @@ export function FlowTab({ api }: { api: ApiDoc }) {
         >
           <Background color={c.border} gap={22} size={1} />
           <Controls showInteractive={false} style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 8, overflow: "hidden" }} />
-          <MiniMap pannable zoomable nodeColor={(n) => (n.type === "route" ? methodColor((n.data as RouteData).method, c) : c.dim)} maskColor={alpha(c.bg, 0.6)} style={{ background: c.panel, border: `1px solid ${c.border}`, borderRadius: 8 }} />
+          <MiniMap
+            pannable
+            zoomable
+            nodeColor={(n) => (n.type === "route" ? methodColor((n.data as RouteData).method, c) : n.type === "screen" ? c.accent : c.dim)}
+            maskColor={alpha(c.bg, 0.6)}
+            style={{ background: c.panel, border: `1px solid ${c.border}`, borderRadius: 8 }}
+          />
         </ReactFlow>
 
         <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
           <span style={{ fontFamily: MONO, fontSize: 11, color: c.faint }}>
-            {ops.length} routes · {(api["x-middleware"] || []).length} middleware
+            {ops.length} routes · {(api["x-middleware"] || []).length} middleware{screenCount > 0 ? ` · ${screenCount} screens` : ""}
           </span>
+          {screenCount > 0 && (
+            <button
+              onClick={() => {
+                setShowScreens((s) => {
+                  const next = !s;
+                  if (!next && sel?.kind === "screen") setSel(null);
+                  return next;
+                });
+              }}
+              title="Toggle the screen → API layer"
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: MONO, fontSize: 11.5, padding: "6px 11px", borderRadius: 8, border: `1px solid ${showScreens ? alpha(c.accent, 0.5) : c.border}`, background: showScreens ? alpha(c.accent, 0.14) : c.card, color: showScreens ? c.accent : c.dim, cursor: "pointer" }}
+            >
+              {showScreens ? <Eye size={13} /> : <EyeOff size={13} />} Screens
+            </button>
+          )}
           <button
             onClick={() => setExporting(true)}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: MONO, fontSize: 11.5, padding: "6px 11px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.card, color: c.text, cursor: "pointer" }}
@@ -551,8 +701,17 @@ export function FlowTab({ api }: { api: ApiDoc }) {
         {exporting && <ExportModal api={api} c={c} onClose={() => setExporting(false)} />}
       </div>
 
-      {selected && sel && (
-        <Inspector op={selected.op} path={sel.path} method={sel.method} c={c} onClose={() => setSel(null)} />
+      {selectedOp && sel?.kind === "route" && (
+        <Inspector op={selectedOp.op} path={sel.path} method={sel.method} c={c} screens={screens} onClose={() => setSel(null)} />
+      )}
+      {sel?.kind === "screen" && (
+        <ScreenInspector
+          title={titleOf.get(sel.id) || sel.id}
+          ops={screenOps}
+          c={c}
+          onClose={() => setSel(null)}
+          onPick={(path, method) => setSel({ kind: "route", path, method })}
+        />
       )}
     </div>
   );

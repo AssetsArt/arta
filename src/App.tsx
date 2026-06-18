@@ -117,7 +117,7 @@ export default function App() {
         {/* Data model and Flow are full-bleed React Flow canvases (pan/zoom), so
             they fill the area directly instead of living in the scroll wrapper. */}
         {tab === "data" && <DataTab dataModel={data.dataModel ?? {}} />}
-        {tab === "flow" && <FlowTab api={data.api ?? {}} />}
+        {tab === "flow" && <FlowTab api={data.api ?? {}} screens={data.prototype?.screens ?? []} />}
         {tab === "plan" && (
           <div className="w-full overflow-auto px-[30px] py-7">
             <PlanTab plan={data.plan ?? {}} />

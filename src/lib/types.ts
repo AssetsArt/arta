@@ -99,6 +99,9 @@ export interface ApiOperation {
   tags?: string[];
   /** Middleware names applied to this operation (vendor extension). */
   "x-middleware"?: string[];
+  /** Prototype screen ids that call this operation (vendor extension) — drives the
+   *  screen→API layer in the Flow graph. */
+  "x-screens"?: string[];
   parameters?: ApiParameter[];
   requestBody?: ApiRequestBody;
   responses?: Record<string, ApiResponse>;

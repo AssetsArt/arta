@@ -38,7 +38,10 @@ Never describe a screen in prose when you could render it. Show, ask, adjust.
 - `harness_set_phase` — advance the stepper: `prototype → data → flow → plan`.
 - `harness_get_api` / `harness_set_api` — read/write the `api` section (the Flow
   tab) as an OpenAPI 3 document: routes, middleware (`x-middleware`), and
-  per-operation params (path/query/header), request body, and responses.
+  per-operation params (path/query/header), request body, and responses. Tie a
+  route to the prototype screens that call it with `x-screens: ["screenId"]` — the
+  Flow graph then draws screen → API edges (which screen hits which endpoint,
+  through which middleware).
 - `harness_get_feedback` — drain notes the dev left in the viewer. Check it after
   every meaningful change and act on what you find. Notes may include an `element`
   (tag/text/selector) when the dev clicked a specific element to comment on it —
@@ -202,6 +205,7 @@ the dev react at each step.
         "get": {
           "summary": "Get an item",
           "x-middleware": ["cors", "auth"],   // middleware applied to this operation
+          "x-screens": ["itemDetail"],        // prototype screen ids that call this route (screen→API layer)
           "parameters": [
             { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
             { "name": "expand", "in": "query", "schema": { "type": "string" }, "description": "..." },
