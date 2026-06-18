@@ -1,8 +1,10 @@
 name: pack
 
 # Keeps `main` always installable: builds the viewer, type-checks, validates the
-# plugin layout, and re-bundles the MCP server so the committed bundle the
-# marketplace ships is never stale.
+# plugin layout, re-bundles the MCP server so the committed bundle the marketplace
+# ships is never stale, and BUMPS THE PATCH VERSION on every push so `/plugin update`
+# always sees a new version and actually re-installs (an unchanged version is treated
+# as up-to-date and skipped, so changes would never reach users otherwise).
 #
 # Requires: Settings → Actions → General → Workflow permissions → "Read and write".
 
@@ -36,16 +38,18 @@ jobs:
       - name: Validate plugin layout
         run: node scripts/validate-plugin.mjs
 
-      - name: Commit refreshed MCP bundle (main only, if drifted)
+      - name: Bump version + commit refreshed bundle (main only)
         if: github.event_name == 'push'
         run: |
-          if ! git diff --quiet -- mcp/server.bundle.mjs; then
-            echo "MCP bundle drifted from source — committing fresh build."
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add mcp/server.bundle.mjs
-            git commit -m "ci: rebuild MCP bundle [skip ci]"
-            git push
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Bump the patch version every push so `/plugin update` always re-installs.
+          node scripts/bump-version.mjs
+          # Stage the version bump plus the bundle if it drifted from source.
+          git add .claude-plugin/plugin.json .claude-plugin/marketplace.json mcp/server.bundle.mjs
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
           else
-            echo "MCP bundle already up to date."
+            git commit -m "ci: bump version + refresh MCP bundle [skip ci]"
+            git push
           fi

@@ -192,9 +192,12 @@ immediately. `mcp/server.bundle.mjs` is what the plugin ships; rerun
 `bun run build:mcp` after editing `mcp/server.mjs`.
 
 CI (`.github/workflows/pack.yml`) keeps `main` installable: every push builds,
-type-checks, validates the plugin layout, and re-commits the MCP bundle if it
-drifted from source. (Needs *Settings → Actions → Workflow permissions →
-Read and write*.)
+type-checks, validates the plugin layout, re-commits the MCP bundle if it drifted
+from source, and **bumps the patch version** (via `scripts/bump-version.mjs`). The
+version bump matters — `/plugin update` skips re-installing when the version is
+unchanged, so without it a push would never reach users. So just push; the version
+moves on its own and `/hns update` always gets the latest. (Needs *Settings →
+Actions → Workflow permissions → Read and write*.)
 
 ## Layout
 
