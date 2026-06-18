@@ -345,3 +345,24 @@ the prototype clickable.
 - Patch, don't clobber: use `harness_patch_state` so untouched sections survive.
 - One change, one question. The viewer is a conversation, not a deliverable.
 - Read feedback before assuming you're done. The dev's clicks are the spec.
+
+## Handing off to implementation — build with subagents
+
+The harness is for **design**. Once the dev approves the design and the **Plan**
+board is filled in, stop designing and build the real thing — and build it with
+**`superpowers:subagent-driven-development`**, not one long hand-coded context.
+
+- The **Plan** Kanban *is* the implementation plan: each card is a task. Work them
+  in order (respect the swimlane/milestone grouping and status), **one implementer
+  subagent per task** — never parallel implementers.
+- The `.harness/` artifacts are the **source of truth** each subagent reads — point
+  subagents at them instead of re-describing the work:
+  - `spec` — intent, users, scope, constraints
+  - the prototype HTML + `designSystem` — the exact UI to build (it's real HTML/CSS)
+  - `dataModel` — entities, fields, relationships
+  - `api` — the OpenAPI 3 routes, middleware, params, bodies, responses
+- Follow that skill's loop: per-task brief → implement + test + commit → task review
+  (spec compliance **and** code quality) → fix until clean → final whole-branch review.
+- **Drive the board as you go:** move each card with `harness_set_task` (e.g. to your
+  `doing` / `review` / `done` status ids) as its subagent progresses, so the dev
+  watches implementation advance live on the same Kanban they designed.

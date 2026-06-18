@@ -186,6 +186,13 @@ loop. The agent can also just `Write` files under `.harness/` — the watcher ca
 them either way; the MCP tools add validation, manifest upkeep, screenshots, and the
 feedback channel.
 
+**Design → build.** When the design is approved, the agent hands off to implementation
+with [`superpowers:subagent-driven-development`](https://github.com/obra/superpowers/blob/main/skills/subagent-driven-development/SKILL.md):
+the **Plan** Kanban is the task list (one implementer subagent per card), and the
+`.harness/` artifacts (spec, prototype HTML, data model, API) are the source of truth
+each subagent reads. The agent moves cards (`harness_set_task`) as work lands, so the
+dev watches the build advance on the same board they designed.
+
 ## Develop the tool
 
 The dev commands live in [Commands → Develop / contribute](#commands)

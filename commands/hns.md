@@ -50,4 +50,11 @@ Don't redesign anything in update mode — just update and confirm.
    dev is looking at, plus any errors), `harness_get_screenshot` (see your own
    render), and `harness_get_feedback` (notes the dev left). React to what you find.
 
+5. **When the design is approved, implement with subagents.** Don't hand-code the
+   whole thing in one context — use `superpowers:subagent-driven-development`. The
+   **Plan** Kanban is the task list (one implementer subagent per card), and the
+   `.harness/` artifacts (spec, prototype HTML, dataModel, api) are the source of
+   truth each subagent reads. Move cards with `harness_set_task` as they land so the
+   dev watches progress on the board.
+
 If `$ARGUMENTS` is empty, ask the user what they want to design, then brainstorm it.
