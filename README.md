@@ -73,13 +73,16 @@ Everything you can type, in one place.
 | `/plugin marketplace add AssetsArt/harness-studio` | Add the marketplace (one time) |
 | `/plugin install harness-studio@harness-studio` | Install the plugin — skill + MCP + viewer |
 | `/hns <what to build>` | Brainstorm the idea, then design it in the harness |
-| `/hns update` | Update the plugin **and** viewer to the latest |
+| `/hns update` | Update the plugin to the latest **and re-run the viewer** on the new build |
+| `/hns restart` | Re-run the viewer from the installed plugin (pick up a new build, no manual cache-clearing) |
 | *"design this in the harness"* | Natural-language trigger — same as `/hns` |
 
-`/hns update` just wraps `/plugin marketplace update harness-studio` then
-`/plugin update harness-studio@harness-studio` (or use `/plugin` → Manage → Update).
-Normally you never start the viewer yourself — `/hns` does it via the
-`harness_start_viewer` tool.
+`/hns update` wraps `/plugin marketplace update harness-studio` then
+`/plugin update harness-studio@harness-studio` (or use `/plugin` → Manage → Update),
+then restarts the viewer via `harness_restart_viewer` so the new build shows up — after
+you **restart Claude Code** so the updated skill/commands/MCP load. Normally you never
+start the viewer yourself — `/hns` does it via the `harness_start_viewer` tool, and
+`/hns restart` re-runs it.
 
 **In your shell** — only if you want the viewer *without* the plugin:
 
@@ -178,6 +181,7 @@ on the current project's `.harness/`:
 - `harness_get_architecture` / `harness_set_architecture` — the `architecture` section (the Architecture tab): C4-style system diagram (nodes/edges), ADRs (`decisions`), `nfrs`, `security` notes, `stack`
 - `harness_get_plan` / `harness_set_plan` / `harness_set_task` — the `plan` Kanban board (custom statuses = columns, milestones = swimlanes, tasks = cards w/ priority); `set_task` moves a card between columns
 - `harness_start_viewer` — launch the viewer from the installed plugin (idempotent; no stale cache)
+- `harness_restart_viewer` — re-run the viewer from the installed plugin so it serves the latest build (what `/hns update` / `/hns restart` use; no manual cache-clearing)
 - `harness_get_screenshot` — a PNG of how a screen actually renders (the pixels you see)
 - `harness_get_view` — your active tab, prototype screen, store, and any prototype errors
 - `harness_get_feedback` — notes you left, including the element you clicked to comment on

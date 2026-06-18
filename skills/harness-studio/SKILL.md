@@ -29,6 +29,11 @@ Never describe a screen in prose when you could render it. Show, ask, adjust.
   pointed at this project's `.harness/`. It's idempotent (re-running just returns the
   URL) and installs the viewer's deps on first run. Tell the dev the URL it returns
   (default `http://localhost:7317`).
+- `harness_restart_viewer` — stop the running viewer and relaunch it from the
+  installed plugin, so it serves the **latest** build. Use this after the plugin
+  updates (the `/hns update` / `/hns restart` flow calls it): an already-open viewer
+  keeps serving the old assets until it's restarted. The dev no longer clears caches
+  or kills processes by hand.
 - `harness_get_state` — read the canvas before editing. Always start here.
 - `harness_get_view` — see what the dev is looking at right now (active tab +
   prototype screen). Check this before changing a screen so you edit what they see.

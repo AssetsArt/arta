@@ -1,6 +1,6 @@
 ---
-description: Harness Studio — design in the live canvas, or `update` to pull the latest version
-argument-hint: <what to design> | update
+description: Harness Studio — design in the live canvas, `update` to pull the latest, or `restart` to re-run the viewer
+argument-hint: <what to design> | update | restart
 ---
 
 The user ran `/hns` with arguments: **$ARGUMENTS**
@@ -9,19 +9,37 @@ Route on the arguments:
 
 ## If the argument is `update` (or begins with "update")
 
-Update Harness Studio to the latest version:
+Update Harness Studio to the latest version, then re-run the viewer so the new build
+actually shows up:
 
 1. Refresh the marketplace and update the plugin:
    - `/plugin marketplace update harness-studio`
    - then `/plugin update harness-studio@harness-studio` (or open `/plugin` → Manage → Update).
-2. **The viewer ships inside the plugin, so this updates it too** — there's nothing
-   separate to pull. Tell the user to close any running viewer; the next
-   `harness_start_viewer` (e.g. on their next `/hns`) launches the new version and
-   reinstalls deps if they changed. (Only contributors running a local *clone* need
-   `git pull && bun install`.)
-3. Briefly report the resulting plugin version (from `/plugin` or `.claude-plugin/plugin.json`) so they know it moved.
+2. **The viewer ships inside the plugin, so this updates it too** — nothing separate to
+   pull. (Only contributors running a local *clone* need `git pull && bun install`.)
+3. **Restart Claude Code** so the updated skill, commands, and MCP server load — an
+   in-session update keeps serving the old ones.
+4. **Re-run the viewer on the new build.** A viewer that's already open keeps serving the
+   OLD assets until it's restarted. Call the `harness_restart_viewer` MCP tool (it stops
+   the running viewer and relaunches it from the freshly-installed plugin — no manual
+   process-killing or cache-clearing). If that tool isn't available yet (you're still on
+   the pre-restart session), tell the user to restart Claude Code and then run
+   `/hns restart`.
+5. Briefly report the resulting plugin version (from `/plugin` or `.claude-plugin/plugin.json`) so they know it moved.
 
-Don't redesign anything in update mode — just update and confirm.
+Don't redesign anything in update mode — just update, re-run the viewer, and confirm.
+
+## If the argument is `restart` (or begins with "restart")
+
+Re-run the viewer without touching the design — use this to pick up a new build, or if the
+viewer got into a bad state:
+
+1. Call the `harness_restart_viewer` MCP tool (optionally pass `port` if they run it off
+   the default 7317). It stops whatever is serving on the port and relaunches from the
+   installed plugin.
+2. Tell the user the URL it returns and to **hard-refresh** the tab (the browser may have
+   cached the old assets). If the tool reports the launcher is missing, fall back to
+   `bunx github:AssetsArt/harness-studio`.
 
 ## Otherwise — design "$ARGUMENTS" in the harness
 

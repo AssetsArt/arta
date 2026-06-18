@@ -20,7 +20,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import net from "node:net";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -108,6 +108,58 @@ function portInUse(port, host = "127.0.0.1") {
     socket.once("timeout", () => finish(false));
     socket.once("error", () => finish(false));
   });
+}
+
+// Best-effort: stop whatever is LISTENing on `port` so the viewer can be
+// restarted onto a fresh build. Uses lsof (macOS/Linux); a no-op if lsof is
+// missing or nothing is listening. Returns the PIDs it signalled.
+function killPort(port) {
+  const killed = [];
+  try {
+    const res = spawnSync("lsof", ["-ti", `tcp:${port}`, "-sTCP:LISTEN"], { encoding: "utf8" });
+    const pids = String(res.stdout || "")
+      .split(/\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    for (const pid of pids) {
+      try {
+        process.kill(Number(pid), "SIGTERM");
+        killed.push(Number(pid));
+      } catch {}
+    }
+  } catch {}
+  return killed;
+}
+
+// Wait until `port` is free (the old viewer has actually exited) or timeout.
+async function waitPortFree(port, ms = 4000) {
+  const start = Date.now();
+  while (Date.now() - start < ms) {
+    if (!(await portInUse(port))) return true;
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  return !(await portInUse(port));
+}
+
+// Spawn the viewer launcher that ships with the installed plugin, detached so it
+// outlives this server. Shared by start/restart. Output (incl. first-run
+// `bun install`) is appended to .harness/viewer.log for inspection.
+function spawnViewer(p) {
+  const launcher = path.join(PLUGIN_ROOT, "bin", "harness.mjs");
+  if (!fs.existsSync(launcher)) return { ok: false, launcher };
+  ensureDir();
+  const logFile = path.join(HARNESS_DIR, "viewer.log");
+  let out = "ignore";
+  try {
+    out = fs.openSync(logFile, "a");
+  } catch {}
+  const child = spawn(process.execPath, [launcher, "--project", PROJECT_DIR, "--port", String(p)], {
+    cwd: PLUGIN_ROOT,
+    detached: true,
+    stdio: ["ignore", out, out],
+  });
+  child.unref();
+  return { ok: true, launcher, logFile };
 }
 
 const server = new McpServer({
@@ -522,7 +574,41 @@ server.registerTool(
   "harness_start_viewer",
   {
     description:
-      "Start the Harness Studio viewer FROM THE INSTALLED PLUGIN, pointed at this project's .harness/. Because it runs the launcher that ships with the plugin, the viewer always matches the installed plugin version — no stale npx/bunx cache. First run installs the viewer's deps (a few seconds). Idempotent: if a viewer is already on the port, it just returns the URL. Call this once at the start of a design session so the dev has the canvas open, then keep using the other tools as normal.",
+      "Start the Harness Studio viewer FROM THE INSTALLED PLUGIN, pointed at this project's .harness/. Because it runs the launcher that ships with the plugin, the viewer always matches the installed plugin version — no stale npx/bunx cache. First run installs the viewer's deps (a few seconds). Idempotent: if a viewer is already on the port, it just returns the URL (it does NOT restart it — use harness_restart_viewer to pick up a new build after an update). Call this once at the start of a design session so the dev has the canvas open, then keep using the other tools as normal.",
+    inputSchema: {
+      port: zod.number().int().optional().describe("Port for the viewer (default 7317)."),
+    },
+  },
+  async ({ port }) => {
+    const p = Number(port) || 7317;
+    if (await portInUse(p))
+      return text({
+        ok: true,
+        alreadyRunning: true,
+        url: `http://localhost:${p}`,
+        note: "A viewer is already responding on this port — reuse it. (If it's serving an old build after an update, use harness_restart_viewer.)",
+      });
+    const r = spawnViewer(p);
+    if (!r.ok)
+      return err(
+        `Launcher not found at ${r.launcher}. The plugin may be installed incompletely; the dev can also run \`bunx github:AssetsArt/harness-studio\` manually.`
+      );
+    return text({
+      ok: true,
+      started: true,
+      url: `http://localhost:${p}`,
+      watching: path.join(PROJECT_DIR, ".harness"),
+      from: PLUGIN_ROOT,
+      note: `Viewer starting from the installed plugin. First run installs its deps (a few seconds) — open ${`http://localhost:${p}`} in a moment. Logs: ${r.logFile}`,
+    });
+  }
+);
+
+server.registerTool(
+  "harness_restart_viewer",
+  {
+    description:
+      "Restart the Harness Studio viewer so it serves the LATEST installed plugin build. Stops whatever is listening on the port, waits for it to exit, then relaunches from the installed plugin. Use this right after the plugin updates (`/hns update` or `/plugin update`) — the running viewer keeps serving the old build until it's restarted, so this is what makes an update actually show up on screen. The dev no longer needs to clear caches or kill processes by hand.",
     inputSchema: {
       port: zod.number().int().optional().describe("Port for the viewer (default 7317)."),
     },
@@ -534,34 +620,26 @@ server.registerTool(
       return err(
         `Launcher not found at ${launcher}. The plugin may be installed incompletely; the dev can also run \`bunx github:AssetsArt/harness-studio\` manually.`
       );
-    if (await portInUse(p))
-      return text({
-        ok: true,
-        alreadyRunning: true,
-        url: `http://localhost:${p}`,
-        note: "A viewer is already responding on this port — reuse it.",
-      });
-    // Capture the launcher's output (incl. first-run `bun install`) to a log so
-    // failures are inspectable; the child is detached so it outlives this server.
-    ensureDir();
-    const logFile = path.join(HARNESS_DIR, "viewer.log");
-    let out = "ignore";
-    try {
-      out = fs.openSync(logFile, "a");
-    } catch {}
-    const child = spawn(
-      process.execPath,
-      [launcher, "--project", PROJECT_DIR, "--port", String(p)],
-      { cwd: PLUGIN_ROOT, detached: true, stdio: ["ignore", out, out] }
-    );
-    child.unref();
+    const wasRunning = await portInUse(p);
+    const killed = wasRunning ? killPort(p) : [];
+    const freed = await waitPortFree(p);
+    if (!freed)
+      return err(
+        `Port ${p} is still in use after trying to stop the old viewer${
+          killed.length ? ` (signalled PID ${killed.join(", ")})` : ""
+        }. Another process may be holding it — free it and retry, or pass a different port.`
+      );
+    const r = spawnViewer(p);
+    if (!r.ok) return err(`Launcher not found at ${r.launcher}.`);
     return text({
       ok: true,
-      started: true,
+      restarted: true,
+      wasRunning,
+      stoppedPids: killed,
       url: `http://localhost:${p}`,
       watching: path.join(PROJECT_DIR, ".harness"),
       from: PLUGIN_ROOT,
-      note: `Viewer starting from the installed plugin. First run installs its deps (a few seconds) — open ${`http://localhost:${p}`} in a moment. Logs: ${logFile}`,
+      note: `Viewer relaunched from the installed plugin — now matching the installed version. Reload ${`http://localhost:${p}`} in a moment (hard-refresh if your browser cached the old assets). Logs: ${r.logFile}`,
     });
   }
 );
