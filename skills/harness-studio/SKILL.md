@@ -34,13 +34,20 @@ Never describe a screen in prose when you could render it. Show, ask, adjust.
   updates (the `/hns update` / `/hns restart` flow calls it): an already-open viewer
   keeps serving the old assets until it's restarted. The dev no longer clears caches
   or kills processes by hand.
-- `harness_get_state` — read the canvas before editing. Always start here.
+- `harness_get_state` — read the canvas before editing. Always start here. Whole
+  state by default; in a **large** project pass `{ outline: true }` for a cheap index
+  (which sections exist, their counts + byte sizes, and the screen manifest), then
+  pull only what you need with `{ sections: ['spec','dataModel'] }` or a named getter.
 - `harness_get_view` — see what the dev is looking at right now (active tab +
   prototype screen). Check this before changing a screen so you edit what they see.
 - `harness_set_state` — write the whole canvas. Use for the first build or a full rewrite.
 - `harness_patch_state` — merge one top-level section (`spec`, `dataModel`,
   `flow`, `plan`, or the prototype manifest). Your workhorse for the structured tabs.
 - `harness_set_phase` — record the current phase (`prototype → data → flow → architecture → plan`), shown in the status bar. Tabs are free routes the dev can revisit in any order, so this just marks where you're working.
+- `harness_get_spec` — read just the `spec` (goal, users, userStories, scope,
+  constraints) without pulling the whole state. Write it via `harness_patch_state`.
+- `harness_get_data_model` — read just the `dataModel` (entities + relationships,
+  the Data tab) on its own. Write it via `harness_patch_state`.
 - `harness_get_api` / `harness_set_api` — read/write the `api` section (the Flow
   tab) as an OpenAPI 3 document: routes, middleware (`x-middleware`), and
   per-operation params (path/query/header), request body, and responses. Tie a

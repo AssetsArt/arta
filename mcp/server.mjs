@@ -2,7 +2,10 @@
 // ── Harness Studio MCP server ───────────────────────────────────────────────
 // Gives Claude Code eyes and hands on the shared canvas:
 //
-//   • harness_get_state     — read the whole state.json (what you've built)
+//   • harness_get_state     — read state.json — whole, or {outline} / {sections}
+//                             to spend tokens only on the parts you need
+//   • harness_get_spec /    — read one section on its own (cheap in big projects);
+//     _data_model / _api /     also _plan, _architecture, _design_tokens
 //   • harness_set_state     — replace state.json (triggers the live viewer)
 //   • harness_patch_state   — shallow-merge a section (spec/plan/prototype/…)
 //   • harness_set_phase     — record the current phase (shown in the status bar)
@@ -178,17 +181,89 @@ const server = new McpServer({
   version: "0.1.0",
 });
 
+// Compact, token-cheap summary of one top-level section — used by the outline.
+function summarizeSection(key, v) {
+  const s = { bytes: Buffer.byteLength(JSON.stringify(v ?? null)) };
+  if (v && typeof v === "object") {
+    if (key === "spec") s.keys = Object.keys(v);
+    else if (key === "dataModel") {
+      s.entities = (v.entities || []).length;
+      s.relationships = (v.relationships || []).length;
+    } else if (key === "plan") {
+      s.milestones = (v.milestones || []).length;
+      s.tasks = (v.milestones || []).reduce((n, m) => n + (m.tasks || []).length, 0);
+    } else if (key === "api") {
+      s.paths = v.paths ? Object.keys(v.paths).length : 0;
+    } else if (key === "architecture") {
+      s.nodes = (v.nodes || []).length;
+      s.edges = (v.edges || []).length;
+      if (v.decisions) s.decisions = v.decisions.length;
+    } else if (key === "prototype") {
+      s.screens = (v.screens || []).length;
+      s.hasTokens = !!v.tokens;
+      s.hasLayout = !!v.layout;
+    }
+  }
+  return s;
+}
+
+// A lightweight index of state.json: which sections exist, how big each is, and
+// the screen manifest — so the model can decide what to pull instead of the lot.
+function buildOutline(state) {
+  const sections = {};
+  for (const k of Object.keys(state)) {
+    if (k === "meta") continue;
+    sections[k] = summarizeSection(k, state[k]);
+  }
+  const screens = (state.prototype?.screens || []).map((s) => ({
+    id: s.id,
+    title: s.title,
+    ...(s.frame ? { frame: s.frame } : {}),
+  }));
+  return {
+    meta: state.meta || {},
+    sections,
+    screens,
+    note: "Outline only. Pull a section with harness_get_state({ sections:['spec','dataModel'] }) or a named getter (harness_get_spec, harness_get_data_model, harness_get_api, harness_get_plan, harness_get_architecture, harness_get_design_tokens). Screen HTML: harness_get_screen({ id }).",
+  };
+}
+
 server.registerTool(
   "harness_get_state",
   {
     description:
-      "Read .harness/state.json — meta/spec/plan/dataModel/flow plus the prototype MANIFEST (screen ids, titles, frames; NOT the screen HTML). This stays small as the prototype grows. Read the actual markup with harness_get_screen / harness_get_component / harness_get_design_system so you only pull what you need.",
-    inputSchema: {},
+      "Read .harness/state.json — meta/spec/plan/dataModel/api/architecture plus the prototype MANIFEST (screen ids, titles, frames; NOT the screen HTML). Defaults to the whole state. In a LARGE project that blob gets expensive, so narrow it: `outline:true` returns just an index (which sections exist, their item counts and byte sizes, plus the screen manifest); `sections:['spec','dataModel']` returns only those top-level keys (meta is always included). Then pull screen markup with harness_get_screen / harness_get_component / harness_get_design_system so you only spend tokens on what you need.",
+    inputSchema: {
+      sections: zod
+        .array(zod.string())
+        .optional()
+        .describe(
+          "Return only these top-level keys (e.g. ['spec','dataModel','api']). meta is always included. Omit for the whole state."
+        ),
+      outline: zod
+        .boolean()
+        .optional()
+        .describe(
+          "If true, return a compact index (sections present + counts + byte sizes + screen manifest) instead of the full state. Cheapest way to ground in a big project; then pull what you need."
+        ),
+    },
   },
-  async () => {
+  async ({ sections, outline } = {}) => {
     const state = readJson(STATE_FILE);
     if (state == null)
       return text({ exists: false, note: "No state.json yet — write one with harness_set_state." });
+    if (outline) return text(buildOutline(state));
+    if (Array.isArray(sections) && sections.length) {
+      const picked = { meta: state.meta };
+      const missing = [];
+      for (const k of sections) {
+        if (k === "meta") continue;
+        if (k in state) picked[k] = state[k];
+        else missing.push(k);
+      }
+      if (missing.length) picked._missing = missing;
+      return text(picked);
+    }
     return text(state);
   }
 );
@@ -249,6 +324,36 @@ server.registerTool(
     current.meta = { ...(current.meta || {}), phase };
     writeState(current);
     return text({ ok: true, phase });
+  }
+);
+
+server.registerTool(
+  "harness_get_spec",
+  {
+    description:
+      "Read just the `spec` section — goal, users, userStories, scope (in/out), constraints. Cheaper than harness_get_state when you only need the brief. Write it with harness_patch_state({ spec: {...} }).",
+    inputSchema: {},
+  },
+  async () => {
+    const state = readJson(STATE_FILE) || {};
+    if (!state.spec)
+      return text({ exists: false, note: "No spec yet — write one with harness_patch_state({ spec: {...} })." });
+    return text(state.spec);
+  }
+);
+
+server.registerTool(
+  "harness_get_data_model",
+  {
+    description:
+      "Read just the `dataModel` section — entities (each with fields carrying pk/fk/type/required) and relationships. This is what the Data tab renders. Cheaper than harness_get_state when you only need the schema. Write it with harness_patch_state({ dataModel: {...} }).",
+    inputSchema: {},
+  },
+  async () => {
+    const state = readJson(STATE_FILE) || {};
+    if (!state.dataModel)
+      return text({ exists: false, note: "No dataModel yet — write one with harness_patch_state({ dataModel: {...} })." });
+    return text(state.dataModel);
   }
 );
 

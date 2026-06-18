@@ -1,6 +1,6 @@
 ---
-description: Harness Studio — design in the live canvas; `update`, `restart`, or `feedback` to act on the dev's notes
-argument-hint: <what to design> | update | restart | feedback
+description: Harness Studio — design in the live canvas; `update`, `restart`, `feedback`, or `review`
+argument-hint: <what to design> | update | restart | feedback | review [screen]
 ---
 
 The user ran `/hns` with arguments: **$ARGUMENTS**
@@ -57,6 +57,23 @@ wake you on its own, so this is the chat-side trigger that closes the comment lo
 4. Briefly summarize what you addressed per note so the dev can follow along.
 
 Stay scoped to what the notes ask — don't redesign beyond them.
+
+## If the argument is `review` (or begins with "review")
+
+Run a design-quality pass on the prototype — catch AI-slop before the dev does:
+
+1. Call the `harness_design_review` MCP tool. If a screen id follows (e.g.
+   `/hns review checkout`), pass it to scan just that screen; otherwise scan all.
+2. It runs impeccable's deterministic detectors and returns findings (each with an
+   antipattern, severity, and snippet — side-stripe borders, gradient text,
+   gray-on-color, low contrast, identical card grids, over-rounded cards, …).
+   - **No findings** → say it's clean and stop.
+   - **Findings** → group them by screen/severity, then fix the clear ones in
+     `.harness/` (Tailwind classes + design-system tokens, not inline styles),
+     re-running `harness_design_review` to confirm they cleared. Flag any that are
+     deliberate so the dev can decide.
+   - **Tool unavailable** (impeccable not installed / offline) → relay its note;
+     suggest `npx impeccable install` or `/impeccable audit` as a fallback.
 
 ## Otherwise — design "$ARGUMENTS" in the harness
 

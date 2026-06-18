@@ -76,6 +76,7 @@ Everything you can type, in one place.
 | `/hns update` | Update the plugin to the latest **and re-run the viewer** on the new build |
 | `/hns restart` | Re-run the viewer from the installed plugin (pick up a new build, no manual cache-clearing) |
 | `/hns feedback` | Drain the comments the dev left in the viewer and act on them (`harness_get_feedback`) |
+| `/hns review [screen]` | Design-quality pass — run impeccable's anti-slop detectors on the prototype and fix what they flag (`harness_design_review`) |
 | *"design this in the harness"* | Natural-language trigger — same as `/hns` |
 
 `/hns update` wraps `/plugin marketplace update harness-studio` then
@@ -173,7 +174,8 @@ lo-fi screens.
 The plugin registers a self-contained MCP server (no extra install) that operates
 on the current project's `.harness/`:
 
-- `harness_get_state` / `harness_set_state` / `harness_patch_state` — read & write the structured canvas + prototype manifest
+- `harness_get_state` / `harness_set_state` / `harness_patch_state` — read & write the structured canvas + prototype manifest. `get_state` takes `{ outline: true }` (a cheap index of sections + counts + sizes) or `{ sections: [...] }` (only the keys you want) so large projects don't pay for the whole blob each time
+- `harness_get_spec` / `harness_get_data_model` — read just the `spec` or `dataModel` section on its own (token-cheap grounding); write them via `harness_patch_state`
 - `harness_get_screen` / `harness_set_screen` — read/write one screen body (one file)
 - `harness_get_component` / `harness_set_component` — read/write one shared fragment
 - `harness_get_design_system` / `harness_set_design_system` — the shared CSS
