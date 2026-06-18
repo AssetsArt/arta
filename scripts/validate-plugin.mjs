@@ -41,6 +41,7 @@ if (plugin) {
 // marketplace.json
 const mkt = readJson(".claude-plugin/marketplace.json");
 if (mkt) {
+  if (!mkt.owner || typeof mkt.owner !== "object") errors.push("marketplace.json: top-level `owner` object is required");
   if (!Array.isArray(mkt.plugins) || mkt.plugins.length === 0) errors.push("marketplace.json: plugins[] empty");
   else {
     for (const p of mkt.plugins) {

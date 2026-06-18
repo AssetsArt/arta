@@ -2,6 +2,10 @@
   "name": "harness-studio",
   "version": "0.1.0",
   "description": "Harness Studio — live AI↔dev design canvas",
+  "owner": {
+    "name": "AssetsArt",
+    "url": "https://github.com/AssetsArt"
+  },
   "plugins": [
     {
       "name": "harness-studio",
