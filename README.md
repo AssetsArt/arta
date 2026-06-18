@@ -62,6 +62,45 @@ cart** and watch the badge persist across screens, switch device frames
 (Web / Desktop / iOS / Android), **Comment** on an element, follow the **Changes**
 feed, collapse the **Spec** rail, or hit **Edit state** to paste new state.
 
+## Commands
+
+Everything you can type, in one place.
+
+**In Claude Code** — slash commands:
+
+| Command | What it does |
+|---|---|
+| `/plugin marketplace add AssetsArt/harness-studio` | Add the marketplace (one time) |
+| `/plugin install harness-studio@harness-studio` | Install the plugin — skill + MCP + viewer |
+| `/hns <what to build>` | Brainstorm the idea, then design it in the harness |
+| `/hns update` | Update the plugin **and** viewer to the latest |
+| *"design this in the harness"* | Natural-language trigger — same as `/hns` |
+
+`/hns update` just wraps `/plugin marketplace update harness-studio` then
+`/plugin update harness-studio@harness-studio` (or use `/plugin` → Manage → Update).
+Normally you never start the viewer yourself — `/hns` does it via the
+`harness_start_viewer` tool.
+
+**In your shell** — only if you want the viewer *without* the plugin:
+
+| Command | What it does |
+|---|---|
+| `bunx github:AssetsArt/harness-studio` | Run the viewer in the current project (`:7317`) |
+| `bun pm cache rm` | Force `bunx` to re-fetch the latest (it caches `github:` specs) |
+| `bunx github:AssetsArt/harness-studio --project <dir>` | Point the viewer at another project |
+| `bunx github:AssetsArt/harness-studio --port <n>` | Use a different port (default `7317`) |
+
+**Develop / contribute** — in a clone of this repo:
+
+| Command | What it does |
+|---|---|
+| `bun install` | Install deps |
+| `bun run dev` | Viewer on `:7317`, watching this repo's `.harness/` |
+| `bun run build` | Typecheck + build viewer + bundle the MCP |
+| `bun run build:mcp` | Re-bundle the MCP after editing `mcp/server.mjs` |
+| `node scripts/validate-plugin.mjs` | Check the plugin layout (the CI gate) |
+| `bun link` | Expose a global `harness` command, runnable from any project |
+
 ## How the canvas works
 
 ### Freeform prototype
@@ -145,12 +184,8 @@ feedback channel.
 
 ## Develop the tool
 
-```bash
-bun install
-bun run dev          # viewer on http://localhost:7317, watching this repo's .harness
-bun run build        # typecheck + build viewer + bundle the MCP (mcp/server.bundle.mjs)
-node scripts/validate-plugin.mjs   # check the plugin layout
-```
+The dev commands live in [Commands → Develop / contribute](#commands)
+(`bun install`, `bun run dev`, `bun run build`, …).
 
 A seed project (**Aurora Store**) is included so there's something to look at
 immediately. `mcp/server.bundle.mjs` is what the plugin ships; rerun
