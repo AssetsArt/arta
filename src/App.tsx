@@ -11,6 +11,7 @@ import { StateDrawer } from "./components/StateDrawer";
 import { PrototypeTab } from "./components/tabs/PrototypeTab";
 import { DataTab } from "./components/tabs/DataTab";
 import { FlowTab } from "./components/tabs/FlowTab";
+import { ArchitectureTab } from "./components/tabs/ArchitectureTab";
 import { PlanTab } from "./components/tabs/PlanTab";
 
 export default function App() {
@@ -118,6 +119,7 @@ export default function App() {
             they fill the area directly instead of living in the scroll wrapper. */}
         {tab === "data" && <DataTab dataModel={data.dataModel ?? {}} />}
         {tab === "flow" && <FlowTab api={data.api ?? {}} screens={data.prototype?.screens ?? []} />}
+        {tab === "architecture" && <ArchitectureTab architecture={data.architecture ?? {}} />}
         {tab === "plan" && <PlanTab plan={data.plan ?? {}} />}
       </div>
 

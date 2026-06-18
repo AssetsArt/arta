@@ -56,7 +56,7 @@ const CSS_FILE = path.join(PROTO_DIR, "design-system.css");
 const COMP_DIR = path.join(PROTO_DIR, "components");
 const SCREEN_DIR = path.join(PROTO_DIR, "screens");
 
-const PHASES = ["prototype", "data", "flow", "plan"];
+const PHASES = ["prototype", "data", "flow", "architecture", "plan"];
 const sanitize = (s) => String(s).replace(/[^a-z0-9_-]/gi, "");
 
 function ensureDir() {
@@ -177,8 +177,8 @@ server.registerTool(
 server.registerTool(
   "harness_set_phase",
   {
-    description: "Advance the phase stepper in the viewer. The flow is prototype → data → flow → plan.",
-    inputSchema: { phase: zod.enum(["prototype", "data", "flow", "plan"]) },
+    description: "Advance the phase stepper in the viewer. The flow is prototype → data → flow → architecture → plan.",
+    inputSchema: { phase: zod.enum(["prototype", "data", "flow", "architecture", "plan"]) },
   },
   async ({ phase }) => {
     const current = readJson(STATE_FILE);
@@ -292,6 +292,41 @@ server.registerTool(
     if (newTitle !== undefined) t.title = newTitle;
     writeState(state);
     return text({ ok: true, milestone, task: t.title, status: t.status, created });
+  }
+);
+
+server.registerTool(
+  "harness_get_architecture",
+  {
+    description:
+      "Read the `architecture` section — the system-level design (the Architecture tab): stack, C4-style nodes/edges (the system diagram), decisions (ADRs), nfrs, and security notes.",
+    inputSchema: {},
+  },
+  async () => {
+    const state = readJson(STATE_FILE) || {};
+    if (!state.architecture) return text({ exists: false, note: "No architecture yet — write one with harness_set_architecture." });
+    return text(state.architecture);
+  }
+);
+
+server.registerTool(
+  "harness_set_architecture",
+  {
+    description:
+      'Write the `architecture` section (the Architecture tab). Shape: { stack?: ["Node", ...], nodes: [{ id, name, kind: "client"|"service"|"datastore"|"external"|"gateway"|"queue"|"cache"|"infra", tech?, description?, deployment?, group? }], edges: [{ from, to, protocol?: "REST"|"gRPC"|"AMQP"|..., mode?: "sync"|"async", label? }] (the C4-style system diagram), decisions?: [{ id?, title, status?: "proposed"|"accepted"|"superseded"|"rejected", context?, options?: [..], decision?, consequences? }] (ADRs), nfrs?: [{ name, target?, note? }], security?: [{ boundary?, note }] }. Replaces the whole architecture section; the viewer repaints.',
+    inputSchema: { architecture: zod.record(zod.any()).describe("The architecture object (nodes/edges + decisions/nfrs/security).") },
+  },
+  async ({ architecture }) => {
+    if (!architecture || typeof architecture !== "object") return err("architecture must be an object.");
+    const state = readJson(STATE_FILE) || { meta: { name: "Untitled", phase: "architecture" } };
+    state.architecture = architecture;
+    writeState(state);
+    return text({
+      ok: true,
+      nodes: (architecture.nodes || []).length,
+      edges: (architecture.edges || []).length,
+      decisions: (architecture.decisions || []).length,
+    });
   }
 );
 

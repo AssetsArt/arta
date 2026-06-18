@@ -9,7 +9,7 @@ Three layers, one loop:
 
 | Layer | What it is |
 |---|---|
-| **Viewer (the screen)** | A React + Vite + Tailwind + shadcn-style app showing four tabs — **Prototype + Spec · Data model · Flow · Plan** — rendered from the canvas. The prototype is **freeform**: the AI writes real HTML + a shared CSS design system per screen, in a real device frame, wired up with a few attributes. |
+| **Viewer (the screen)** | A React + Vite + Tailwind + shadcn-style app showing five tabs — **Prototype + Spec · Data model · Flow (API) · Architecture · Plan** — rendered from the canvas. The prototype is **freeform**: the AI writes real HTML + a shared CSS design system per screen, in a real device frame, wired up with a few attributes. |
 | **Canvas** | A `.harness/` folder in your project. The AI writes it with its normal tools (or the MCP); the viewer watches it and live-reloads in place with a cyan flash. |
 | **Skill + MCP** | A Claude Code skill drives the phases; an MCP server is the agent's eyes & hands — it edits the canvas, *sees* its own render (screenshots) and errors, and reads your feedback. |
 
@@ -175,6 +175,7 @@ on the current project's `.harness/`:
 - `harness_get_design_system` / `harness_set_design_system` — the shared CSS
 - `harness_set_phase` / `harness_set_frame` — advance the stepper / set the device frame
 - `harness_get_api` / `harness_set_api` — the `api` section (the Flow tab): an OpenAPI 3 document — routes, middleware, params, body, responses, and `x-screens` (which screens call each route → screen→API edges)
+- `harness_get_architecture` / `harness_set_architecture` — the `architecture` section (the Architecture tab): C4-style system diagram (nodes/edges), ADRs (`decisions`), `nfrs`, `security` notes, `stack`
 - `harness_get_plan` / `harness_set_plan` / `harness_set_task` — the `plan` Kanban board (custom statuses = columns, milestones = swimlanes, tasks = cards w/ priority); `set_task` moves a card between columns
 - `harness_start_viewer` — launch the viewer from the installed plugin (idempotent; no stale cache)
 - `harness_get_screenshot` — a PNG of how a screen actually renders (the pixels you see)

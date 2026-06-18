@@ -9,6 +9,7 @@ const STEP_LABEL: Record<Phase, string> = {
   prototype: "Prototype",
   data: "Data",
   flow: "Flow",
+  architecture: "Arch",
   plan: "Plan",
 };
 

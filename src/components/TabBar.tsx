@@ -1,4 +1,4 @@
-import { Database, ListChecks, Monitor, Workflow } from "lucide-react";
+import { Boxes, Database, ListChecks, Monitor, Workflow } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { Phase } from "../lib/types";
 import { useTheme } from "../lib/theme";
@@ -8,6 +8,7 @@ const TABS: { key: Phase; label: string; Icon: LucideIcon }[] = [
   { key: "prototype", label: "Prototype + Spec", Icon: Monitor },
   { key: "data", label: "Data model", Icon: Database },
   { key: "flow", label: "Flow", Icon: Workflow },
+  { key: "architecture", label: "Architecture", Icon: Boxes },
   { key: "plan", label: "Plan", Icon: ListChecks },
 ];
 

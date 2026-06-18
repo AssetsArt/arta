@@ -42,6 +42,9 @@ Never describe a screen in prose when you could render it. Show, ask, adjust.
   route to the prototype screens that call it with `x-screens: ["screenId"]` — the
   Flow graph then draws screen → API edges (which screen hits which endpoint,
   through which middleware).
+- `harness_get_architecture` / `harness_set_architecture` — read/write the
+  `architecture` section (the Architecture tab): the C4-style `nodes`/`edges` (system
+  diagram), `decisions` (ADRs), `nfrs`, `security` notes, and `stack`.
 - `harness_get_plan` / `harness_set_plan` — read/write the `plan` Kanban board:
   `statuses` (columns), `milestones` (swimlanes), and tasks (`status` id +
   `priority`). `harness_set_task` adds/updates one card by milestone + title —
@@ -145,7 +148,12 @@ a document.
    (path/query/header), request body, and responses. The viewer shows it as a
    React Flow graph (routes + middleware chain) with a Postman-style inspector
    (Params · Headers · Body · Responses) and an Export OpenAPI 3 button.
-4. **Plan** — a **Kanban board** (ClickUp-style): you define the columns as custom
+4. **Architecture** — the system-level design (`architecture`): a **C4-style diagram**
+   (`nodes`/`edges` — services, datastores, externals, gateways, queues, caches, infra,
+   connected by protocol + sync/async), plus **ADRs** (`decisions`), **NFRs** (`nfrs`),
+   **security** notes, and the system `stack`. Shown as a React Flow diagram with
+   Diagram / Decisions / Security & NFRs views.
+5. **Plan** — a **Kanban board** (ClickUp-style): you define the columns as custom
    **statuses** (`plan.statuses`), milestones become **swimlanes** (rows), and tasks
    are cards (each with a `status` id and optional `priority`). Plus the tech `stack`.
 
@@ -226,6 +234,23 @@ the dev react at each step.
         }
       }
     }
+  },
+  "architecture": {                           // the Architecture tab — system design
+    "stack": ["Node/Express", "Postgres", "Redis"],
+    "nodes": [                                 // C4-style components
+      { "id": "web", "name": "Web app", "kind": "client", "tech": "React", "deployment": "Vercel" },
+      { "id": "api", "name": "API", "kind": "service", "tech": "Node/Express", "deployment": "AWS ECS", "description": "..." },
+      { "id": "db", "name": "Primary DB", "kind": "datastore", "tech": "Postgres 16" }
+    ],
+    "edges": [                                 // protocol + sync|async
+      { "from": "web", "to": "api", "protocol": "REST", "mode": "sync" },
+      { "from": "api", "to": "db", "protocol": "SQL", "mode": "sync" }
+    ],
+    "decisions": [                             // ADRs
+      { "id": "ADR-1", "title": "Use Postgres", "status": "accepted", "context": "…", "options": ["Postgres", "Mongo"], "decision": "…", "consequences": "…" }
+    ],
+    "nfrs": [ { "name": "Availability", "target": "99.9%", "note": "…" } ],
+    "security": [ { "boundary": "public → API", "note": "JWT auth, rate-limit at gateway" } ]
   },
   "plan": {                                   // the Plan tab — a Kanban board
     "stack": ["React", "Node"],

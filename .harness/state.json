@@ -616,5 +616,208 @@
         }
       }
     }
+  },
+  "architecture": {
+    "stack": [
+      "React",
+      "Node/Express",
+      "Postgres",
+      "Redis",
+      "AWS"
+    ],
+    "nodes": [
+      {
+        "id": "web",
+        "name": "Storefront",
+        "kind": "client",
+        "tech": "React 19",
+        "deployment": "Vercel",
+        "description": "ลูกค้าเปิดผ่านมือถือ/เว็บ"
+      },
+      {
+        "id": "staff",
+        "name": "Staff dashboard",
+        "kind": "client",
+        "tech": "React",
+        "deployment": "Vercel"
+      },
+      {
+        "id": "gw",
+        "name": "API Gateway",
+        "kind": "gateway",
+        "tech": "Kong",
+        "deployment": "AWS",
+        "description": "auth, rate-limit, routing"
+      },
+      {
+        "id": "api",
+        "name": "Core API",
+        "kind": "service",
+        "tech": "Node/Express",
+        "deployment": "AWS ECS (Fargate)",
+        "description": "products, orders, queue"
+      },
+      {
+        "id": "queue",
+        "name": "Queue worker",
+        "kind": "service",
+        "tech": "Node",
+        "deployment": "AWS ECS",
+        "description": "คิว walk-in + แจ้งเตือน"
+      },
+      {
+        "id": "db",
+        "name": "Primary DB",
+        "kind": "datastore",
+        "tech": "Postgres 16",
+        "deployment": "AWS RDS"
+      },
+      {
+        "id": "cache",
+        "name": "Cache / pubsub",
+        "kind": "cache",
+        "tech": "Redis",
+        "deployment": "AWS ElastiCache"
+      },
+      {
+        "id": "mq",
+        "name": "Event bus",
+        "kind": "queue",
+        "tech": "SQS"
+      },
+      {
+        "id": "sms",
+        "name": "SMS/LINE notify",
+        "kind": "external",
+        "tech": "3rd-party",
+        "description": "แจ้งลูกค้าเมื่อถึงคิว"
+      }
+    ],
+    "edges": [
+      {
+        "from": "web",
+        "to": "gw",
+        "protocol": "REST",
+        "mode": "sync"
+      },
+      {
+        "from": "staff",
+        "to": "gw",
+        "protocol": "REST",
+        "mode": "sync"
+      },
+      {
+        "from": "gw",
+        "to": "api",
+        "protocol": "REST",
+        "mode": "sync"
+      },
+      {
+        "from": "api",
+        "to": "db",
+        "protocol": "SQL",
+        "mode": "sync"
+      },
+      {
+        "from": "api",
+        "to": "cache",
+        "protocol": "Redis",
+        "mode": "sync"
+      },
+      {
+        "from": "api",
+        "to": "mq",
+        "protocol": "AMQP",
+        "mode": "async",
+        "label": "queue.events"
+      },
+      {
+        "from": "mq",
+        "to": "queue",
+        "protocol": "AMQP",
+        "mode": "async"
+      },
+      {
+        "from": "queue",
+        "to": "sms",
+        "protocol": "HTTPS",
+        "mode": "async"
+      },
+      {
+        "from": "web",
+        "to": "cache",
+        "protocol": "WebSocket",
+        "mode": "async",
+        "label": "queue stream (SSE)"
+      }
+    ],
+    "decisions": [
+      {
+        "id": "ADR-1",
+        "title": "Postgres เป็น primary store",
+        "status": "accepted",
+        "context": "ต้องการ transaction + relational (orders/queue)",
+        "options": [
+          "Postgres",
+          "MongoDB",
+          "DynamoDB"
+        ],
+        "decision": "ใช้ Postgres (RDS)",
+        "consequences": "ได้ ACID; ต้องดูแล scaling เอง (read replica ภายหลัง)"
+      },
+      {
+        "id": "ADR-2",
+        "title": "Realtime ผ่าน Redis pub/sub + SSE",
+        "status": "accepted",
+        "context": "แดชบอร์ดต้องเห็นคิวสด",
+        "options": [
+          "WebSocket server",
+          "Redis+SSE",
+          "polling"
+        ],
+        "decision": "Redis pub/sub → SSE",
+        "consequences": "เรียบง่าย scale ง่าย; ไม่ bi-directional"
+      },
+      {
+        "id": "ADR-3",
+        "title": "แยก queue worker ออกจาก API",
+        "status": "proposed",
+        "context": "งานแจ้งเตือน async ไม่ควร block request",
+        "decision": "worker service + SQS",
+        "consequences": "deploy เพิ่ม 1 service"
+      }
+    ],
+    "nfrs": [
+      {
+        "name": "Availability",
+        "target": "99.9%",
+        "note": "multi-AZ RDS + ECS"
+      },
+      {
+        "name": "Latency (API)",
+        "target": "p95 < 200ms"
+      },
+      {
+        "name": "Realtime",
+        "target": "คิวอัปเดต < 2s"
+      },
+      {
+        "name": "Scale",
+        "target": "500 ร้าน / 50 rps"
+      }
+    ],
+    "security": [
+      {
+        "boundary": "public → gateway",
+        "note": "JWT (staff) + ลายเซ็น QR (ลูกค้า); rate-limit ที่ gateway"
+      },
+      {
+        "boundary": "service → DB",
+        "note": "least-privilege DB user; ไม่เก็บ PII เกินจำเป็น (เบอร์โทร hash)"
+      },
+      {
+        "note": "3rd-party SMS/LINE: เก็บ token ใน secrets manager"
+      }
+    ]
   }
 }

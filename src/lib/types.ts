@@ -2,7 +2,7 @@
 // Kept permissive on purpose: the AI writes this file freely, and the viewer
 // degrades gracefully when sections are missing or partial.
 
-export type Phase = "prototype" | "data" | "flow" | "plan";
+export type Phase = "prototype" | "data" | "flow" | "architecture" | "plan";
 
 export interface Meta {
   name: string;
@@ -217,6 +217,62 @@ export interface Prototype {
   screens?: Screen[];
 }
 
+// ── Architecture layer (the Architecture tab) — system-level design ──────────
+export type ArchKind = "client" | "service" | "datastore" | "external" | "gateway" | "queue" | "cache" | "infra";
+export interface ArchNode {
+  id: string;
+  name: string;
+  kind: ArchKind;
+  /** Tech/implementation, e.g. "Node/Express", "Postgres 16", "Redis". */
+  tech?: string;
+  /** What it's responsible for. */
+  description?: string;
+  /** Where it runs, e.g. "AWS ECS (Fargate)", "Vercel", "GKE". */
+  deployment?: string;
+  /** Optional grouping / zone (e.g. "VPC", "edge", "data tier"). */
+  group?: string;
+}
+export interface ArchEdge {
+  from: string;
+  to: string;
+  /** REST | gRPC | GraphQL | SQL | AMQP | WebSocket | … */
+  protocol?: string;
+  mode?: "sync" | "async";
+  label?: string;
+}
+export type AdrStatus = "proposed" | "accepted" | "superseded" | "rejected";
+export interface Adr {
+  id?: string;
+  title: string;
+  status?: AdrStatus;
+  context?: string;
+  options?: string[];
+  decision?: string;
+  consequences?: string;
+}
+export interface Nfr {
+  name: string;
+  target?: string;
+  note?: string;
+}
+export interface ThreatNote {
+  boundary?: string;
+  note: string;
+}
+export interface Architecture {
+  /** System tech stack. */
+  stack?: string[];
+  /** C4-style components for the system diagram. */
+  nodes?: ArchNode[];
+  edges?: ArchEdge[];
+  /** Architecture Decision Records. */
+  decisions?: Adr[];
+  /** Non-functional requirements. */
+  nfrs?: Nfr[];
+  /** Security / threat-model notes. */
+  security?: ThreatNote[];
+}
+
 export type StoreState = Record<string, string | number>;
 
 export interface HarnessState {
@@ -226,10 +282,11 @@ export interface HarnessState {
   dataModel?: DataModel;
   flow?: Flow;
   api?: ApiDoc;
+  architecture?: Architecture;
   prototype?: Prototype;
 }
 
-export const TAB_ORDER: Phase[] = ["prototype", "data", "flow", "plan"];
+export const TAB_ORDER: Phase[] = ["prototype", "data", "flow", "architecture", "plan"];
 
 // meta.phase is permissive (the AI may use legacy "spec"/"dataModel" labels);
 // fold it onto the canonical four-tab order.
