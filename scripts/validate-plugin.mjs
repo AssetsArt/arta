@@ -46,7 +46,9 @@ if (mkt) {
   else {
     for (const p of mkt.plugins) {
       if (!p.name) errors.push("marketplace.json: a plugin has no name");
-      if (!p.source || !p.source.url) errors.push(`marketplace.json: ${p.name} missing source.url`);
+      // source may be a relative path string ("./") or a git-source object
+      const srcOk = typeof p.source === "string" ? p.source.length > 0 : !!(p.source && p.source.url);
+      if (!srcOk) errors.push(`marketplace.json: ${p.name} missing source`);
     }
     ok.push(`marketplace lists ${mkt.plugins.length} plugin(s)`);
   }

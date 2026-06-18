@@ -1,11 +1,10 @@
 {
   "name": "harness-studio",
-  "displayName": "Harness Studio",
-  "version": "0.1.0",
   "description": "A live design canvas the AI writes into and the dev watches — spec, freeform prototype, data model, flow, and plan, driven from a single .harness/ folder.",
-  "author": { "name": "AssetsArt" },
+  "author": {
+    "name": "AssetsArt"
+  },
   "homepage": "https://github.com/AssetsArt/harness-studio",
   "repository": "https://github.com/AssetsArt/harness-studio",
-  "license": "MIT",
-  "keywords": ["design", "prototype", "wireframe", "mcp", "canvas", "brainstorming"]
+  "license": "MIT"
 }
