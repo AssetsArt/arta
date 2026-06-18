@@ -413,10 +413,14 @@ server.registerTool(
   "harness_set_screen",
   {
     description:
-      "Create or replace one screen: writes only .harness/prototype/screens/<id>.html and upserts the screen's entry in the manifest (title/url/frame). Other screens and the rest of the design are untouched. This is how you edit a screen cheaply.",
+      "Create or replace one screen: writes only .harness/prototype/screens/<id>.html and upserts the screen's entry in the manifest (title/url/frame). Other screens and the rest of the design are untouched. This is how you edit a screen cheaply. STYLE WITH TAILWIND UTILITY CLASSES (injected live) — not inline style=; use lucide icons (<i data-lucide=\"…\">), never emoji.",
     inputSchema: {
       id: zod.string(),
-      html: zod.string().describe("The screen body (HTML). With a layout, just the slot content."),
+      html: zod
+        .string()
+        .describe(
+          "The screen body (HTML). With a layout, just the slot content. Use Tailwind utility classes for styling (NOT inline style=); lucide icons, not emoji. Inline style only for a genuinely dynamic value a utility can't express."
+        ),
       title: zod.string().optional(),
       url: zod.string().optional(),
       frame: zod.enum(["web", "desktop", "ios", "android"]).optional(),
@@ -460,8 +464,8 @@ server.registerTool(
   "harness_set_component",
   {
     description:
-      "Create or replace a shared component (.harness/prototype/components/<name>.html), referenced as {{>name}} from the layout or screens. Edit it once and every screen that uses it updates — no per-screen edits.",
-    inputSchema: { name: zod.string(), html: zod.string() },
+      "Create or replace a shared component (.harness/prototype/components/<name>.html), referenced as {{>name}} from the layout or screens. Edit it once and every screen that uses it updates — no per-screen edits. Style with Tailwind utility classes (injected live), not inline style=; lucide icons, not emoji.",
+    inputSchema: { name: zod.string(), html: zod.string().describe("Component HTML. Tailwind utility classes for styling (not inline style=); lucide icons, not emoji.") },
   },
   async ({ name, html }) => {
     fs.mkdirSync(COMP_DIR, { recursive: true });
@@ -493,6 +497,59 @@ server.registerTool(
     fs.mkdirSync(PROTO_DIR, { recursive: true });
     fs.writeFileSync(CSS_FILE, css);
     return text({ ok: true, wrote: CSS_FILE });
+  }
+);
+
+server.registerTool(
+  "harness_get_design_tokens",
+  {
+    description:
+      "Read the structured design tokens (prototype.tokens) — the design system's foundations: colors, typography, spacing, radii, shadows, fonts.",
+    inputSchema: {},
+  },
+  async () => {
+    const state = readJson(STATE_FILE);
+    return text(state?.prototype?.tokens ?? { note: "No design tokens yet — set them with harness_set_design_tokens." });
+  }
+);
+
+server.registerTool(
+  "harness_set_design_tokens",
+  {
+    description:
+      "Write the design system's foundations (prototype.tokens), shown in the Prototype tab's 'Design system' sub-view as a style guide. Tokens COMPILE TO CSS CUSTOM PROPERTIES injected into every screen — colors→var(--color-<name>), spacing→var(--space-<name>), radii→var(--radius-<name>), shadows→var(--shadow-<name>), fonts→var(--font-<name>), typography→var(--text-<name>). Define tokens here first, then style screens with those vars (or Tailwind arbitrary values like bg-[var(--color-primary)]) so the design system is the single source of truth. Replaces the whole tokens object; the viewer repaints.",
+    inputSchema: {
+      colors: zod.array(zod.object({ name: zod.string(), value: zod.string(), description: zod.string().optional() })).optional(),
+      typography: zod
+        .array(
+          zod.object({
+            name: zod.string(),
+            sample: zod.string().optional(),
+            family: zod.string().optional(),
+            size: zod.string().optional(),
+            weight: zod.union([zod.string(), zod.number()]).optional(),
+            lineHeight: zod.string().optional(),
+            letterSpacing: zod.string().optional(),
+          })
+        )
+        .optional(),
+      spacing: zod.array(zod.object({ name: zod.string(), value: zod.string(), description: zod.string().optional() })).optional(),
+      radii: zod.array(zod.object({ name: zod.string(), value: zod.string(), description: zod.string().optional() })).optional(),
+      shadows: zod.array(zod.object({ name: zod.string(), value: zod.string(), description: zod.string().optional() })).optional(),
+      fonts: zod.array(zod.object({ name: zod.string(), value: zod.string(), description: zod.string().optional() })).optional(),
+    },
+  },
+  async (tokens) => {
+    const state = readJson(STATE_FILE);
+    if (state == null) return err("No state.json yet.");
+    state.prototype = state.prototype || {};
+    const next = {};
+    for (const k of ["colors", "typography", "spacing", "radii", "shadows", "fonts"]) {
+      if (Array.isArray(tokens[k])) next[k] = tokens[k];
+    }
+    state.prototype.tokens = next;
+    writeState(state);
+    return text({ ok: true, tokens: next });
   }
 );
 

@@ -199,12 +199,50 @@ export interface Screen {
 
 export type TemplateVars = Record<string, string | number>;
 
+// ── Design system (the Prototype "Design system" sub-view) ───────────────────
+// A structured, Figma-style design system: foundations (tokens) + a components
+// gallery. Tokens compile to CSS custom properties injected into every screen, so
+// the design system is the single source of truth the AI styles from.
+export interface ColorToken {
+  name: string;
+  value: string; // any CSS color
+  description?: string;
+}
+export interface TypeToken {
+  name: string;
+  /** Preview text; defaults to the name. */
+  sample?: string;
+  family?: string; // CSS font-family
+  size?: string; // e.g. "24px", "1.5rem"
+  weight?: number | string;
+  lineHeight?: string;
+  letterSpacing?: string;
+}
+/** A named scalar token (spacing / radius / shadow / font family). */
+export interface ScaleToken {
+  name: string;
+  value: string;
+  description?: string;
+}
+export interface DesignTokens {
+  colors?: ColorToken[];
+  typography?: TypeToken[];
+  spacing?: ScaleToken[];
+  radii?: ScaleToken[];
+  shadows?: ScaleToken[];
+  fonts?: ScaleToken[]; // value = the font stack
+}
+
 export interface Prototype {
   start?: string;
   /** Default device frame for all screens (web | desktop | ios | android). */
   frame?: FrameKind;
   /** Global CSS (tokens + component classes) injected into every freeform screen. */
   designSystem?: string;
+  /** Structured design tokens — rendered as a style guide and compiled to CSS
+   *  custom properties (--color-*, --space-*, --radius-*, --shadow-*, --text-*,
+   *  --font-*) injected into every screen. */
+  tokens?: DesignTokens;
   /** Shared page shell wrapping every screen body. Use {{slot}} for the body and
    *  {{>name}} to include a shared component. */
   layout?: string;

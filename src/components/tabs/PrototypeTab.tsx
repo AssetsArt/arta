@@ -4,13 +4,14 @@ import type { LucideIcon } from "lucide-react";
 import type { FrameKind, Prototype, Spec, StoreState } from "../../lib/types";
 import { LIGHT, MONO, useTheme } from "../../lib/theme";
 import { alpha, cn } from "../../lib/utils";
-import { resolveScreenHtml } from "../../lib/prototype";
+import { designSheet, resolveScreenHtml } from "../../lib/prototype";
 import { sendFeedback } from "../../lib/useHarness";
 import { ComponentRenderer } from "../proto/ComponentRenderer";
 import { DeviceFrame } from "../proto/DeviceFrame";
 import { FreeformDevice } from "../proto/FreeformDevice";
 import type { AnnotateTarget } from "../proto/FreeformDevice";
 import { SpecRail } from "./SpecRail";
+import { DesignSystemView } from "./DesignSystemView";
 
 interface Props {
   prototype: Prototype;
@@ -45,6 +46,7 @@ export function PrototypeTab({
   onError,
 }: Props) {
   const { c, grid } = useTheme();
+  const [view, setView] = useState<"preview" | "design">("preview");
   const screens = prototype.screens || [];
   const cur = screens.find((s) => s.id === screen) || screens[0] || { id: "", title: "—" };
   const freeform = typeof cur.html === "string";
@@ -64,11 +66,37 @@ export function PrototypeTab({
   }, [cur.id]);
 
   return (
-    <div className="flex h-full min-w-0 flex-1">
-      <div
-        className="flex w-[216px] shrink-0 flex-col border-r"
-        style={{ borderColor: c.border, background: c.panel }}
-      >
+    <div className="flex h-full min-w-0 flex-1 flex-col">
+      {/* sub-view header: Preview | Design system */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 14px", minHeight: 46, borderBottom: `1px solid ${c.border}`, background: c.panel, flexShrink: 0 }}>
+        <Monitor size={15} color={c.accent} />
+        <span style={{ fontFamily: MONO, fontSize: 13, color: c.text }}>Prototype</span>
+        <div style={{ display: "flex", gap: 2, background: c.panel2, border: `1px solid ${c.borderSoft}`, borderRadius: 8, padding: 2 }}>
+          {(
+            [
+              ["preview", "Preview"],
+              ["design", "Design system"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => setView(id)}
+              style={{ fontFamily: MONO, fontSize: 11.5, padding: "5px 11px", borderRadius: 6, border: "none", cursor: "pointer", background: view === id ? c.card : "transparent", color: view === id ? c.text : c.dim }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {view === "design" ? (
+        <DesignSystemView prototype={prototype} />
+      ) : (
+        <div className="flex min-h-0 flex-1">
+          <div
+            className="flex w-[216px] shrink-0 flex-col border-r"
+            style={{ borderColor: c.border, background: c.panel }}
+          >
         <div
           className="px-[15px] pb-[9px] pt-3.5 text-[10.5px] font-medium uppercase tracking-[0.6px]"
           style={{ fontFamily: MONO, color: c.faint }}
@@ -169,7 +197,7 @@ export function PrototypeTab({
               title={cur.title}
               html={resolveScreenHtml(prototype, cur)}
               css={cur.css}
-              designSystem={prototype.designSystem}
+              designSystem={designSheet(prototype)}
               store={store}
               storeVersion={storeVersion}
               annotate={annotate}
@@ -214,6 +242,8 @@ export function PrototypeTab({
       </div>
 
       <SpecRail spec={spec} open={specOpen} onToggle={onToggleSpec} />
+        </div>
+      )}
     </div>
   );
 }

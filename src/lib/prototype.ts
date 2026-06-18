@@ -1,4 +1,4 @@
-import type { Prototype, Screen, TemplateVars } from "./types";
+import type { DesignTokens, Prototype, Screen, TemplateVars } from "./types";
 
 // Minimal, mustache-flavoured templating for the prototype layer so the AI can
 // share a layout and components instead of repeating markup on every screen:
@@ -26,6 +26,12 @@ function expand(tpl: string, components: Record<string, string>, vars: TemplateV
   return out;
 }
 
+// Expand a standalone fragment (resolve {{>includes}} and {{vars}}) — used to
+// preview a component in the design-system gallery the way screens render it.
+export function expandFragment(proto: Prototype, html: string): string {
+  return expand(html, proto.components || {}, { ...(proto.vars || {}) });
+}
+
 // Compose the final HTML for one screen: expand its body, expand the layout,
 // then drop the body into the layout's {{slot}}.
 export function resolveScreenHtml(proto: Prototype, screen: Screen): string {
@@ -37,4 +43,39 @@ export function resolveScreenHtml(proto: Prototype, screen: Screen): string {
 
   const shell = expand(layoutTpl, components, vars);
   return shell.replace(/\{\{\s*slot\s*\}\}/g, body);
+}
+
+const slug = (s: string) =>
+  s
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+// Compile structured design tokens into CSS custom properties (a :root block) so
+// screens reference them — var(--color-primary), var(--space-4), var(--radius-lg),
+// var(--shadow-md), var(--text-h1), var(--font-sans) — keeping the design system
+// the single source of truth.
+export function compileTokens(tokens?: DesignTokens): string {
+  if (!tokens) return "";
+  const lines: string[] = [];
+  const add = (prefix: string, items?: { name: string; value: string }[]) =>
+    (items || []).forEach((t) => {
+      if (t?.name && t.value != null) lines.push(`  --${prefix}-${slug(t.name)}: ${t.value};`);
+    });
+  add("color", tokens.colors);
+  add("space", tokens.spacing);
+  add("radius", tokens.radii);
+  add("shadow", tokens.shadows);
+  add("font", tokens.fonts);
+  (tokens.typography || []).forEach((t) => {
+    if (t?.name && t.size) lines.push(`  --text-${slug(t.name)}: ${t.size};`);
+  });
+  return lines.length ? `:root{\n${lines.join("\n")}\n}` : "";
+}
+
+// The full stylesheet injected into every freeform screen: compiled token vars
+// first (so custom CSS can reference them), then the authored designSystem CSS.
+export function designSheet(proto: Prototype): string {
+  return [compileTokens(proto.tokens), proto.designSystem || ""].filter(Boolean).join("\n");
 }

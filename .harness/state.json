@@ -320,7 +320,145 @@
         "title": "Cart",
         "url": "aurora.shop/cart"
       }
-    ]
+    ],
+    "tokens": {
+      "colors": [
+        {
+          "name": "brand",
+          "value": "#e8482b",
+          "description": "Primary accent — buttons, prices, active links"
+        },
+        {
+          "name": "ink",
+          "value": "#1c1917",
+          "description": "Primary text"
+        },
+        {
+          "name": "muted",
+          "value": "#78716c",
+          "description": "Secondary text"
+        },
+        {
+          "name": "line",
+          "value": "#ececea",
+          "description": "Borders & dividers"
+        },
+        {
+          "name": "soft",
+          "value": "#faf9f7",
+          "description": "Page background"
+        },
+        {
+          "name": "surface",
+          "value": "#ffffff",
+          "description": "Cards, header, footer"
+        }
+      ],
+      "typography": [
+        {
+          "name": "display",
+          "sample": "Everyday objects, quietly well made.",
+          "size": "40px",
+          "weight": 700,
+          "lineHeight": "1.08",
+          "letterSpacing": "-1px"
+        },
+        {
+          "name": "heading",
+          "sample": "Featured",
+          "size": "22px",
+          "weight": 600,
+          "letterSpacing": "-0.4px"
+        },
+        {
+          "name": "body",
+          "sample": "A small catalog of home goods we actually use.",
+          "size": "16px",
+          "weight": 400,
+          "lineHeight": "1.55"
+        },
+        {
+          "name": "small",
+          "sample": "Free shipping over THB 1,500",
+          "size": "13px",
+          "weight": 500
+        },
+        {
+          "name": "eyebrow",
+          "sample": "NEW SEASON",
+          "size": "12px",
+          "weight": 500,
+          "family": "monospace",
+          "letterSpacing": "2px"
+        }
+      ],
+      "spacing": [
+        {
+          "name": "xs",
+          "value": "6px"
+        },
+        {
+          "name": "sm",
+          "value": "12px"
+        },
+        {
+          "name": "md",
+          "value": "18px"
+        },
+        {
+          "name": "lg",
+          "value": "32px"
+        },
+        {
+          "name": "xl",
+          "value": "48px"
+        }
+      ],
+      "radii": [
+        {
+          "name": "sm",
+          "value": "8px"
+        },
+        {
+          "name": "md",
+          "value": "12px"
+        },
+        {
+          "name": "lg",
+          "value": "16px"
+        },
+        {
+          "name": "pill",
+          "value": "999px"
+        }
+      ],
+      "shadows": [
+        {
+          "name": "sm",
+          "value": "0 1px 2px rgba(28,25,23,.06)"
+        },
+        {
+          "name": "md",
+          "value": "0 8px 24px rgba(28,25,23,.10)"
+        },
+        {
+          "name": "lg",
+          "value": "0 20px 48px rgba(28,25,23,.14)"
+        }
+      ],
+      "fonts": [
+        {
+          "name": "sans",
+          "value": "'Geist', system-ui, sans-serif",
+          "description": "UI & body"
+        },
+        {
+          "name": "mono",
+          "value": "'Geist Mono', ui-monospace, monospace",
+          "description": "Eyebrows, code, prices"
+        }
+      ]
+    }
   },
   "api": {
     "info": {

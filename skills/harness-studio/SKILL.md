@@ -72,6 +72,11 @@ you keep big prototypes cheap to edit):
   writes `prototype/screens/<id>.html` and upserts its manifest entry (title/url/frame).
 - `harness_get_component` / `harness_set_component` — read/write ONE shared fragment.
 - `harness_get_design_system` / `harness_set_design_system` — the shared CSS.
+- `harness_get_design_tokens` / `harness_set_design_tokens` — the structured design
+  system (colors, typography, spacing, radii, shadows, fonts). Shown as a style guide
+  in the Prototype → **Design system** sub-view; tokens compile to CSS custom
+  properties (`--color-*`, `--space-*`, `--radius-*`, `--shadow-*`, `--text-*`,
+  `--font-*`) injected into every screen.
 - `harness_set_frame` — set the device frame (prototype default or per screen).
 
 ## Storage layout (.harness/)
@@ -297,11 +302,26 @@ backend, just believable mock state. You can read the current store via
 **Styling & icons — Tailwind and lucide are loaded in every freeform screen.**
 Use them; do not hand-roll what they give you, and **never use emoji as icons.**
 
-- **Tailwind utility classes** work out of the box (the viewer injects
-  `@tailwindcss/browser@4`, compiled live) — e.g.
-  `class="flex items-center gap-3 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-100"`.
-  A `designSystem` (custom CSS / tokens) still works and coexists, so reach for it
-  only for what utilities can't express.
+- **Define the design system first, then build from it.** Set foundations with
+  `harness_set_design_tokens` (colors, typography, spacing, radii, shadows, fonts) —
+  they show as a style guide in the Prototype → **Design system** sub-view and compile
+  to CSS custom properties injected into every screen. Style screens from those tokens
+  (`var(--color-brand)`, `bg-[var(--color-brand)]`, `rounded-[var(--radius-md)]`) plus
+  shared `prototype.components`, so the whole prototype stays consistent — one source
+  of truth, not ad-hoc values per screen.
+- **Write Tailwind utility classes — NOT inline `style="…"`.** The viewer injects
+  `@tailwindcss/browser@4` (compiled live), so utilities are the default way to style
+  *everything*: layout, spacing, colour, typography, radius, shadow, hover/focus
+  states. **Do not reach for `style="…"` out of habit** — it makes the markup
+  unreadable and the design inconsistent. Reserve inline `style` for the rare
+  genuinely-dynamic value no utility can express (an exact computed width, a one-off
+  gradient).
+  - ✅ `class="flex items-center gap-3 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-100"`
+  - ❌ `style="display:flex;align-items:center;gap:12px;border-radius:12px;background:#18181b;padding:8px 16px"`
+  - Repeated pattern? Define a class once in the `designSystem` CSS (Tailwind `@apply`
+    works there) and reuse it — don't paste the same inline styles onto every element.
+  - A `designSystem` (custom CSS / tokens) coexists with utilities; reach for it only
+    for what utilities can't express, not as a substitute for classes.
 - **lucide icons** instead of emoji: `<i data-lucide="search"></i>`. Size and colour
   with classes — `<i data-lucide="shopping-cart" class="w-5 h-5 text-sky-500"></i>`
   (the SVG inherits `currentColor`). Names are the kebab-case lucide names from
