@@ -9,6 +9,8 @@
 //   • harness_get_view      — see what the dev is looking at right now
 //                             (active tab + prototype screen) — "see what you did"
 //   • harness_get_feedback  — drain notes the dev left from inside the viewer
+//   • harness_start_viewer  — launch the viewer FROM THE INSTALLED PLUGIN (always
+//                             matches the installed version; no stale npx cache)
 //
 // State lives in <project>/.harness/. The server resolves that relative to its
 // own location, so it works no matter what cwd Claude Code launches it from.
@@ -17,6 +19,9 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import net from "node:net";
+import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 // The SDK depends on zod; import it directly for tool input schemas.
@@ -31,6 +36,19 @@ const HARNESS_DIR = process.env.HARNESS_DIR
 const STATE_FILE = path.join(HARNESS_DIR, "state.json");
 const RUNTIME_FILE = path.join(HARNESS_DIR, "runtime.json");
 const FEEDBACK_FILE = path.join(HARNESS_DIR, "feedback.json");
+
+// The viewer launcher (bin/harness.mjs) ships inside the plugin alongside this
+// server, so we can start the viewer that MATCHES the installed plugin — no stale
+// npx/bunx cache. Resolve the plugin root from the env CLAUDE Code expands in
+// .mcp.json, falling back to this file's own location (mcp/server[.bundle].mjs
+// sits one level under the plugin root) so it works either way.
+const PLUGIN_ROOT = process.env.CLAUDE_PLUGIN_ROOT
+  ? path.resolve(process.env.CLAUDE_PLUGIN_ROOT)
+  : path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+// The viewer wants the PROJECT dir (it appends /.harness itself).
+const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR
+  ? path.resolve(process.env.CLAUDE_PROJECT_DIR)
+  : path.dirname(HARNESS_DIR);
 
 // Split-file prototype layout — edit one piece without touching the rest.
 const PROTO_DIR = path.join(HARNESS_DIR, "prototype");
@@ -75,6 +93,21 @@ function text(payload) {
 }
 function err(message) {
   return { content: [{ type: "text", text: `ERROR: ${message}` }], isError: true };
+}
+// Is something already listening on this port? Used to make starting the viewer
+// idempotent — don't spawn a second one if it's already up.
+function portInUse(port, host = "127.0.0.1") {
+  return new Promise((resolve) => {
+    const socket = net.connect({ port, host });
+    const finish = (val) => {
+      socket.destroy();
+      resolve(val);
+    };
+    socket.setTimeout(500);
+    socket.once("connect", () => finish(true));
+    socket.once("timeout", () => finish(false));
+    socket.once("error", () => finish(false));
+  });
 }
 
 const server = new McpServer({
@@ -341,6 +374,54 @@ server.registerTool(
       fs.writeFileSync(FEEDBACK_FILE, JSON.stringify(list, null, 2));
     }
     return text({ count: unread.length, feedback: unread });
+  }
+);
+
+server.registerTool(
+  "harness_start_viewer",
+  {
+    description:
+      "Start the Harness Studio viewer FROM THE INSTALLED PLUGIN, pointed at this project's .harness/. Because it runs the launcher that ships with the plugin, the viewer always matches the installed plugin version — no stale npx/bunx cache. First run installs the viewer's deps (a few seconds). Idempotent: if a viewer is already on the port, it just returns the URL. Call this once at the start of a design session so the dev has the canvas open, then keep using the other tools as normal.",
+    inputSchema: {
+      port: zod.number().int().optional().describe("Port for the viewer (default 7317)."),
+    },
+  },
+  async ({ port }) => {
+    const p = Number(port) || 7317;
+    const launcher = path.join(PLUGIN_ROOT, "bin", "harness.mjs");
+    if (!fs.existsSync(launcher))
+      return err(
+        `Launcher not found at ${launcher}. The plugin may be installed incompletely; the dev can also run \`bunx github:AssetsArt/harness-studio\` manually.`
+      );
+    if (await portInUse(p))
+      return text({
+        ok: true,
+        alreadyRunning: true,
+        url: `http://localhost:${p}`,
+        note: "A viewer is already responding on this port — reuse it.",
+      });
+    // Capture the launcher's output (incl. first-run `bun install`) to a log so
+    // failures are inspectable; the child is detached so it outlives this server.
+    ensureDir();
+    const logFile = path.join(HARNESS_DIR, "viewer.log");
+    let out = "ignore";
+    try {
+      out = fs.openSync(logFile, "a");
+    } catch {}
+    const child = spawn(
+      process.execPath,
+      [launcher, "--project", PROJECT_DIR, "--port", String(p)],
+      { cwd: PLUGIN_ROOT, detached: true, stdio: ["ignore", out, out] }
+    );
+    child.unref();
+    return text({
+      ok: true,
+      started: true,
+      url: `http://localhost:${p}`,
+      watching: path.join(PROJECT_DIR, ".harness"),
+      from: PLUGIN_ROOT,
+      note: `Viewer starting from the installed plugin. First run installs its deps (a few seconds) — open ${`http://localhost:${p}`} in a moment. Logs: ${logFile}`,
+    });
   }
 );
 

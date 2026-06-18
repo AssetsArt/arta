@@ -11,7 +11,7 @@ import { harnessWatch } from "./vite/harness-watch";
 export default defineConfig({
   plugins: [react(), tailwindcss(), harnessWatch()],
   server: {
-    port: 4317,
+    port: 7317,
     strictPort: false,
   },
 });

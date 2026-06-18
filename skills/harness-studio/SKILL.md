@@ -1,6 +1,6 @@
 ---
 name: harness-studio
-description: Use during the DESIGN phase of building a new app/feature, instead of dumping a wall of text. Drives Claude Code to build a shared, live design canvas (.harness/state.json) that the dev watches in the Harness Studio viewer — spec, prototype, data model, flow, plan — iterating from the dev's clicks and feedback. Trigger when the user wants to "design", "wireframe", "prototype", "sketch the data model/flow", "plan a feature visually", or says "open the harness / let's design this in the studio".
+description: Use during the DESIGN phase of building a new app/feature, instead of dumping a wall of text. ALWAYS brainstorm the idea into an agreed direction first (questions one at a time, like superpowers:brainstorming) — never jump straight to a spec or prototype. Then drive Claude Code to build a shared, live design canvas (.harness/state.json) that the dev watches in the Harness Studio viewer — spec, prototype, data model, flow, plan — iterating from the dev's clicks and feedback. Trigger when the user wants to "design", "wireframe", "prototype", "sketch the data model/flow", "plan a feature visually", or says "open the harness / let's design this in the studio".
 ---
 
 # Harness Studio — prototype-based design loop
@@ -23,6 +23,12 @@ Never describe a screen in prose when you could render it. Show, ask, adjust.
 
 ## Tools (MCP server: harness-studio)
 
+- `harness_start_viewer` — **call this once at the very start of a session** to open
+  the viewer for the dev. It launches the viewer that ships **inside the installed
+  plugin** (so it always matches the plugin version — no stale `npx`/`bunx` cache),
+  pointed at this project's `.harness/`. It's idempotent (re-running just returns the
+  URL) and installs the viewer's deps on first run. Tell the dev the URL it returns
+  (default `http://localhost:7317`).
 - `harness_get_state` — read the canvas before editing. Always start here.
 - `harness_get_view` — see what the dev is looking at right now (active tab +
   prototype screen). Check this before changing a screen so you edit what they see.
@@ -72,10 +78,52 @@ You can also `Write` files directly (`.harness/prototype/screens/<id>.html`,
 `.harness/state.json`) — the watcher picks any of them up. The MCP tools add
 validation, manifest upkeep, and the feedback channel, so prefer them.
 
+## Start with a brainstorm — don't build on the first message
+
+When the dev asks to design something, **do NOT immediately write the spec or build
+the prototype.** First brainstorm the idea into a shape you both agree on. Jumping
+straight to a hi-fi prototype bakes in unexamined assumptions and wastes work — it's
+the #1 complaint about this tool. Brainstorm first, the way `superpowers:brainstorming`
+does, then build.
+
+> **HARD-GATE:** no committed spec and no hi-fi prototype build until the dev has
+> approved a direction. (Throwaway *lo-fi* sketches **during** the brainstorm are
+> fine and encouraged — see below.) Every request goes through this, even a "simple"
+> one — that's exactly where wrong assumptions hide. The direction can be short.
+
+The brainstorm, in order:
+
+1. **Open the viewer & ground yourself** — `harness_start_viewer` (so the dev can
+   see, and so your lo-fi sketches land somewhere visible), then `harness_get_state`
+   / `harness_get_view` and skim the project (files, recent work) so you don't ask
+   what you could read.
+2. **Check scope.** If the request is really several independent products
+   (chat + billing + analytics…), say so first and help split it — don't refine the
+   details of something that needs decomposing. Brainstorm the first piece, then build.
+3. **Ask one question at a time.** Purpose, users, success criteria, constraints.
+   Prefer multiple-choice ("A / B / C — which fits?") over open-ended. One question
+   per message — never a questionnaire.
+4. **Propose 2–3 approaches** with trade-offs; lead with your recommendation and why.
+5. **Present the direction** — a few sentences: what it is, who it's for, the key
+   screens, what's in / out of scope. Ask if it looks right; revise until it does.
+6. **Get an explicit yes.** Only then `harness_set_phase` to `prototype`, write the
+   spec into the rail, and build the first real screens.
+
+**The viewer is your visual companion.** This is a *picture* tool — so when a
+question is easier shown than told (a layout choice, two nav patterns, where a
+control goes), drop a quick **lo-fi** sketch on the canvas (`harness_set_screen` with
+the lo-fi component vocab, or a rough freeform block) and ask the dev to look. Keep
+these cheap and disposable — they answer one question, they aren't the product, and
+they don't count as "building". Decide per question: a requirements / scope /
+trade-off question is text (ask in chat); a "which layout?" question is visual
+(sketch it). Don't route everything through the canvas.
+
 ## Phase order (prototype-based)
 
-The phases are deliberately **Prototype + Spec → Data → Flow → Plan**. Start from
-something clickable, not from a document.
+**Brainstorm an agreed direction first** (above) — the four canvas phases below
+start only after the dev signs off. The phases are then deliberately
+**Prototype + Spec → Data → Flow → Plan**. Start from something clickable, not from
+a document.
 
 1. **Prototype + Spec** — sketch the key screens as a wireframe the dev can click
    through, with the spec (goal, users, stories, scope, constraints) in the rail
@@ -89,12 +137,14 @@ the dev react at each step.
 
 ## How to work
 
-1. `harness_get_state` and `harness_get_view` to ground yourself.
-2. Make the smallest change that answers the current question. Patch one section.
-3. Tell the dev in one line what changed and what you want them to react to
+1. **On a fresh design request, brainstorm first** (above) and get a direction
+   approved before building. Skip this only when the dev is clearly mid-loop already.
+2. `harness_get_state` and `harness_get_view` to ground yourself.
+3. Make the smallest change that answers the current question. Patch one section.
+4. Tell the dev in one line what changed and what you want them to react to
    ("Click *Add walk-in* — does that field set feel right?").
-4. `harness_get_feedback`; fold their notes in; repeat.
-5. When a phase is solid, `harness_set_phase` to the next.
+5. `harness_get_feedback`; fold their notes in; repeat.
+6. When a phase is solid, `harness_set_phase` to the next.
 
 ## state.json shape (reference)
 
@@ -226,6 +276,9 @@ the prototype clickable.
 
 ## Rules
 
+- **Brainstorm before you build.** Your first reply to a new design request is a
+  question, not a prototype. Get a direction approved first (above) — only lo-fi
+  sketches are allowed before that.
 - Keep `meta` valid at all times (it must always have `name` and `phase`); the
   viewer shows a waiting/error state otherwise.
 - Patch, don't clobber: use `harness_patch_state` so untouched sections survive.

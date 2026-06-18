@@ -9,3 +9,4 @@ dist
 .harness/runtime.json
 .harness/feedback.json
 .harness/snapshots/
+.harness/viewer.log

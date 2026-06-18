@@ -9,6 +9,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
 
 const pkgRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -18,7 +19,7 @@ const opt = (name, def) => {
   return i >= 0 && args[i + 1] ? args[i + 1] : def;
 };
 const projectDir = path.resolve(opt("--project", process.cwd()));
-const port = Number(opt("--port", "4317"));
+const port = Number(opt("--port", "7317"));
 const harnessDir = path.join(projectDir, ".harness");
 
 // Seed a minimal canvas so the viewer has something to render on first run.
@@ -48,7 +49,8 @@ if (!fs.existsSync(path.join(harnessDir, "state.json"))) {
 // (resolves vite by module resolution — works whether deps are nested or hoisted,
 // e.g. under bunx).
 process.env.HARNESS_DIR = harnessDir;
-try {
+
+async function startVite() {
   const { createServer } = await import("vite");
   const server = await createServer({
     root: pkgRoot,
@@ -56,10 +58,35 @@ try {
     server: { port },
   });
   await server.listen();
-  console.log(`\n[harness] viewer → http://localhost:${port}`);
-  console.log(`[harness] watching ${harnessDir}\n`);
-} catch (e) {
-  console.error("[harness] failed to start the viewer:", (e && e.message) || e);
-  console.error("[harness] if you cloned the repo, run `bun install` first.");
-  process.exit(1);
+  return server;
 }
+
+let server;
+try {
+  server = await startVite();
+} catch (e) {
+  // Most commonly: deps aren't installed yet. This is the normal first-run state
+  // when the viewer is launched from the installed plugin dir (which ships source
+  // but no node_modules). Install once, then retry — so it "just works" anywhere.
+  console.log("[harness] installing viewer dependencies (first run / after update)…");
+  const r = spawnSync("bun", ["install"], { cwd: pkgRoot, stdio: "inherit" });
+  if (r.error || r.status !== 0) {
+    console.error("[harness] couldn't start the viewer.");
+    console.error("[harness] reason:", (e && e.message) || e);
+    console.error("[harness] `bun install` failed — install Bun (https://bun.sh) and retry,");
+    console.error(`[harness] or run \`bun install\` yourself in ${pkgRoot}.`);
+    process.exit(1);
+  }
+  try {
+    server = await startVite();
+  } catch (e2) {
+    console.error("[harness] failed to start the viewer after installing deps:", (e2 && e2.message) || e2);
+    process.exit(1);
+  }
+}
+
+// strictPort is off, so Vite bumps to the next free port on a collision —
+// print the port it actually bound to, not the one we asked for.
+const actualPort = server.httpServer?.address()?.port ?? port;
+console.log(`\n[harness] viewer → http://localhost:${actualPort}`);
+console.log(`[harness] watching ${harnessDir}\n`);

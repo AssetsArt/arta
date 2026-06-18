@@ -14,24 +14,40 @@ Update Harness Studio to the latest version:
 1. Refresh the marketplace and update the plugin:
    - `/plugin marketplace update harness-studio`
    - then `/plugin update harness-studio@harness-studio` (or open `/plugin` → Manage → Update).
-2. If they use the local viewer launcher, tell them to refresh it too:
-   `cd <harness-studio clone> && git pull && bun install && bun run build`.
+2. **The viewer ships inside the plugin, so this updates it too** — there's nothing
+   separate to pull. Tell the user to close any running viewer; the next
+   `harness_start_viewer` (e.g. on their next `/hns`) launches the new version and
+   reinstalls deps if they changed. (Only contributors running a local *clone* need
+   `git pull && bun install`.)
 3. Briefly report the resulting plugin version (from `/plugin` or `.claude-plugin/plugin.json`) so they know it moved.
 
 Don't redesign anything in update mode — just update and confirm.
 
 ## Otherwise — design "$ARGUMENTS" in the harness
 
-1. **Make sure the viewer is running.** If you can't tell, remind the user once:
-   run `harness` in this project (serves http://localhost:4317, watching
-   `./.harness/`). Don't block on it — start building; the canvas updates show up
-   when they open the viewer.
-2. **Use the `harness-studio` skill** and run its prototype-based loop:
-   Prototype + Spec → Data model → Flow → Plan. Write to `.harness/` with the
-   `harness_*` MCP tools (`harness_set_screen`, `harness_set_component`,
-   `harness_patch_state`, `harness_set_phase`, …), editing one piece at a time.
-3. **Close the loop:** after meaningful changes, check `harness_get_view` (what the
+**Use the `harness-studio` skill** and follow its flow. Brainstorm before you build.
+
+1. **Brainstorm first — don't build yet.** Ground yourself (`harness_get_state` /
+   `harness_get_view`, skim the project), then ask the dev questions **one at a
+   time** — purpose, users, scope, constraints (multiple-choice when you can) —
+   propose 2–3 approaches with a recommendation, and present a short direction.
+   **Do not write the spec or build the prototype until the dev approves the
+   direction.** When a question is easier shown than told, sketch a quick **lo-fi**
+   screen on the canvas and ask. (This is the `superpowers:brainstorming` flow, with
+   the viewer as your visual companion.)
+2. **Open the viewer** with the `harness_start_viewer` MCP tool — it launches the
+   viewer **from the installed plugin** (always the current version, no stale
+   `bunx` cache) on http://localhost:7317, watching this project's `./.harness/`.
+   It's idempotent (safe to call every run); tell the user the URL it returns. First
+   run installs the viewer's deps, so it may take a few seconds to come up. (If the
+   tool isn't available, fall back: have them run `bunx github:AssetsArt/harness-studio`
+   in this project.)
+3. **Once the direction is approved, run the prototype-based loop:**
+   Prototype + Spec → Data model → Flow → Plan. `harness_set_phase` to `prototype`,
+   then write to `.harness/` with the `harness_*` MCP tools (`harness_set_screen`,
+   `harness_set_component`, `harness_patch_state`, …), editing one piece at a time.
+4. **Close the loop:** after meaningful changes, check `harness_get_view` (what the
    dev is looking at, plus any errors), `harness_get_screenshot` (see your own
    render), and `harness_get_feedback` (notes the dev left). React to what you find.
 
-If `$ARGUMENTS` is empty, ask the user what they want to design, then proceed.
+If `$ARGUMENTS` is empty, ask the user what they want to design, then brainstorm it.

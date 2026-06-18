@@ -3,7 +3,10 @@
     "harness-studio": {
       "command": "node",
       "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/server.bundle.mjs"],
-      "env": { "CLAUDE_PROJECT_DIR": "${CLAUDE_PROJECT_DIR}" }
+      "env": {
+        "CLAUDE_PROJECT_DIR": "${CLAUDE_PROJECT_DIR}",
+        "CLAUDE_PLUGIN_ROOT": "${CLAUDE_PLUGIN_ROOT}"
+      }
     }
   }
 }

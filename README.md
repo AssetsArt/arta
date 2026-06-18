@@ -21,8 +21,8 @@ Three layers, one loop:
 
 ## Quick start — use it in your own project
 
-Two pieces: the **plugin** (the skill + MCP — install once, works in every project)
-and the **viewer** (a small web app you leave running).
+Install the **plugin** once — it brings the skill, the MCP, **and** the viewer.
+`/hns` starts the viewer for you, so there's nothing else to install or keep in sync.
 
 **1. Install the plugin (like any skill):**
 
@@ -34,24 +34,28 @@ and the **viewer** (a small web app you leave running).
 The `harness-studio` skill and its MCP tools are now available in any project, and
 the MCP reads/writes that project's `.harness/` folder.
 
-**2. Run the viewer** — one line, no clone, no install:
+**2. The viewer starts itself.** You don't run anything — when you `/hns`, the skill
+calls the `harness_start_viewer` MCP tool, which launches the viewer **from the
+installed plugin** (so it always matches your installed version — no stale cache) on
+`http://localhost:7317`, watching this project's `./.harness/`. The first launch
+installs the viewer's deps (a few seconds, needs [Bun](https://bun.sh)); it seeds a
+starter `.harness/` if there isn't one. Leave the tab open; it repaints as the AI
+edits the canvas. **To update later, just `/hns update`** — that updates the viewer
+too, since it ships in the plugin.
 
-```bash
-cd ~/my-app
-bunx github:AssetsArt/harness-studio     # viewer on :4317, watching ./.harness
-```
-
-It seeds a starter `.harness/` if there isn't one and points the viewer at *your*
-project. Leave it open; it repaints as the AI edits the canvas.
-
-> Prefer a short global command? `git clone https://github.com/AssetsArt/harness-studio`,
-> then `cd harness-studio && bun install && bun link` — now `harness` runs it from
-> anywhere. Flags: `--project <dir>`, `--port <n>`.
+> Want to run the viewer without the plugin (a quick look)? `cd ~/my-app && bunx
+> github:AssetsArt/harness-studio`. Note `bunx` caches `github:` specs, so re-running
+> it can serve an old build — `bun pm cache rm` first to force the latest. Flags:
+> `--project <dir>`, `--port <n>`. Contributors: `git clone` + `bun install` +
+> `bun link` gives a global `harness` command.
 
 **3. Design:** run **`/hns <what to build>`** (e.g. `/hns a checkout flow`) — the
-skill drives the phases, the MCP writes to `./.harness/`, and your viewer repaints
-live. Update later with **`/hns update`**. (Or just say *"design this in the
-harness"* — the skill triggers on its own.)
+skill **brainstorms the idea with you first** (questions one at a time, 2–3
+approaches, an agreed direction — sketching lo-fi options on the canvas when a
+question is easier shown than told), and only then writes the spec and builds the
+prototype, repainting your viewer live as it goes. It won't dump a full prototype on
+the first message. Update later with **`/hns update`**. (Or just say *"design this in
+the harness"* — the skill triggers on its own.)
 
 Try the viewer by hand: click screens in the **Prototype** sidebar, press **Add to
 cart** and watch the badge persist across screens, switch device frames
@@ -129,6 +133,7 @@ on the current project's `.harness/`:
 - `harness_get_component` / `harness_set_component` — read/write one shared fragment
 - `harness_get_design_system` / `harness_set_design_system` — the shared CSS
 - `harness_set_phase` / `harness_set_frame` — advance the stepper / set the device frame
+- `harness_start_viewer` — launch the viewer from the installed plugin (idempotent; no stale cache)
 - `harness_get_screenshot` — a PNG of how a screen actually renders (the pixels you see)
 - `harness_get_view` — your active tab, prototype screen, store, and any prototype errors
 - `harness_get_feedback` — notes you left, including the element you clicked to comment on
@@ -142,7 +147,7 @@ feedback channel.
 
 ```bash
 bun install
-bun run dev          # viewer on http://localhost:4317, watching this repo's .harness
+bun run dev          # viewer on http://localhost:7317, watching this repo's .harness
 bun run build        # typecheck + build viewer + bundle the MCP (mcp/server.bundle.mjs)
 node scripts/validate-plugin.mjs   # check the plugin layout
 ```
