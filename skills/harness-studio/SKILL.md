@@ -171,7 +171,9 @@ a document.
 
 1. **Prototype + Spec** — sketch the key screens as a wireframe the dev can click
    through, with the spec (goal, users, stories, scope, constraints) in the rail
-   beside it. Get the shape of the product right here first.
+   beside it. Get the shape of the product right here first. **Set a brand-grade
+   design language before the first hi-fi screen** — read `design-systems.md`, pick a
+   kit, adapt it, and set it as the foundation (see the styling guidance below).
 2. **Data model** — entities, fields (mark `pk`/`fk`/`required`), relationships.
    Rendered as a React Flow ER diagram.
 3. **Flow (API)** — design the HTTP API as an **OpenAPI 3** document in `api`:
@@ -326,13 +328,26 @@ backend, just believable mock state. You can read the current store via
 **Styling & icons — Tailwind and lucide are loaded in every freeform screen.**
 Use them; do not hand-roll what they give you, and **never use emoji as icons.**
 
-- **Define the design system first, then build from it.** Set foundations with
-  `harness_set_design_tokens` (colors, typography, spacing, radii, shadows, fonts) —
-  they show as a style guide in the Prototype → **Design system** sub-view and compile
-  to CSS custom properties injected into every screen. Style screens from those tokens
-  (`var(--color-brand)`, `bg-[var(--color-brand)]`, `rounded-[var(--radius-md)]`) plus
-  shared `prototype.components`, so the whole prototype stays consistent — one source
-  of truth, not ad-hoc values per screen.
+- **Pick a brand-grade design language FIRST — don't invent generic tokens.** Before
+  building any screen, **read `design-systems.md`** (next to this file): a library of
+  opinionated, ready-to-adapt systems (Ink · Graphite · Clay · Mist · Signal). Pick the
+  one that fits the brief, swap its accent + brand to the project, and set it as the
+  foundation with `harness_set_design_tokens` + `harness_set_design_system`. This is the
+  single biggest lever on whether the output looks *designed* or looks like "an AI made
+  a webpage." Starting from generic grays + a blue accent is the #1 tell.
+- **Then build every screen from those tokens.** The tokens show as a style guide in the
+  Prototype → **Design system** sub-view and compile to CSS custom properties injected
+  into every screen. Style screens from the tokens (`var(--color-brand)`,
+  `bg-[var(--color-accent)]`, `rounded-[var(--radius-md)]`, the kit's `.display` class)
+  plus shared `prototype.components` — one source of truth, never ad-hoc values per
+  screen.
+- **Craft, not just absence of slop** — commit to ONE color strategy (restrained /
+  committed / drenched), pair fonts on a contrast axis (serif + sans, geometric +
+  humanist, or one family in many weights — the 5 preloaded families: Geist, Geist Mono,
+  Instrument Serif, Fraunces, Space Grotesk), keep a single spacing rhythm, and hold
+  radius / shadow / motion consistent across screens. Use **real content** (real copy,
+  real names, real prices) — never lorem ipsum or "Card title". Generous whitespace and
+  one confident accent beat many timid ones.
 - **Write Tailwind utility classes — NOT inline `style="…"`.** The viewer injects
   `@tailwindcss/browser@4` (compiled live), so utilities are the default way to style
   *everything*: layout, spacing, colour, typography, radius, shadow, hover/focus

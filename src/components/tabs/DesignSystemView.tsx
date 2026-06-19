@@ -1,14 +1,14 @@
 import { Palette } from "lucide-react";
 import type { Prototype } from "../../lib/types";
 import { MONO, useTheme, type DarkTokens } from "../../lib/theme";
-import { designSheet, expandFragment } from "../../lib/prototype";
+import { designSheet, expandFragment, FONT_LINK } from "../../lib/prototype";
 
 // A lightweight, render-only preview of one component fragment — same Tailwind +
 // lucide + token sheet as the real screens, but none of the store/snapshot wiring.
 function Preview({ html, sheet, h = 132 }: { html: string; sheet: string; h?: number }) {
   const srcDoc =
     `<!doctype html><html><head><meta charset="utf-8">` +
-    `<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">` +
+    FONT_LINK +
     `<style>*{box-sizing:border-box}html,body{margin:0}body{font-family:'Geist',system-ui,-apple-system,sans-serif;color:#18181b;background:#fff;padding:16px}img{max-width:100%}</style>` +
     `<style>${sheet}</style>` +
     `<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4" defer></script>` +

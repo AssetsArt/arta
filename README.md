@@ -113,7 +113,9 @@ start the viewer yourself — `/hns` does it via the `harness_start_viewer` tool
 Each prototype screen is real HTML in a sandboxed `<iframe>`, sharing a CSS
 `designSystem`. **Tailwind** (`@tailwindcss/browser@4`) and **lucide** icons are
 loaded into every screen from a CDN, so the AI writes real utility classes
-(**not** inline `style="…"`) and `<i data-lucide="…">` icons — not emoji. Interactivity is wired with a tiny attribute
+(**not** inline `style="…"`) and `<i data-lucide="…">` icons — not emoji. Five
+brand-grade web fonts (Geist, Geist Mono, Instrument Serif, Fraunces, Space Grotesk)
+are preloaded for premium type pairings. Interactivity is wired with a tiny attribute
 vocabulary — no framework, no backend:
 
 | Attribute | Effect |
@@ -141,6 +143,16 @@ updates; nothing is missed.
 
 Each screen's `html` is then only the part that differs; set `"layout": false` on a
 screen to render it standalone.
+
+### Brand-grade design systems
+
+The skill ships a library of opinionated, ready-to-adapt design languages
+(`skills/harness-studio/design-systems.md`) — **Ink** (editorial), **Graphite**
+(technical dark), **Clay** (warm commerce), **Mist** (calm SaaS), **Signal** (bold
+display). The AI picks one for the brief, swaps in the project's accent, and sets it as
+the prototype's foundation (`harness_set_design_tokens` + `designSystem`) before
+building any screen — so output looks *designed*, not like a generic AI webpage. Pair
+that with `/hns review` (anti-slop) for a craft pass.
 
 ### Device frames
 

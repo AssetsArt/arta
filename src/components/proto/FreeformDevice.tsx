@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { domToPng } from "modern-screenshot";
 import type { StoreState } from "../../lib/types";
 import { reportSnapshot } from "../../lib/useHarness";
+import { FONT_LINK } from "../../lib/prototype";
 
 export interface AnnotateTarget {
   tag: string;
@@ -129,8 +130,6 @@ button{font-family:inherit;cursor:pointer}
 body.harness-annotate *{cursor:crosshair !important}
 body.harness-annotate *:hover{outline:2px solid #38bdf8 !important;outline-offset:-1px}
 `;
-
-const FONT_LINK = `<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">`;
 
 // Real Tailwind + lucide in every freeform screen, so the AI writes utility
 // classes and proper icons (<i data-lucide="name">) instead of emoji + inline CSS.
