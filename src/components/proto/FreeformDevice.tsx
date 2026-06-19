@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import html2canvas from "html2canvas";
+import { domToPng } from "modern-screenshot";
 import type { StoreState } from "../../lib/types";
 import { reportSnapshot } from "../../lib/useHarness";
 
@@ -193,18 +193,24 @@ export function FreeformDevice({
 
   // Capture the rendered screen → snapshot the agent can fetch. Runs after load
   // and (debounced) after store changes, so the picture stays current.
+  //
+  // modern-screenshot serialises the DOM into an SVG <foreignObject> and lets the
+  // REAL browser engine paint it (fonts/flex/grid/shadow/gradient/transform all
+  // resolve exactly as on screen) — unlike html2canvas, which reimplemented CSS in
+  // JS and drifted from the live render. The screen lives in a same-origin iframe,
+  // so we capture its own <html> in its own context for a faithful picture.
   const capture = useCallback(() => {
     const doc = frameRef.current?.contentDocument;
-    if (!doc || !doc.body) return;
-    html2canvas(doc.body, {
-      backgroundColor: "#ffffff",
-      logging: false,
-      scale: 1,
-      useCORS: true,
-      width: doc.body.scrollWidth,
-      height: Math.min(doc.body.scrollHeight, 2400),
+    const node = doc?.body;
+    if (!doc || !node) return;
+    // modern-screenshot resolves the owner window from node.ownerDocument, so the
+    // iframe's own styles / fonts / media queries paint exactly as displayed.
+    domToPng(node, {
+      scale: 2, // crisp text for the agent to read back
+      height: Math.min(node.scrollHeight, 2400),
+      // No forced background — capture the screen's real bg (dark screens stay dark).
     })
-      .then((canvas) => reportSnapshot(screenId, canvas.toDataURL("image/png")))
+      .then((dataUrl) => reportSnapshot(screenId, dataUrl))
       .catch(() => {});
   }, [screenId]);
 
