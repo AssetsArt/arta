@@ -1,152 +1,200 @@
 {
-  "meta": { "name": "Gateway Monitor", "phase": "prototype" },
+  "meta": { "name": "Helix", "phase": "prototype" },
   "spec": {
-    "goal": "Give an operator a single live screen to read an edge gateway's health — traffic, cache, latency and errors — in one glance.",
-    "users": ["Platform / edge operator", "On-call engineer", "Performance engineer"],
+    "goal": "Sell Helix — a single control plane that runs, routes, and observes every AI agent across every model and tool — to engineering teams in one scroll.",
+    "users": ["Platform / AI engineers wiring agents into production", "Eng leads choosing an agent runtime", "On-call engineers debugging live agent runs"],
     "userStories": [
-      "As an operator, I want live throughput, egress and cache-hit at the top so I know the gateway's state instantly.",
-      "As an engineer, I want a tailing request stream with status + cache decision so I can spot a bad pattern as it happens.",
-      "As a performance engineer, I want latency distribution and cache outcomes so I can see where time and misses go."
+      "As a visitor, I want the hero to say exactly what Helix replaces (the glue between agent frameworks) so I know in five seconds if it's for me.",
+      "As an engineer, I want to see the unified dashboard and the one-API story before I read pricing.",
+      "As an eng lead, I want clear tiers and real customer proof so I can bring it to my team.",
+      "As a skimmer, I want to click between Platform, Pricing and Customers without losing the thread."
     ],
     "scope": {
-      "in": ["Live traffic + egress charts", "Top endpoints", "Tailing request stream", "Latency histogram", "Status + cache breakdown"],
-      "out": ["Config editing", "Per-tenant billing", "Historical (>1h) analytics"]
+      "in": ["Marketing landing (Home)", "Platform deep-dive with interactive tabs", "Pricing with monthly/annual toggle", "Customers / proof"],
+      "out": ["Real auth / signup", "Docs site", "Blog", "In-product app screens"]
     },
-    "constraints": ["Single screen, no scroll on 1440p", "1s live refresh / tailing stream", "Light theme, mono numerics, log-scale latency"]
+    "constraints": ["Terminal-native: near-black, monospace-forward (Geist Mono), one phosphor-green accent, CLI / command motifs", "One shared top bar + footer across screens", "Real CLI output as the hero, not a marketing template", "No gradient text, no hero-metric band, no identical card grids"]
   },
   "prototype": {
-    "start": "overview",
+    "start": "home",
     "frame": "web",
-    "store": {},
+    "store": { "billing": "monthly", "view": "run" },
     "tokens": {
       "fonts": [
         { "name": "body", "value": "'Geist', system-ui, sans-serif" },
         { "name": "mono", "value": "'Geist Mono', ui-monospace, monospace" }
       ],
       "colors": [
-        { "name": "bg", "value": "#eef1f4", "description": "page" },
-        { "name": "surface", "value": "#ffffff", "description": "cards" },
-        { "name": "border", "value": "#e4e8ee", "description": "hairline" },
-        { "name": "ink", "value": "#1f2733", "description": "primary text" },
-        { "name": "dim", "value": "#7a828f", "description": "labels / secondary" },
-        { "name": "green", "value": "#16a34a", "description": "primary · healthy · 2xx · HIT" },
-        { "name": "blue", "value": "#2563eb", "description": "egress · 3xx · dynamic" },
-        { "name": "amber", "value": "#e0820c", "description": "bypass · slow" },
-        { "name": "red", "value": "#dc2626", "description": "errors · blocked" }
+        { "name": "bg", "value": "#0a0b0d", "description": "terminal black, faintly cool" },
+        { "name": "surface", "value": "#0f1316", "description": "terminal window fill" },
+        { "name": "raised", "value": "#141a1e", "description": "insets / rows" },
+        { "name": "border", "value": "#222a30", "description": "hairline / box rules" },
+        { "name": "text", "value": "#d4dadf", "description": "soft phosphor white" },
+        { "name": "dim", "value": "#7d8893", "description": "comments / secondary — ≥4.5:1" },
+        { "name": "accent", "value": "#3ee08a", "description": "phosphor green — prompt, primary, success" },
+        { "name": "accent-ink", "value": "#04140b", "description": "text on green" },
+        { "name": "cyan", "value": "#5cc8ff", "description": "paths / links / secondary" },
+        { "name": "amber", "value": "#f5b94a", "description": "warning / queued / highlight" },
+        { "name": "rose", "value": "#ff6b6b", "description": "error / failed" }
       ],
       "typography": [
-        { "name": "kpi", "sample": "56,112", "family": "'Geist', sans-serif", "size": "1.9rem", "weight": 650, "lineHeight": "1", "letterSpacing": "-0.01em" },
-        { "name": "body", "family": "'Geist', sans-serif", "size": "0.875rem", "weight": 400, "lineHeight": "1.5" },
-        { "name": "mono", "family": "'Geist Mono', monospace", "size": "0.8125rem", "weight": 500 },
-        { "name": "label", "sample": "CACHE HIT RATIO", "family": "'Geist Mono', monospace", "size": "0.65rem", "weight": 500, "letterSpacing": "0.07em" }
+        { "name": "display", "sample": "the one command for every agent", "family": "'Geist Mono', monospace", "size": "clamp(1.7rem, 3.1vw, 2.5rem)", "weight": 500, "lineHeight": "1.18", "letterSpacing": "-0.02em" },
+        { "name": "h2", "sample": "one runtime, three commands", "family": "'Geist Mono', monospace", "size": "clamp(1.25rem, 2.1vw, 1.7rem)", "weight": 500, "lineHeight": "1.25", "letterSpacing": "-0.01em" },
+        { "name": "body", "sample": "Body prose set in Geist sans.", "family": "'Geist', sans-serif", "size": "0.95rem", "weight": 400, "lineHeight": "1.62" },
+        { "name": "mono", "sample": "118ms · 18,402 tok · $0.21", "family": "'Geist Mono', monospace", "size": "0.8125rem", "weight": 450 },
+        { "name": "label", "sample": "// agent control plane", "family": "'Geist Mono', monospace", "size": "0.6875rem", "weight": 500, "letterSpacing": "0.04em" }
       ],
       "spacing": [
         { "name": "xs", "value": "4px" }, { "name": "sm", "value": "8px" },
-        { "name": "md", "value": "14px" }, { "name": "lg", "value": "24px" }, { "name": "xl", "value": "40px" }
+        { "name": "md", "value": "16px" }, { "name": "lg", "value": "28px" },
+        { "name": "xl", "value": "48px" }, { "name": "2xl", "value": "80px" }
       ],
-      "radii": [ { "name": "sm", "value": "5px" }, { "name": "md", "value": "10px" }, { "name": "lg", "value": "14px" } ],
-      "shadows": [ { "name": "card", "value": "0 1px 2px rgba(16,24,40,.04)" } ]
+      "radii": [ { "name": "sm", "value": "5px" }, { "name": "md", "value": "7px" }, { "name": "lg", "value": "10px" }, { "name": "pill", "value": "999px" } ],
+      "shadows": [
+        { "name": "card", "value": "0 1px 0 rgba(255,255,255,.02) inset, 0 12px 36px -26px rgba(0,0,0,.85)" },
+        { "name": "glow", "value": "0 0 0 1px rgba(62,224,138,.14), 0 30px 70px -34px rgba(62,224,138,.20)" }
+      ]
     },
-    "layout": "{{>topbar}}<div class=\"dash\">{{slot}}</div>",
+    "layout": "{{>topbar}}<main>{{slot}}</main>{{>footer}}",
+    "components": { "topbar": "", "footer": "" },
     "screens": [
-      { "id": "overview", "title": "Overview", "url": "gateway.edge/overview" },
-      { "id": "requests", "title": "Requests", "url": "gateway.edge/requests" },
-      { "id": "cache", "title": "Cache", "url": "gateway.edge/cache" },
-      { "id": "routes", "title": "Routes", "url": "gateway.edge/routes" }
+      { "id": "home", "title": "Home", "url": "helix.dev" },
+      { "id": "platform", "title": "Platform", "url": "helix.dev/platform" },
+      { "id": "pricing", "title": "Pricing", "url": "helix.dev/pricing" },
+      { "id": "customers", "title": "Customers", "url": "helix.dev/customers" }
     ]
   },
   "dataModel": {
     "entities": [
-      { "name": "Route", "fields": [
+      { "name": "Agent", "fields": [
         { "name": "id", "type": "uuid", "pk": true },
-        { "name": "method", "type": "enum(GET,POST,OPTIONS)", "required": true },
-        { "name": "path", "type": "string", "required": true },
-        { "name": "cachePolicy", "type": "enum(cacheable,bypass,dynamic)" }
+        { "name": "name", "type": "string", "required": true },
+        { "name": "defaultModel", "type": "string", "required": true },
+        { "name": "policyId", "type": "uuid", "fk": "Policy" },
+        { "name": "status", "type": "enum(active,paused)", "required": true }
       ] },
-      { "name": "RequestSample", "fields": [
+      { "name": "Run", "fields": [
         { "name": "id", "type": "uuid", "pk": true },
-        { "name": "routeId", "type": "uuid", "fk": "Route", "required": true },
-        { "name": "status", "type": "int", "required": true },
-        { "name": "cacheDecision", "type": "enum(HIT_T1,HIT_T2,BYPASS,MISS)" },
-        { "name": "durationMs", "type": "float" },
-        { "name": "ts", "type": "timestamp", "required": true }
+        { "name": "agentId", "type": "uuid", "fk": "Agent", "required": true },
+        { "name": "status", "type": "enum(queued,running,succeeded,failed)", "required": true },
+        { "name": "model", "type": "string" },
+        { "name": "tokens", "type": "int" },
+        { "name": "costUsd", "type": "float" },
+        { "name": "latencyMs", "type": "int" },
+        { "name": "startedAt", "type": "timestamp", "required": true }
       ] },
-      { "name": "Upstream", "fields": [
+      { "name": "Step", "fields": [
         { "name": "id", "type": "uuid", "pk": true },
-        { "name": "host", "type": "string", "required": true },
-        { "name": "rttMs", "type": "float" },
-        { "name": "connReusePct", "type": "float" }
+        { "name": "runId", "type": "uuid", "fk": "Run", "required": true },
+        { "name": "kind", "type": "enum(model,tool,route)", "required": true },
+        { "name": "name", "type": "string" },
+        { "name": "durationMs", "type": "int" }
+      ] },
+      { "name": "Provider", "fields": [
+        { "name": "id", "type": "uuid", "pk": true },
+        { "name": "name", "type": "string", "required": true },
+        { "name": "kind", "type": "enum(model,tool,vectordb)" },
+        { "name": "healthy", "type": "boolean" }
+      ] },
+      { "name": "Policy", "fields": [
+        { "name": "id", "type": "uuid", "pk": true },
+        { "name": "name", "type": "string", "required": true },
+        { "name": "maxCostUsd", "type": "float" },
+        { "name": "rateLimitRpm", "type": "int" },
+        { "name": "allowedModels", "type": "string[]" }
       ] }
     ],
     "relationships": [
-      { "from": "RequestSample", "to": "Route", "type": "N:1", "label": "for" },
-      { "from": "Route", "to": "Upstream", "type": "N:1", "label": "proxies to" }
+      { "from": "Run", "to": "Agent", "type": "N:1", "label": "of" },
+      { "from": "Step", "to": "Run", "type": "N:1", "label": "in" },
+      { "from": "Agent", "to": "Policy", "type": "N:1", "label": "governed by" }
     ]
   },
   "api": {
-    "info": { "title": "Gateway Admin API", "version": "1.0.0" },
-    "servers": [ { "url": "https://edge.acme.dev/admin/v1" } ],
-    "x-middleware": [ { "name": "auth", "description": "Admin bearer token" } ],
+    "info": { "title": "Helix API", "version": "1.0.0" },
+    "servers": [ { "url": "https://api.helix.dev/v1" } ],
+    "x-middleware": [
+      { "name": "auth", "description": "Helix API key (Bearer)" },
+      { "name": "policy", "description": "Enforce the agent's spend cap + rate limit + allowed models" }
+    ],
     "paths": {
-      "/stats": {
-        "get": { "summary": "Aggregate stats (rolling window)", "x-middleware": ["auth"], "x-screens": ["gateway"],
-          "parameters": [ { "name": "window", "in": "query", "schema": { "type": "string" }, "description": "60s | 5m | 1h" } ],
-          "responses": { "200": { "description": "OK" } } }
+      "/runs": {
+        "post": {
+          "summary": "Start an agent run (routes across providers)",
+          "x-middleware": ["auth", "policy"],
+          "x-screens": ["platform"],
+          "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["agent", "input"], "properties": { "agent": { "type": "string" }, "input": { "type": "string" }, "model": { "type": "string", "description": "optional override; otherwise the router picks" } } }, "example": { "agent": "support-triage", "input": "Refund request #4821" } } } },
+          "responses": { "201": { "description": "Run created" }, "402": { "description": "Spend cap reached" } }
+        }
       },
-      "/stream": {
-        "get": { "summary": "Tailing request stream (SSE)", "x-middleware": ["auth"], "x-screens": ["gateway"],
-          "responses": { "200": { "description": "text/event-stream of request samples" } } }
+      "/runs/{id}": {
+        "get": {
+          "summary": "Get a run with its step trace",
+          "x-middleware": ["auth"],
+          "x-screens": ["platform"],
+          "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+          "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" } }
+        }
       },
-      "/cache/purge": {
-        "post": { "summary": "Purge a cache key/prefix", "x-middleware": ["auth"],
-          "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["prefix"], "properties": { "prefix": { "type": "string" } } } } } },
-          "responses": { "202": { "description": "Accepted" } } }
+      "/providers": {
+        "get": { "summary": "List providers + live health", "x-middleware": ["auth"], "x-screens": ["platform"], "responses": { "200": { "description": "OK" } } }
+      },
+      "/policies": {
+        "post": { "summary": "Create a guardrail policy", "x-middleware": ["auth"], "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" }, "maxCostUsd": { "type": "number" }, "rateLimitRpm": { "type": "integer" } } } } } }, "responses": { "201": { "description": "Created" } } }
       }
     }
   },
   "architecture": {
-    "stack": ["Rust edge proxy", "DragonflyDB (T2 cache)", "in-proc LRU (T1)", "ClickHouse (samples)", "React dashboard"],
+    "stack": ["Go router (edge)", "NATS (run queue)", "ClickHouse (runs/traces)", "Postgres (config)", "React/Vite dashboard"],
     "nodes": [
-      { "id": "client", "name": "Clients", "kind": "external", "tech": "Browsers / apps" },
-      { "id": "edge", "name": "Edge gateway", "kind": "gateway", "tech": "Rust", "description": "TLS, routing, T1 mem cache, rate-limit" },
-      { "id": "t2", "name": "T2 cache", "kind": "cache", "tech": "DragonflyDB" },
-      { "id": "origin", "name": "Origin services", "kind": "service", "tech": "Upstream APIs" },
-      { "id": "samples", "name": "Samples store", "kind": "datastore", "tech": "ClickHouse" },
-      { "id": "dash", "name": "Monitor", "kind": "client", "tech": "React/Vite" }
+      { "id": "dash", "name": "Dashboard", "kind": "client", "tech": "React/Vite", "description": "What you're looking at" },
+      { "id": "api", "name": "Helix API", "kind": "service", "tech": "Go", "description": "One endpoint for every agent run" },
+      { "id": "router", "name": "Model router", "kind": "gateway", "tech": "Go", "description": "Picks/fails-over across providers; enforces policy" },
+      { "id": "queue", "name": "Run queue", "kind": "queue", "tech": "NATS" },
+      { "id": "providers", "name": "Model + tool providers", "kind": "external", "tech": "Anthropic · OpenAI · open models · tools" },
+      { "id": "runs", "name": "Runs + traces", "kind": "datastore", "tech": "ClickHouse" },
+      { "id": "cfg", "name": "Config + policies", "kind": "datastore", "tech": "Postgres" }
     ],
     "edges": [
-      { "from": "client", "to": "edge", "protocol": "HTTPS", "mode": "sync" },
-      { "from": "edge", "to": "t2", "protocol": "RESP", "mode": "sync" },
-      { "from": "edge", "to": "origin", "protocol": "HTTP", "mode": "sync" },
-      { "from": "edge", "to": "samples", "protocol": "native", "mode": "async" },
-      { "from": "dash", "to": "samples", "protocol": "REST", "mode": "sync" }
+      { "from": "dash", "to": "api", "protocol": "REST", "mode": "sync" },
+      { "from": "api", "to": "router", "protocol": "gRPC", "mode": "sync" },
+      { "from": "api", "to": "queue", "protocol": "NATS", "mode": "async" },
+      { "from": "router", "to": "providers", "protocol": "HTTPS", "mode": "sync" },
+      { "from": "router", "to": "cfg", "protocol": "SQL", "mode": "sync" },
+      { "from": "api", "to": "runs", "protocol": "native", "mode": "async" },
+      { "from": "dash", "to": "runs", "protocol": "REST", "mode": "sync" }
     ],
     "decisions": [
-      { "id": "ADR-1", "title": "Two-tier cache (mem T1 + DragonflyDB T2)", "status": "accepted", "context": "Hit ratio target >95% with low memory per edge node.", "options": ["mem only", "mem + DragonflyDB", "mem + Redis"], "decision": "T1 in-proc LRU for hot keys, T2 DragonflyDB shared across nodes.", "consequences": "Two lookups on T1 miss; needs T2 health in the cache-decision breakdown." }
+      { "id": "ADR-1", "title": "One API, router decides the model", "status": "accepted", "context": "Teams glue together 3+ SDKs and hard-code model names, then can't fail over.", "options": ["Per-provider SDKs", "One Helix API + router", "Proxy only"], "decision": "Single /runs endpoint; the router selects the provider and fails over under policy.", "consequences": "Adds ~120ms routing overhead; needs live provider health in the dashboard." }
     ],
     "nfrs": [
-      { "name": "Cache hit ratio", "target": "> 95%", "note": "T1+T2 combined" },
-      { "name": "p99 latency", "target": "< 30ms", "note": "edge-terminated" }
+      { "name": "Routing overhead", "target": "< 130ms median", "note": "p50, excludes model time" },
+      { "name": "Uptime", "target": "99.99%", "note": "API + router" }
     ],
-    "security": [ { "boundary": "client → edge", "note": "TLS, per-tenant rate limit, tenant header required (else edge_blocked)" } ]
+    "security": [ { "boundary": "customer → API", "note": "Bearer API key, per-policy rate limit + spend cap, full audit log" } ]
   },
   "plan": {
-    "stack": ["Rust", "DragonflyDB", "ClickHouse", "React/Vite"],
+    "stack": ["Go", "NATS", "ClickHouse", "Postgres", "React/Vite"],
     "statuses": [
-      { "id": "backlog", "name": "Backlog", "color": "#94a3b8" },
+      { "id": "backlog", "name": "Backlog", "color": "#71717a" },
       { "id": "doing", "name": "In progress", "color": "#2563eb" },
-      { "id": "review", "name": "Review", "color": "#e0820c" },
-      { "id": "done", "name": "Done", "color": "#16a34a" }
+      { "id": "review", "name": "Review", "color": "#fbbf24" },
+      { "id": "done", "name": "Done", "color": "#34d399" }
     ],
     "milestones": [
-      { "name": "M1 · Live monitor", "tasks": [
-        { "title": "KPI header + sparklines", "status": "done", "priority": "high" },
-        { "title": "Throughput + egress charts", "status": "review", "priority": "high" },
-        { "title": "Tailing request stream (SSE)", "status": "doing", "priority": "high" }
+      { "name": "M1 · Unified runs", "tasks": [
+        { "title": "Single /runs endpoint", "status": "done", "priority": "high" },
+        { "title": "Model router + failover", "status": "review", "priority": "high" },
+        { "title": "Live provider health", "status": "doing", "priority": "high" }
       ] },
-      { "name": "M2 · Cache insight", "tasks": [
-        { "title": "Cache decision breakdown", "status": "doing", "priority": "normal" },
-        { "title": "One-click purge", "status": "backlog", "priority": "normal" }
+      { "name": "M2 · Observe", "tasks": [
+        { "title": "Step trace waterfall", "status": "doing", "priority": "high" },
+        { "title": "Token + cost per step", "status": "backlog", "priority": "normal" },
+        { "title": "Replay a run", "status": "backlog", "priority": "normal" }
+      ] },
+      { "name": "M3 · Govern", "tasks": [
+        { "title": "Spend-cap policies", "status": "backlog", "priority": "high" },
+        { "title": "Audit log export", "status": "backlog", "priority": "low" }
       ] }
     ]
   }

@@ -19,6 +19,30 @@ Three layers, one loop:
  └─ AI reads screenshots · errors · feedback ◀── you comment on an element, leave notes┘
 ```
 
+## What it looks like
+
+Below is the **Harness Studio viewer** with its seeded demo loaded — **Helix**, a
+landing site for a "unified runtime for AI agents." The dark app chrome is the studio;
+the prototype lives inside the device frame. The same `.harness/` canvas drives all five
+tabs.
+
+[![Harness Studio — the Helix prototype in a device frame](docs/demo_01.png)](docs/demo_01.png)
+
+*Prototype + Spec — the clickable Helix design rendered in a real device frame, with the
+screen list and frame switcher on the left and the spec rail on the right.*
+
+| Data model — entities as an ER diagram | Flow (API) — routes, middleware & screen→API edges |
+|---|---|
+| [![Studio — data model](docs/demo_02.png)](docs/demo_02.png) | [![Studio — API flow](docs/demo_03.png)](docs/demo_03.png) |
+| **Architecture — C4 system diagram + ADRs** | **Plan — a Kanban of milestones & tasks** |
+| [![Studio — architecture](docs/demo_04.png)](docs/demo_04.png) | [![Studio — plan](docs/demo_05.png)](docs/demo_05.png) |
+
+One canvas, five views: the prototype is real HTML (a terminal-native design system —
+near-black, monospace-forward, one phosphor-green accent, with a live CLI hero, clickable
+nav, a Monthly/Annual pricing toggle and `run` / `trace` / `policy` command tabs), and the
+data model, API flow, architecture, and plan are all read from the same `state.json` the
+AI writes.
+
 ## Quick start — use it in your own project
 
 Install the **plugin** once — it brings the skill, the MCP, **and** the viewer.
@@ -57,8 +81,9 @@ prototype, repainting your viewer live as it goes. It won't dump a full prototyp
 the first message. Update later with **`/hns update`**. (Or just say *"design this in
 the harness"* — the skill triggers on its own.)
 
-Try the viewer by hand: click screens in the **Prototype** sidebar, press **Add to
-cart** and watch the badge persist across screens, switch device frames
+Try the viewer by hand: click between the **Helix** screens in the **Prototype**
+sidebar, flip the **Monthly / Annual** toggle on Pricing (the prices swap live), switch
+the **Orchestrate / Observe / Govern** tabs on Platform, change device frames
 (Web / Desktop / iOS / Android), **Comment** on an element, follow the **Changes**
 feed, collapse the **Spec** rail, or hit **Edit state** to paste new state.
 
@@ -225,9 +250,9 @@ dev watches the build advance on the same board they designed.
 The dev commands live in [Commands → Develop / contribute](#commands)
 (`bun install`, `bun run dev`, `bun run build`, …).
 
-A seed project (**Aurora Store**) is included so there's something to look at
-immediately. `mcp/server.bundle.mjs` is what the plugin ships; rerun
-`bun run build:mcp` after editing `mcp/server.mjs`.
+A seed project (**Helix** — the landing site shown in [What it looks like](#what-it-looks-like))
+is included so there's something to look at immediately. `mcp/server.bundle.mjs` is what
+the plugin ships; rerun `bun run build:mcp` after editing `mcp/server.mjs`.
 
 CI (`.github/workflows/pack.yml`) keeps `main` installable: every push builds,
 type-checks, validates the plugin layout, re-commits the MCP bundle if it drifted
@@ -253,7 +278,7 @@ vite/harness-watch.ts         # Vite plugin: assembles split files, watch → We
 scripts/validate-plugin.mjs   # plugin-layout check (CI gate + local)
 .github/workflows/pack.yml    # build · validate · re-bundle on push
 src/                          # the viewer (React + Tailwind + shadcn-style + lucide)
-.harness/                     # the canvas (seeded with Aurora Store)
+.harness/                     # the canvas (seeded with the Helix demo)
 ```
 
 ## Stack

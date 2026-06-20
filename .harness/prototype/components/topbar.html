@@ -1,24 +1,16 @@
 <header class="topbar">
-  <div class="topbar-inner">
-    <div class="brand">
-      <span class="brand-mark"><i data-lucide="waypoints" class="h-4 w-4"></i></span>
-      Gateway Monitor
-    </div>
-    <span class="chip"><span class="inline-block h-1.5 w-1.5 rounded-full" style="background:var(--color-green)"></span> prod · us-east-1</span>
-
-    <nav class="tabs ml-2">
-      <a class="tab" data-to="overview" data-nav="overview"><i data-lucide="activity"></i> Overview</a>
-      <a class="tab" data-to="requests" data-nav="requests"><i data-lucide="list"></i> Requests</a>
-      <a class="tab" data-to="cache" data-nav="cache"><i data-lucide="database"></i> Cache</a>
-      <a class="tab" data-to="routes" data-nav="routes"><i data-lucide="route"></i> Routes</a>
+  <div class="wrap topbar-in">
+    <a class="brand" data-to="home" href="#"><span class="sigil">▸</span>helix</a>
+    <nav class="nav ml-1 hidden md:flex">
+      <a class="nav-link" data-to="platform" data-nav="platform" href="#">platform</a>
+      <a class="nav-link" data-to="pricing" data-nav="pricing" href="#">pricing</a>
+      <a class="nav-link" data-to="customers" data-nav="customers" href="#">customers</a>
+      <a class="nav-link" href="#">docs</a>
     </nav>
-
-    <div class="ml-auto flex items-center gap-2.5">
-      <div class="flex items-center gap-2 rounded-[7px] border border-[var(--color-border)] px-2.5 py-1.5 text-[13px] c-dim">
-        <i data-lucide="search" class="h-3.5 w-3.5"></i> Search path or IP
-        <span class="num ml-2 rounded border border-[var(--color-border)] px-1 text-[10px]">/</span>
-      </div>
-      <span class="chip chip-on num text-[12px]"><i data-lucide="radio" class="h-3.5 w-3.5 c-green"></i> Live · 60s</span>
+    <div class="ml-auto flex items-center gap-2">
+      <span class="pill hidden sm:inline-flex"><span class="dot dot-active"></span> v1.4.0</span>
+      <a class="nav-link hidden sm:inline-flex" href="#">sign in</a>
+      <a class="btn btn-primary" data-to="pricing" href="#">start free</a>
     </div>
   </div>
 </header>

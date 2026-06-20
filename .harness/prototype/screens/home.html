@@ -1,0 +1,105 @@
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="wrap relative" style="padding-top:64px;padding-bottom:56px">
+    <div class="grid lg:grid-cols-[0.82fr_1.18fr] gap-10 lg:gap-12 items-center">
+      <!-- left: the pitch -->
+      <div>
+        <div class="cmt">// the unified agent runtime</div>
+        <h1 class="display mt-4" style="font-size:clamp(1.8rem,3.2vw,2.6rem)">The one command between you and production agents.<span class="cursor"></span></h1>
+        <p class="lede mt-5 max-w-md">Helix routes, traces and governs agents across every model and tool. One binary, one API. Stop hand-wiring glue between frameworks.</p>
+        <div class="flex flex-wrap items-center gap-3 mt-7">
+          <a class="btn btn-primary btn-lg" data-to="pricing" href="#">start free</a>
+          <a class="btn btn-ghost btn-lg" data-to="platform" href="#"><span class="t-prompt">$</span> npm i @helix/cli</a>
+        </div>
+        <div class="cmt mt-4">no card required · 50k runs/mo free · soc 2 type ii</div>
+      </div>
+
+      <!-- right: live terminal -->
+      <div class="term term-glow">
+        <div class="term-bar">
+          <span class="t-prompt">▸</span> helix@edge ─ run
+          <span class="ml-auto flex items-center gap-1.5"><span class="dot dot-active"></span> live</span>
+        </div>
+        <div class="term-body">
+          <div class="flex gap-2"><span class="t-prompt">$</span><span><span class="t-cmd">helix run</span> support-triage <span class="t-flag">--input</span> <span class="t-str">"refund #4821"</span> <span class="t-flag">--failover</span></span></div>
+          <div class="flex gap-3 mt-2"><span class="t-prompt">▸</span><span class="w-16 t-flag">route</span><span class="flex-1 t-path">opus-4 → sonnet-4</span><span class="t-flag">armed</span></div>
+          <div class="flex gap-3"><span class="t-prompt">▸</span><span class="w-16 t-flag">model</span><span class="flex-1">claude-opus-4</span><span class="num t-flag">1,840ms</span></div>
+          <div class="flex gap-3"><span class="t-prompt">▸</span><span class="w-16 t-flag">tool</span><span class="flex-1">search_orders</span><span class="num t-flag">220ms</span></div>
+          <div class="flex gap-3"><span class="t-prompt">▸</span><span class="w-16 t-flag">model</span><span class="flex-1">summarize</span><span class="num t-flag">640ms</span></div>
+          <div class="flex gap-3 mt-1"><span class="t-ok">✓</span><span class="w-16 t-ok">done</span><span class="flex-1 num">18,402 tok · $0.21</span><span class="num t-ok">2.7s</span></div>
+          <div class="flex gap-2 mt-2"><span class="t-prompt">$</span><span class="cursor"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- providers connected -->
+    <div class="mt-12 flex flex-wrap items-center gap-x-6 gap-y-3">
+      <span class="cmt">connected ▸</span>
+      <span class="logo"><span class="dot dot-active"></span> anthropic</span>
+      <span class="logo"><span class="dot dot-active"></span> openai</span>
+      <span class="logo"><span class="dot dot-active"></span> google</span>
+      <span class="logo"><span class="dot dot-active"></span> mistral</span>
+      <span class="logo"><span class="dot dot-queued"></span> llama·local</span>
+      <span class="logo"><span class="dot dot-active"></span> fireworks</span>
+    </div>
+  </div>
+</section>
+
+<!-- COMMAND REFERENCE (replaces feature-card grid) -->
+<section class="section-tight">
+  <div class="wrap">
+    <div class="rule-row"><span class="cmt">// one binary, three jobs</span></div>
+    <div class="mt-6">
+      <div class="cmd-row">
+        <div class="cmd-name"><b>helix</b> run</div>
+        <div class="cmd-desc">Send one request; the router picks Claude, GPT or an open model and fails over automatically when a provider degrades.</div>
+        <span class="tag tag-accent">orchestrate</span>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-name"><b>helix</b> trace</div>
+        <div class="cmd-desc">Replay any run step by step — model, tool and route — with tokens, cost and latency attributed per hop.</div>
+        <span class="tag tag-cyan">observe</span>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-name"><b>helix</b> policy</div>
+        <div class="cmd-desc">Set spend caps, rate limits and allowed-model lists per agent. A run over the cap returns 402 instead of spending.</div>
+        <span class="tag">govern</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATUS BLOCK (reframes metrics as a command, not a stat band) -->
+<section class="section-tight">
+  <div class="wrap">
+    <div class="term" style="max-width:560px">
+      <div class="term-bar"><span class="t-prompt">▸</span> helix status <span class="ml-auto cmt">90d</span></div>
+      <div class="term-body" style="padding-top:0.6rem;padding-bottom:0.9rem">
+        <div class="flex gap-2 mb-2"><span class="t-prompt">$</span><span class="t-cmd">helix status</span></div>
+        <div class="kv"><span class="k">runs today</span><span class="v num">1,284,902</span></div>
+        <div class="kv"><span class="k">routing overhead p50</span><span class="v num">118ms</span></div>
+        <div class="kv"><span class="k">uptime</span><span class="v num t-ok">99.99%</span></div>
+        <div class="kv"><span class="k">providers</span><span class="v num">12 healthy <span class="t-flag">/ 0 degraded</span></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CLOSING CTA -->
+<section class="section">
+  <div class="wrap">
+    <div class="term hero relative">
+      <div class="hero-glow" style="top:-180px;opacity:.45"></div>
+      <div class="term-body relative" style="padding:40px 32px">
+        <div class="cmt">// ready when you are</div>
+        <h2 class="h2 mt-3" style="font-size:clamp(1.4rem,2.4vw,1.9rem)">Bring every agent under one command.</h2>
+        <p class="lede mt-3 max-w-md" style="font-family:var(--font-body)">Wire your first agent into Helix in an afternoon. Keep your models, lose the glue.</p>
+        <div class="flex flex-wrap items-center gap-3 mt-6">
+          <a class="btn btn-primary btn-lg" data-to="pricing" href="#">start free</a>
+          <a class="btn btn-ghost btn-lg" data-to="customers" href="#">read customer stories</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
