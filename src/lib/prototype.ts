@@ -65,6 +65,29 @@ const slug = (s: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
+// The preloaded display/text faces (Geist, Instrument Serif, Fraunces, Space Grotesk)
+// are Latin-only, so a token like `'Geist', system-ui, sans-serif` leaves Thai (and any
+// other non-Latin) to the generic system fallback. That fallback resolves to DIFFERENT
+// faces in the live screen iframe than in a snapshot — modern-screenshot repaints the
+// cloned iframe inside the viewer's PARENT document (see FreeformDevice.capture), where
+// `system-ui` / `sans-serif` map to other Thai faces with different metrics. The dev and
+// the agent then saw different glyph widths and long strings wrapped/overlapped only in
+// the snapshot. Pinning a loaded Noto Thai face IN the chain ties non-Latin text to one
+// webfont that paints identically in both contexts. Injected automatically so EVERY
+// prototype gets snapshot↔live parity even when the authored token omits it (e.g. a build
+// from a harness that never loaded the skill's font guidance).
+function withThaiFallback(value: string): string {
+  if (/Noto\s+(?:Sans|Serif)\s+Thai/i.test(value)) return value; // already pinned
+  const serif = /\bserif\b/i.test(value) && !/sans-serif/i.test(value);
+  const thai = serif ? "'Noto Serif Thai'" : "'Noto Sans Thai'";
+  const generic = /^(?:serif|sans-serif|monospace|system-ui|ui-serif|ui-sans-serif|ui-monospace|cursive|fantasy)$/i;
+  const parts = value.split(",").map((p) => p.trim()).filter(Boolean);
+  const gi = parts.findIndex((p) => generic.test(p));
+  if (gi >= 0) parts.splice(gi, 0, thai);
+  else parts.push(thai);
+  return parts.join(", ");
+}
+
 // Compile structured design tokens into CSS custom properties (a :root block) so
 // screens reference them — var(--color-primary), var(--space-4), var(--radius-lg),
 // var(--shadow-md), var(--text-h1), var(--font-sans) — keeping the design system
@@ -80,7 +103,9 @@ export function compileTokens(tokens?: DesignTokens): string {
   add("space", tokens.spacing);
   add("radius", tokens.radii);
   add("shadow", tokens.shadows);
-  add("font", tokens.fonts);
+  (tokens.fonts || []).forEach((t) => {
+    if (t?.name && t.value != null) lines.push(`  --font-${slug(t.name)}: ${withThaiFallback(String(t.value))};`);
+  });
   (tokens.typography || []).forEach((t) => {
     if (t?.name && t.size) lines.push(`  --text-${slug(t.name)}: ${t.size};`);
   });

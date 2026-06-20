@@ -16,6 +16,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { grade } from "./grade.mjs";
+import { compileTokens } from "../src/lib/prototype.ts";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CHECKS = ["A1a_tokens_defined", "A1b_tokens_used", "A2_shared", "A3_interactivity", "A4_render", "A5_design"];
@@ -28,11 +29,41 @@ const a5Up = (r) => r?.metrics?.designReview?.available === true;
 const pad = (s, n) => String(s).padEnd(n);
 const padL = (s, n) => String(s).padStart(n);
 
+// ── Unit specs: render-layer invariants the grader can't see in artifacts ────
+// Guards the snapshot↔live font-parity fix: the preloaded display/text faces are
+// Latin-only, so compileTokens must pin a Noto Thai face INTO every --font-* chain.
+// Without it, non-Latin text falls to a generic system fallback that resolves to
+// different faces in the live iframe vs. the parent-context snapshot — the dev and
+// the agent then see different glyph widths (text wraps/overlaps in the snapshot
+// only). Real regression observed in a Gemini-built prototype; locked in here.
+function runSpecs() {
+  const rows = [];
+  const spec = (name, ok, detail) => rows.push({ name, ok, detail });
+  const css = (fonts) => compileTokens({ fonts });
+
+  const body = css([{ name: "body", value: "'Geist', system-ui, sans-serif" }]);
+  spec("body chain pins Noto Sans Thai", /--font-body:[^;]*'Noto Sans Thai'/.test(body), body.match(/--font-body:[^;]*/)?.[0]);
+  spec("Thai face precedes the generic fallback", /'Noto Sans Thai',\s*system-ui/.test(body), body.match(/--font-body:[^;]*/)?.[0]);
+
+  const serif = css([{ name: "display", value: "'Instrument Serif', Georgia, serif" }]);
+  spec("serif chain pins Noto Serif Thai (not Sans)", /'Noto Serif Thai'/.test(serif) && !/'Noto Sans Thai'/.test(serif), serif.match(/--font-display:[^;]*/)?.[0]);
+
+  const mono = css([{ name: "mono", value: "'Geist Mono', ui-monospace, monospace" }]);
+  spec("mono chain still gets a Thai face", /'Noto (Sans|Serif) Thai'/.test(mono), mono.match(/--font-mono:[^;]*/)?.[0]);
+
+  const already = css([{ name: "x", value: "'Fraunces', 'Noto Serif Thai', serif" }]);
+  spec("idempotent — no double-inject when already pinned", (already.match(/Noto Serif Thai/g) || []).length === 1, already.match(/--font-x:[^;]*/)?.[0]);
+
+  return { ok: rows.every((r) => r.ok), rows };
+}
+
 // ── CI core: gate the committed targets ─────────────────────────────────────
 function runGate(json) {
   const rows = [];
   const a5Skipped = new Set();
   let regressed = false;
+  const specs = runSpecs();
+  if (!specs.ok) regressed = true;
 
   for (const t of TH.targets) {
     const r = grade(t.brief, path.join(ROOT, t.dir));
@@ -72,7 +103,7 @@ function runGate(json) {
   }
 
   if (json) {
-    console.log(JSON.stringify({ mode: "gate", ok: !regressed, a5Skipped: [...a5Skipped], rows }, null, 2));
+    console.log(JSON.stringify({ mode: "gate", ok: !regressed, a5Skipped: [...a5Skipped], rows, specs: specs.rows }, null, 2));
     return !regressed;
   }
 
@@ -87,7 +118,11 @@ function runGate(json) {
   }
   console.log("\n  legend: ✓ pass   ✗ fail   – skipped (detector n/a)   · not required");
   if (a5Skipped.size) console.log(`  note: A5 (impeccable detect) skipped for ${[...a5Skipped].join(", ")} — detector not on this machine (expected in CI).`);
-  console.log("\n  " + (regressed ? "GATE FAILED — a committed target regressed from baseline." : "GATE PASSED — all committed targets hold the baseline.") + "\n");
+
+  console.log("\n  RENDER-LAYER SPECS — font parity (snapshot ↔ live)\n");
+  for (const s of specs.rows) console.log("  " + (s.ok ? GLYPH.pass : GLYPH.fail) + " " + pad(s.name, 44) + (s.detail ? "  " + s.detail : ""));
+
+  console.log("\n  " + (regressed ? "GATE FAILED — a committed target or render-layer spec regressed." : "GATE PASSED — all committed targets hold the baseline.") + "\n");
   return !regressed;
 }
 
