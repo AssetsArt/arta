@@ -5,6 +5,14 @@ designs an app **into your screen** — prototype, spec, data model, flow, and p
 instead of replying with a wall of text. It's `superpowers:brainstorming`, but as a
 picture you can click.
 
+> **Renamed from Harness Studio → Arta.** The plugin id changed (`harness-studio` →
+> `arta`), so existing installs don't auto-update — uninstall the old plugin and
+> install `arta` (see [Install](#install)). The command is now `/arta` (was `/hns`),
+> the MCP tools are `arta_*` (were `harness_*`), and the canvas folder is `.arta/`
+> (was `.harness/`). **Your existing canvas migrates automatically:** the first time
+> the viewer or MCP server starts in a project that still has `.harness/`, it renames
+> it to `.arta/`. Nothing to move by hand.
+
 Three layers, one loop:
 
 | Layer | What it is |
