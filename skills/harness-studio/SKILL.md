@@ -364,6 +364,10 @@ Use them; do not hand-roll what they give you, and **never use emoji as icons.**
     labels small, uppercase, muted, slightly spaced. When H1, card titles, metric values and
     body all collapse into one narrow size band, hierarchy dies and it looks templated. Pick
     a real scale and use its extremes (e.g. a 48px+ hero number over a 11px muted label).
+  - *Interactive state must read:* a selected / active / current item needs an unmistakable
+    change — shift the **fill** (a tint), not just a border, and use a solid control (a filled
+    radio / check, not a ghost outline). On dark themes a border-only or faint-outline "selected"
+    state is nearly invisible; the dev can't tell what's chosen.
 - **Real images, not empty gray boxes.** A flat gray placeholder rectangle where a photo
   or product shot belongs is one of the loudest "an AI made this" tells — it makes every
   other decision read as unfinished. Screens have network, so use REAL imagery: an
