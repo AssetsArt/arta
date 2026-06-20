@@ -5,7 +5,7 @@
 // date" and SKIPS re-copying files into the install cache — so a push that doesn't
 // move the version never reaches users, even though the marketplace clone pulled it.
 // CI runs this on every push to main so each push ships a new version and
-// `/hns update` always delivers the latest.
+// `/arta update` always delivers the latest.
 //
 // Source of truth: .claude-plugin/plugin.json `version`. marketplace.json
 // (metadata.version + every plugins[].version) is kept in lock-step. Edits are

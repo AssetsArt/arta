@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-// Harness Studio viewer launcher.
+// Arta viewer launcher.
 // Run from any project: starts the viewer (Vite) pointed at THAT project's
 // .arta/ folder, seeding a starter canvas if there isn't one.
 //
 //   bunx github:AssetsArt/arta          # zero-install, from anywhere
-//   harness                                        # if linked globally
-//   harness --project ../other-app --port 5000
+//   arta                                           # if linked globally
+//   arta --project ../other-app --port 5000
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

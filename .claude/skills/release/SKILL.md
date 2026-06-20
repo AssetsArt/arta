@@ -1,9 +1,9 @@
 ---
 name: release
-description: Use when releasing / shipping a new version of Harness Studio (this repo) — triggers on "release", "ship it", "publish the plugin", "cut a new version", "ปล่อยเวอร์ชันใหม่", "release harness". Runs preflight (build + validate), commits and pushes to main, waits for CI to auto-bump the version and refresh the MCP bundle, confirms the new version landed on origin, then reports the exact update steps for users. Maintainer tool — it does NOT ship inside the plugin.
+description: Use when releasing / shipping a new version of Arta (this repo) — triggers on "release", "ship it", "publish the plugin", "cut a new version", "ปล่อยเวอร์ชันใหม่", "release arta". Runs preflight (build + validate), commits and pushes to main, waits for CI to auto-bump the version and refresh the MCP bundle, confirms the new version landed on origin, then reports the exact update steps for users. Maintainer tool — it does NOT ship inside the plugin.
 ---
 
-# Release Harness Studio
+# Release Arta
 
 Ship the current changes on `main` and **confirm** the new version is actually live for
 users. Releasing this project = **push to `main`**; CI (`.github/workflows/pack.yml`)

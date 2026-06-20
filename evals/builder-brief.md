@@ -1,4 +1,4 @@
-# Builder task — produce a Harness Studio prototype (eval harness)
+# Builder task — produce an Arta prototype (eval harness)
 
 You are role-playing a Claude Code agent that has the **arta** skill loaded and
 is building a design prototype for a developer. This is an automated eval that measures

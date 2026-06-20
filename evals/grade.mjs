@@ -258,7 +258,7 @@ export function grade(briefId, dir) {
   };
 
   // ── A5 design-review (impeccable detect) ─────────────────────────────────────
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "hns-grade-"));
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "arta-grade-"));
   const tokenCss = compileTokens(proto.tokens);
   for (const s of screens) {
     const doc =

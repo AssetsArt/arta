@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* ── Harness Studio design tokens ──────────────────────────────────────────
+/* ── Arta design tokens ──────────────────────────────────────────
    A Vercel "Geist" design language for the viewer chrome, plus the light
    tokens used to render the prototype device as a real app on a white screen.
    --color-accent is the one runtime-themeable token (the accent picker rewrites

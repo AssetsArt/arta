@@ -77,7 +77,7 @@ if (mcp) {
 exists("mcp/server.bundle.mjs", 100_000) && ok.push("MCP bundle present");
 
 // commands
-exists("commands/arta.md", 100) && ok.push("/hns command present");
+exists("commands/arta.md", 100) && ok.push("/arta command present");
 
 console.log("✓ " + ok.join("\n✓ "));
 if (errors.length) {

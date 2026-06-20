@@ -1,4 +1,4 @@
-# Harness Studio
+# Arta
 
 A live design canvas you leave running while an AI coding agent (Claude Code)
 designs an app **into your screen** — prototype, spec, data model, flow, and plan —
@@ -21,12 +21,12 @@ Three layers, one loop:
 
 ## What it looks like
 
-Below is the **Harness Studio viewer** with its seeded demo loaded — **Helix**, a
+Below is the **Arta viewer** with its seeded demo loaded — **Helix**, a
 landing site for a "unified runtime for AI agents." The dark app chrome is the studio;
 the prototype lives inside the device frame. The same `.arta/` canvas drives all five
 tabs.
 
-[![Harness Studio — the Helix prototype in a device frame](docs/demo_01_B1.png)](docs/demo_01_B1.png)
+[![Arta — the Helix prototype in a device frame](docs/demo_01_B1.png)](docs/demo_01_B1.png)
 
 *Prototype + Spec — the clickable Helix design rendered in a real device frame, with the
 screen list and frame switcher on the left and the spec rail on the right.*
@@ -46,7 +46,7 @@ AI writes.
 ## Quick start — use it in your own project
 
 Install the **plugin** once — it brings the skill, the MCP, **and** the viewer.
-`/hns` starts the viewer for you, so there's nothing else to install or keep in sync.
+`/arta` starts the viewer for you, so there's nothing else to install or keep in sync.
 
 **1. Install the plugin (like any skill):**
 
@@ -58,28 +58,28 @@ Install the **plugin** once — it brings the skill, the MCP, **and** the viewer
 The `arta` skill and its MCP tools are now available in any project, and
 the MCP reads/writes that project's `.arta/` folder.
 
-**2. The viewer starts itself.** You don't run anything — when you `/hns`, the skill
+**2. The viewer starts itself.** You don't run anything — when you `/arta`, the skill
 calls the `arta_start_viewer` MCP tool, which launches the viewer **from the
 installed plugin** (so it always matches your installed version — no stale cache) on
 `http://localhost:7317`, watching this project's `./.arta/`. The first launch
 installs the viewer's deps (a few seconds, needs [Bun](https://bun.sh)); it seeds a
 starter `.arta/` if there isn't one. Leave the tab open; it repaints as the AI
-edits the canvas. **To update later, just `/hns update`** — that updates the viewer
+edits the canvas. **To update later, just `/arta update`** — that updates the viewer
 too, since it ships in the plugin.
 
 > Want to run the viewer without the plugin (a quick look)? `cd ~/my-app && bunx
 > github:AssetsArt/arta`. Note `bunx` caches `github:` specs, so re-running
 > it can serve an old build — `bun pm cache rm` first to force the latest. Flags:
 > `--project <dir>`, `--port <n>`. Contributors: `git clone` + `bun install` +
-> `bun link` gives a global `harness` command.
+> `bun link` gives a global `arta` command.
 
-**3. Design:** run **`/hns <what to build>`** (e.g. `/hns a checkout flow`) — the
+**3. Design:** run **`/arta <what to build>`** (e.g. `/arta a checkout flow`) — the
 skill **brainstorms the idea with you first** (questions one at a time, 2–3
 approaches, an agreed direction — sketching lo-fi options on the canvas when a
 question is easier shown than told), and only then writes the spec and builds the
 prototype, repainting your viewer live as it goes. It won't dump a full prototype on
-the first message. Update later with **`/hns update`**. (Or just say *"design this in
-the harness"* — the skill triggers on its own.)
+the first message. Update later with **`/arta update`**. (Or just say *"design this in
+Arta"* — the skill triggers on its own.)
 
 Try the viewer by hand: click between the **Helix** screens in the **Prototype**
 sidebar, flip the **Monthly / Annual** toggle on Pricing (the prices swap live), switch
@@ -97,19 +97,19 @@ Everything you can type, in one place.
 |---|---|
 | `/plugin marketplace add AssetsArt/arta` | Add the marketplace (one time) |
 | `/plugin install arta@arta` | Install the plugin — skill + MCP + viewer |
-| `/hns <what to build>` | Brainstorm the idea, then design it in the harness |
-| `/hns update` | Update the plugin to the latest **and re-run the viewer** on the new build |
-| `/hns restart` | Re-run the viewer from the installed plugin (pick up a new build, no manual cache-clearing) |
-| `/hns feedback` | Drain the comments the dev left in the viewer and act on them (`arta_get_feedback`) |
-| `/hns review [screen]` | Design-quality pass — run impeccable's anti-slop detectors on the prototype and fix what they flag (`arta_design_review`) |
-| *"design this in the harness"* | Natural-language trigger — same as `/hns` |
+| `/arta <what to build>` | Brainstorm the idea, then design it in Arta |
+| `/arta update` | Update the plugin to the latest **and re-run the viewer** on the new build |
+| `/arta restart` | Re-run the viewer from the installed plugin (pick up a new build, no manual cache-clearing) |
+| `/arta feedback` | Drain the comments the dev left in the viewer and act on them (`arta_get_feedback`) |
+| `/arta review [screen]` | Design-quality pass — run impeccable's anti-slop detectors on the prototype and fix what they flag (`arta_design_review`) |
+| *"design this in Arta"* | Natural-language trigger — same as `/arta` |
 
-`/hns update` wraps `/plugin marketplace update arta` then
+`/arta update` wraps `/plugin marketplace update arta` then
 `/plugin update arta@arta` (or use `/plugin` → Manage → Update),
 then restarts the viewer via `arta_restart_viewer` so the new build shows up — after
 you **restart Claude Code** so the updated skill/commands/MCP load. Normally you never
-start the viewer yourself — `/hns` does it via the `arta_start_viewer` tool, and
-`/hns restart` re-runs it.
+start the viewer yourself — `/arta` does it via the `arta_start_viewer` tool, and
+`/arta restart` re-runs it.
 
 **In your shell** — only if you want the viewer *without* the plugin:
 
@@ -129,7 +129,7 @@ start the viewer yourself — `/hns` does it via the `arta_start_viewer` tool, a
 | `bun run build` | Typecheck + build viewer + bundle the MCP |
 | `bun run build:mcp` | Re-bundle the MCP after editing `mcp/server.mjs` |
 | `node scripts/validate-plugin.mjs` | Check the plugin layout (the CI gate) |
-| `bun link` | Expose a global `harness` command, runnable from any project |
+| `bun link` | Expose a global `arta` command, runnable from any project |
 
 ## How the canvas works
 
@@ -177,7 +177,7 @@ The skill ships a library of opinionated, ready-to-adapt design languages
 display). The AI picks one for the brief, swaps in the project's accent, and sets it as
 the prototype's foundation (`arta_set_design_tokens` + `designSystem`) before
 building any screen — so output looks *designed*, not like a generic AI webpage. Pair
-that with `/hns review` (anti-slop) for a craft pass.
+that with `/arta review` (anti-slop) for a craft pass.
 
 ### Device frames
 
@@ -227,7 +227,7 @@ on the current project's `.arta/`:
 - `arta_get_architecture` / `arta_set_architecture` — the `architecture` section (the Architecture tab): C4-style system diagram (nodes/edges), ADRs (`decisions`), `nfrs`, `security` notes, `stack`
 - `arta_get_plan` / `arta_set_plan` / `arta_set_task` — the `plan` Kanban board (custom statuses = columns, milestones = swimlanes, tasks = cards w/ priority); `set_task` moves a card between columns
 - `arta_start_viewer` — launch the viewer from the installed plugin (idempotent; no stale cache)
-- `arta_restart_viewer` — re-run the viewer from the installed plugin so it serves the latest build (what `/hns update` / `/hns restart` use; no manual cache-clearing)
+- `arta_restart_viewer` — re-run the viewer from the installed plugin so it serves the latest build (what `/arta update` / `/arta restart` use; no manual cache-clearing)
 - `arta_get_screenshot` — a PNG of how a screen actually renders (the pixels you see)
 - `arta_design_review` — run [impeccable](https://github.com/pbakaus/impeccable)'s deterministic anti-slop detectors over a screen's HTML and return craft findings (low contrast, side-stripe borders, gradient text, identical card grids, …). Opt-in — returns a note if impeccable isn't available
 - `arta_get_view` — your active tab, prototype screen, store, and any prototype errors
@@ -259,7 +259,7 @@ type-checks, validates the plugin layout, re-commits the MCP bundle if it drifte
 from source, and **bumps the patch version** (via `scripts/bump-version.mjs`). The
 version bump matters — `/plugin update` skips re-installing when the version is
 unchanged, so without it a push would never reach users. So just push; the version
-moves on its own and `/hns update` always gets the latest. (Needs *Settings →
+moves on its own and `/arta update` always gets the latest. (Needs *Settings →
 Actions → Workflow permissions → Read and write*.)
 
 ## Layout
@@ -269,11 +269,11 @@ Actions → Workflow permissions → Read and write*.)
   plugin.json                 # plugin manifest (install target)
   marketplace.json            # listing → /plugin marketplace add AssetsArt/arta
 skills/arta/        # the design-loop skill
-commands/hns.md               # the /hns command (design · update)
+commands/arta.md               # the /arta command (design · update)
 .mcp.json                     # MCP config (points at the bundle via ${CLAUDE_PLUGIN_ROOT})
 mcp/server.mjs                # MCP server source — the agent's eyes & hands
 mcp/server.bundle.mjs         # self-contained bundle the plugin ships (no dep install)
-bin/arta.mjs               # viewer launcher — `harness` in any project
+bin/arta.mjs               # viewer launcher — `arta` in any project
 vite/arta-watch.ts         # Vite plugin: assembles split files, watch → WebSocket push, endpoints
 scripts/validate-plugin.mjs   # plugin-layout check (CI gate + local)
 .github/workflows/pack.yml    # build · validate · re-bundle on push

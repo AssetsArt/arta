@@ -1,12 +1,12 @@
 ---
 name: arta
-description: Use during the DESIGN phase of building a new app/feature, instead of dumping a wall of text. ALWAYS brainstorm the idea into an agreed direction first (questions one at a time, like superpowers:brainstorming) — never jump straight to a spec or prototype. Then drive Claude Code to build a shared, live design canvas (.arta/state.json) that the dev watches in the Harness Studio viewer — spec, prototype, data model, flow, plan — iterating from the dev's clicks and feedback. Trigger when the user wants to "design", "wireframe", "prototype", "sketch the data model/flow", "plan a feature visually", or says "open the harness / let's design this in the studio".
+description: Use during the DESIGN phase of building a new app/feature, instead of dumping a wall of text. ALWAYS brainstorm the idea into an agreed direction first (questions one at a time, like superpowers:brainstorming) — never jump straight to a spec or prototype. Then drive Claude Code to build a shared, live design canvas (.arta/state.json) that the dev watches in the Arta viewer — spec, prototype, data model, flow, plan — iterating from the dev's clicks and feedback. Trigger when the user wants to "design", "wireframe", "prototype", "sketch the data model/flow", "plan a feature visually", or says "open Arta / let's design this in the studio".
 ---
 
-# Harness Studio — prototype-based design loop
+# Arta — prototype-based design loop
 
-You are designing **with a picture, not a wall of text.** The dev has the Harness
-Studio viewer open (`bun run dev`). Everything you write to `.arta/state.json`
+You are designing **with a picture, not a wall of text.** The dev has the Arta
+viewer open (`bun run dev`). Everything you write to `.arta/state.json`
 appears on their screen instantly with a cyan flash. You see what they're looking
 at and read their feedback through the MCP server. Design is one tight loop.
 
@@ -31,7 +31,7 @@ Never describe a screen in prose when you could render it. Show, ask, adjust.
   (default `http://localhost:7317`).
 - `arta_restart_viewer` — stop the running viewer and relaunch it from the
   installed plugin, so it serves the **latest** build. Use this after the plugin
-  updates (the `/hns update` / `/hns restart` flow calls it): an already-open viewer
+  updates (the `/arta update` / `/arta restart` flow calls it): an already-open viewer
   keeps serving the old assets until it's restarted. The dev no longer clears caches
   or kills processes by hand.
 - `arta_get_state` — read the canvas before editing. Always start here. Whole
@@ -215,7 +215,7 @@ the dev react at each step.
 > **HARD-GATE:** the moment you finish building or changing screens, **review your own
 > work and fix what you find — BEFORE you tell the dev to look.** Reviewing the prototype
 > is *your* job, not the dev's: never hand back a screen you haven't looked at and expect
-> them to run `/hns review` to find your mistakes. (`/hns review` is a manual re-run of
+> them to run `/arta review` to find your mistakes. (`/arta review` is a manual re-run of
 > exactly this — you do it proactively, every time.) The #1 way this tool disappoints is
 > handing over a blank placeholder screen, a header copy-pasted onto five screens, or a
 > screen with a dead white band — all of which one look would have caught.
@@ -586,7 +586,7 @@ the prototype clickable.
 
 ## Handing off to implementation — build with subagents
 
-The harness is for **design**. Once the dev approves the design and the **Plan**
+Arta is for **design**. Once the dev approves the design and the **Plan**
 board is filled in, stop designing and build the real thing — and build it with
 **`superpowers:subagent-driven-development`**, not one long hand-coded context.
 

@@ -24900,7 +24900,7 @@ server.registerTool("arta_get_feedback", {
   return text({ count: unread.length, feedback: unread });
 });
 server.registerTool("arta_start_viewer", {
-  description: "Start the Harness Studio viewer FROM THE INSTALLED PLUGIN, pointed at this project's .arta/. Because it runs the launcher that ships with the plugin, the viewer always matches the installed plugin version — no stale npx/bunx cache. First run installs the viewer's deps (a few seconds). Idempotent: if a viewer is already on the port, it just returns the URL (it does NOT restart it — use arta_restart_viewer to pick up a new build after an update). Call this once at the start of a design session so the dev has the canvas open, then keep using the other tools as normal.",
+  description: "Start the Arta viewer FROM THE INSTALLED PLUGIN, pointed at this project's .arta/. Because it runs the launcher that ships with the plugin, the viewer always matches the installed plugin version — no stale npx/bunx cache. First run installs the viewer's deps (a few seconds). Idempotent: if a viewer is already on the port, it just returns the URL (it does NOT restart it — use arta_restart_viewer to pick up a new build after an update). Call this once at the start of a design session so the dev has the canvas open, then keep using the other tools as normal.",
   inputSchema: {
     port: exports_external.number().int().optional().describe("Port for the viewer (default 7317).")
   }
@@ -24926,7 +24926,7 @@ server.registerTool("arta_start_viewer", {
   });
 });
 server.registerTool("arta_restart_viewer", {
-  description: "Restart the Harness Studio viewer so it serves the LATEST installed plugin build. Stops whatever is listening on the port, waits for it to exit, then relaunches from the installed plugin. Use this right after the plugin updates (`/hns update` or `/plugin update`) — the running viewer keeps serving the old build until it's restarted, so this is what makes an update actually show up on screen. The dev no longer needs to clear caches or kill processes by hand.",
+  description: "Restart the Arta viewer so it serves the LATEST installed plugin build. Stops whatever is listening on the port, waits for it to exit, then relaunches from the installed plugin. Use this right after the plugin updates (`/arta update` or `/plugin update`) — the running viewer keeps serving the old build until it's restarted, so this is what makes an update actually show up on screen. The dev no longer needs to clear caches or kill processes by hand.",
   inputSchema: {
     port: exports_external.number().int().optional().describe("Port for the viewer (default 7317).")
   }

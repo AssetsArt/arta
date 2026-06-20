@@ -1,15 +1,15 @@
 ---
-description: Harness Studio — design in the live canvas; `update`, `restart`, `feedback`, or `review`
+description: Arta — design in the live canvas; `update`, `restart`, `feedback`, or `review`
 argument-hint: <what to design> | update | restart | feedback | review [screen]
 ---
 
-The user ran `/hns` with arguments: **$ARGUMENTS**
+The user ran `/arta` with arguments: **$ARGUMENTS**
 
 Route on the arguments:
 
 ## If the argument is `update` (or begins with "update")
 
-Update Harness Studio to the latest version, then re-run the viewer so the new build
+Update Arta to the latest version, then re-run the viewer so the new build
 actually shows up:
 
 1. Refresh the marketplace and update the plugin:
@@ -24,7 +24,7 @@ actually shows up:
    the running viewer and relaunches it from the freshly-installed plugin — no manual
    process-killing or cache-clearing). If that tool isn't available yet (you're still on
    the pre-restart session), tell the user to restart Claude Code and then run
-   `/hns restart`.
+   `/arta restart`.
 5. Briefly report the resulting plugin version (from `/plugin` or `.claude-plugin/plugin.json`) so they know it moved.
 
 Don't redesign anything in update mode — just update, re-run the viewer, and confirm.
@@ -63,13 +63,13 @@ Stay scoped to what the notes ask — don't redesign beyond them.
 A **manual re-run** of the self-review you already do after every build (see the skill's
 "Self-review — before you hand a screen back"). The dev should never *need* this to find
 your mistakes — by the time they look, you've already screenshotted, design-reviewed, and
-fixed. Treat `/hns review` as a deeper on-demand pass, then run the same checklist (stray /
+fixed. Treat `/arta review` as a deeper on-demand pass, then run the same checklist (stray /
 empty screens, repeated chrome that should be a component, dead-band layout, craft).
 
 Run a design-quality pass on the prototype — catch AI-slop before the dev does:
 
 1. Call the `arta_design_review` MCP tool. If a screen id follows (e.g.
-   `/hns review checkout`), pass it to scan just that screen; otherwise scan all.
+   `/arta review checkout`), pass it to scan just that screen; otherwise scan all.
 2. It runs impeccable's deterministic detectors and returns findings (each with an
    antipattern, severity, and snippet — side-stripe borders, gradient text,
    gray-on-color, low contrast, identical card grids, over-rounded cards, …).
@@ -81,7 +81,7 @@ Run a design-quality pass on the prototype — catch AI-slop before the dev does
    - **Tool unavailable** (impeccable not installed / offline) → relay its note;
      suggest `npx impeccable install` or `/impeccable audit` as a fallback.
 
-## Otherwise — design "$ARGUMENTS" in the harness
+## Otherwise — design "$ARGUMENTS" in Arta
 
 **Use the `arta` skill** and follow its flow. Brainstorm before you build.
 

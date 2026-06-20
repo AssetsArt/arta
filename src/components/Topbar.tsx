@@ -19,7 +19,7 @@ export function Topbar({ meta }: { meta: Meta }) {
           H
         </div>
         <span className="text-[14px] font-semibold tracking-[-0.2px]" style={{ color: c.text }}>
-          Harness&nbsp;Studio
+          Arta
         </span>
         <span style={{ color: c.borderStrong }}>/</span>
         <span className="text-[14px] font-medium" style={{ color: c.dim }}>
