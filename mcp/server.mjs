@@ -174,7 +174,7 @@ async function waitPortFree(port, ms = 4000) {
 // outlives this server. Shared by start/restart. Output (incl. first-run
 // `bun install`) is appended to .arta/viewer.log for inspection.
 function spawnViewer(p) {
-  const launcher = path.join(PLUGIN_ROOT, "bin", "harness.mjs");
+  const launcher = path.join(PLUGIN_ROOT, "bin", "arta.mjs");
   if (!fs.existsSync(launcher)) return { ok: false, launcher };
   ensureDir();
   const logFile = path.join(ARTA_DIR, "viewer.log");
@@ -918,7 +918,7 @@ server.registerTool(
   },
   async ({ port }) => {
     const p = Number(port) || 7317;
-    const launcher = path.join(PLUGIN_ROOT, "bin", "harness.mjs");
+    const launcher = path.join(PLUGIN_ROOT, "bin", "arta.mjs");
     if (!fs.existsSync(launcher))
       return err(
         `Launcher not found at ${launcher}. The plugin may be installed incompletely; the dev can also run \`bunx github:AssetsArt/arta\` manually.`

@@ -56,7 +56,7 @@ export function useArta(): ArtaLive {
 
   useEffect(() => {
     let alive = true;
-    fetch("/__harness/state")
+    fetch("/__arta/state")
       .then((r) => r.json())
       .then((res: { ok: boolean; state: ArtaState | null; error?: string }) => {
         if (!alive) return;
@@ -96,7 +96,7 @@ export function useArta(): ArtaLive {
 
 // Fire-and-forget reporters so the MCP server can see what the dev is doing.
 export function reportRuntime(body: Record<string, unknown>): void {
-  fetch("/__harness/runtime", {
+  fetch("/__arta/runtime", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -104,7 +104,7 @@ export function reportRuntime(body: Record<string, unknown>): void {
 }
 
 export function sendFeedback(body: Record<string, unknown>): Promise<boolean> {
-  return fetch("/__harness/feedback", {
+  return fetch("/__arta/feedback", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -114,7 +114,7 @@ export function sendFeedback(body: Record<string, unknown>): Promise<boolean> {
 }
 
 export function reportSnapshot(screen: string, dataUrl: string): void {
-  fetch("/__harness/snapshot", {
+  fetch("/__arta/snapshot", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ screen, dataUrl }),

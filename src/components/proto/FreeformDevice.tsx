@@ -40,7 +40,7 @@ const RUNTIME = `
   var store = window.__STORE__ || {};
   var screenId = window.__SCREEN__;
   var annotate = false;
-  function up(msg){ parent.postMessage(Object.assign({ source:'harness-frame' }, msg), '*'); }
+  function up(msg){ parent.postMessage(Object.assign({ source:'arta-frame' }, msg), '*'); }
   function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
   // Render any <i data-lucide="name"> placeholders into SVGs (lucide loads from
   // the CDN injected in <head>). Idempotent — safe to call repeatedly. After it
@@ -125,7 +125,7 @@ const RUNTIME = `
     document.addEventListener('submit', function(e){ e.preventDefault(); });
     window.addEventListener('message', function(e){
       var d = e.data;
-      if(!d || d.source !== 'harness-parent') return;
+      if(!d || d.source !== 'arta-parent') return;
       if(d.type === 'annotate'){ annotate = !!d.on; document.body.classList.toggle('arta-annotate', annotate); }
     });
     markNav();
@@ -197,7 +197,7 @@ export function FreeformDevice({
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
       const d = e.data;
-      if (!d || d.source !== "harness-frame") return;
+      if (!d || d.source !== "arta-frame") return;
       if (d.type === "nav" && typeof d.to === "string") cbs.current.go(d.to);
       else if (d.type === "store" && d.store) cbs.current.onStore(d.store as StoreState);
       else if (d.type === "error" && d.message) cbs.current.onError(String(d.message));
@@ -209,7 +209,7 @@ export function FreeformDevice({
 
   // Push annotate mode into the frame whenever it toggles.
   useEffect(() => {
-    frameRef.current?.contentWindow?.postMessage({ source: "harness-parent", type: "annotate", on: annotate }, "*");
+    frameRef.current?.contentWindow?.postMessage({ source: "arta-parent", type: "annotate", on: annotate }, "*");
   }, [annotate, srcDoc]);
 
   // Capture the rendered screen → snapshot the agent can fetch. Runs after load

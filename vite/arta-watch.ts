@@ -120,7 +120,7 @@ export function artaWatch(): Plugin {
   let feedbackFile = "";
 
   let snapshotDir = "";
-  const isHarnessSource = (file: string) => {
+  const isArtaSource = (file: string) => {
     const r = path.resolve(file);
     return (
       dir !== "" &&
@@ -138,7 +138,7 @@ export function artaWatch(): Plugin {
     // we push an in-place update over the WebSocket instead (keeps the dev's
     // current tab/screen). The actual push happens in the watcher handler below.
     handleHotUpdate(ctx) {
-      if (isHarnessSource(ctx.file)) return [];
+      if (isArtaSource(ctx.file)) return [];
       return;
     },
 
@@ -185,7 +185,7 @@ export function artaWatch(): Plugin {
       srv.watcher.add(stateFile);
       srv.watcher.add(path.join(dir, PROTO_DIR));
       srv.watcher.on("all", (event, file) => {
-        if ((event === "add" || event === "change" || event === "unlink") && isHarnessSource(file)) {
+        if ((event === "add" || event === "change" || event === "unlink") && isArtaSource(file)) {
           srv.ws.send({ type: "custom", event: "arta:change", data: describeChange(file, event) });
           pushState();
         }
@@ -195,7 +195,7 @@ export function artaWatch(): Plugin {
         const url = (req.url || "").split("?")[0];
 
         // Initial state load for the viewer — fully assembled from the split files.
-        if (url === "/__harness/state" && req.method === "GET") {
+        if (url === "/__arta/state" && req.method === "GET") {
           const raw = readRaw(stateFile);
           if (raw == null) return send(res, 200, { ok: true, state: null });
           try {
@@ -207,7 +207,7 @@ export function artaWatch(): Plugin {
         }
 
         // Viewer reports which tab/screen the dev is looking at.
-        if (url === "/__harness/runtime" && req.method === "POST") {
+        if (url === "/__arta/runtime" && req.method === "POST") {
           try {
             const body = JSON.parse((await readBody(req)) || "{}");
             const runtime = {
@@ -228,7 +228,7 @@ export function artaWatch(): Plugin {
         }
 
         // Dev leaves feedback from inside the viewer → appended to the queue.
-        if (url === "/__harness/feedback" && req.method === "POST") {
+        if (url === "/__arta/feedback" && req.method === "POST") {
           try {
             const body = JSON.parse((await readBody(req)) || "{}");
             const text = String(body.text || "").trim();
@@ -249,13 +249,13 @@ export function artaWatch(): Plugin {
           }
         }
 
-        if (url === "/__harness/feedback" && req.method === "GET") {
+        if (url === "/__arta/feedback" && req.method === "GET") {
           const list = (readJson(feedbackFile) as { read?: boolean }[]) || [];
           return send(res, 200, { ok: true, pending: list.filter((f) => !f.read).length });
         }
 
         // Viewer captures the rendered screen and hands the agent a real picture.
-        if (url === "/__harness/snapshot" && req.method === "POST") {
+        if (url === "/__arta/snapshot" && req.method === "POST") {
           try {
             const body = JSON.parse((await readBody(req)) || "{}");
             const id = sanitize(String(body.screen || ""));

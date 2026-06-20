@@ -24278,21 +24278,21 @@ function envDir(name) {
   const p = envPath(name);
   return p && fs.existsSync(p) ? p : null;
 }
-var HARNESS_DIR = envPath("HARNESS_DIR") || path.join(envDir("CLAUDE_PROJECT_DIR") || process.cwd(), ".harness");
-var STATE_FILE = path.join(HARNESS_DIR, "state.json");
-var RUNTIME_FILE = path.join(HARNESS_DIR, "runtime.json");
-var FEEDBACK_FILE = path.join(HARNESS_DIR, "feedback.json");
+var ARTA_DIR = envPath("ARTA_DIR") || path.join(envDir("CLAUDE_PROJECT_DIR") || process.cwd(), ".arta");
+var STATE_FILE = path.join(ARTA_DIR, "state.json");
+var RUNTIME_FILE = path.join(ARTA_DIR, "runtime.json");
+var FEEDBACK_FILE = path.join(ARTA_DIR, "feedback.json");
 var SELF_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 var PLUGIN_ROOT = envDir("CLAUDE_PLUGIN_ROOT") || SELF_ROOT;
-var PROJECT_DIR = envDir("CLAUDE_PROJECT_DIR") || path.dirname(HARNESS_DIR);
-var PROTO_DIR = path.join(HARNESS_DIR, "prototype");
+var PROJECT_DIR = envDir("CLAUDE_PROJECT_DIR") || path.dirname(ARTA_DIR);
+var PROTO_DIR = path.join(ARTA_DIR, "prototype");
 var CSS_FILE = path.join(PROTO_DIR, "design-system.css");
 var COMP_DIR = path.join(PROTO_DIR, "components");
 var SCREEN_DIR = path.join(PROTO_DIR, "screens");
 var PHASES = ["prototype", "data", "flow", "architecture", "plan"];
 var sanitize = (s) => String(s).replace(/[^a-z0-9_-]/gi, "");
 function ensureDir() {
-  fs.mkdirSync(HARNESS_DIR, { recursive: true });
+  fs.mkdirSync(ARTA_DIR, { recursive: true });
 }
 function readJson(file, fallback = null) {
   try {
@@ -24375,11 +24375,11 @@ async function waitPortFree(port, ms = 4000) {
   return !await portInUse(port);
 }
 function spawnViewer(p) {
-  const launcher = path.join(PLUGIN_ROOT, "bin", "harness.mjs");
+  const launcher = path.join(PLUGIN_ROOT, "bin", "arta.mjs");
   if (!fs.existsSync(launcher))
     return { ok: false, launcher };
   ensureDir();
-  const logFile = path.join(HARNESS_DIR, "viewer.log");
+  const logFile = path.join(ARTA_DIR, "viewer.log");
   let out = "ignore";
   try {
     out = fs.openSync(logFile, "a");
@@ -24442,7 +24442,7 @@ function buildOutline(state) {
   };
 }
 server.registerTool("arta_get_state", {
-  description: "Read .harness/state.json — meta/spec/plan/dataModel/api/architecture plus the prototype MANIFEST (screen ids, titles, frames; NOT the screen HTML). Defaults to the whole state. In a LARGE project that blob gets expensive, so narrow it: `outline:true` returns just an index (which sections exist, their item counts and byte sizes, plus the screen manifest); `sections:['spec','dataModel']` returns only those top-level keys (meta is always included). Then pull screen markup with arta_get_screen / arta_get_component / arta_get_design_system so you only spend tokens on what you need.",
+  description: "Read .arta/state.json — meta/spec/plan/dataModel/api/architecture plus the prototype MANIFEST (screen ids, titles, frames; NOT the screen HTML). Defaults to the whole state. In a LARGE project that blob gets expensive, so narrow it: `outline:true` returns just an index (which sections exist, their item counts and byte sizes, plus the screen manifest); `sections:['spec','dataModel']` returns only those top-level keys (meta is always included). Then pull screen markup with arta_get_screen / arta_get_component / arta_get_design_system so you only spend tokens on what you need.",
   inputSchema: {
     sections: exports_external.array(exports_external.string()).optional().describe("Return only these top-level keys (e.g. ['spec','dataModel','api']). meta is always included. Omit for the whole state."),
     outline: exports_external.boolean().optional().describe("If true, return a compact index (sections present + counts + byte sizes + screen manifest) instead of the full state. Cheapest way to ground in a big project; then pull what you need.")
@@ -24471,7 +24471,7 @@ server.registerTool("arta_get_state", {
   return text(state);
 });
 server.registerTool("arta_set_state", {
-  description: "Replace .harness/state.json with a full state object. The running viewer repaints instantly (cyan flash). Use for the first write or a wholesale rewrite; prefer arta_patch_state for incremental edits.",
+  description: "Replace .arta/state.json with a full state object. The running viewer repaints instantly (cyan flash). Use for the first write or a wholesale rewrite; prefer arta_patch_state for incremental edits.",
   inputSchema: {
     state: exports_external.record(exports_external.any()).describe("Full state object. Must include a `meta` object with `name` and `phase`.")
   }
@@ -24640,7 +24640,7 @@ server.registerTool("arta_set_architecture", {
   });
 });
 server.registerTool("arta_get_screen", {
-  description: "Read one prototype screen's HTML body (.harness/prototype/screens/<id>.html). Use this instead of pulling the whole state when you only need to look at or edit one screen.",
+  description: "Read one prototype screen's HTML body (.arta/prototype/screens/<id>.html). Use this instead of pulling the whole state when you only need to look at or edit one screen.",
   inputSchema: { id: exports_external.string().describe("Screen id from the manifest.") }
 }, async ({ id }) => {
   const html = readRaw(screenFile(id));
@@ -24649,7 +24649,7 @@ server.registerTool("arta_get_screen", {
   return text({ id, html });
 });
 server.registerTool("arta_set_screen", {
-  description: "Create or replace one screen: writes only .harness/prototype/screens/<id>.html and upserts the screen's entry in the manifest (title/url/frame/safeArea). Other screens and the rest of the design are untouched. This is how you edit a screen cheaply. For an ios/android/ipad screen, pass `safeArea` so the status-bar + home-indicator bands take the screen's edge colour instead of staying white — or `chrome:false` for a Full / full-bleed screen with no safe area at all (content fills the whole screen). STYLE WITH TAILWIND UTILITY CLASSES (injected live) — not inline style=; use lucide icons (<i data-lucide=\"…\">), never emoji.",
+  description: "Create or replace one screen: writes only .arta/prototype/screens/<id>.html and upserts the screen's entry in the manifest (title/url/frame/safeArea). Other screens and the rest of the design are untouched. This is how you edit a screen cheaply. For an ios/android/ipad screen, pass `safeArea` so the status-bar + home-indicator bands take the screen's edge colour instead of staying white — or `chrome:false` for a Full / full-bleed screen with no safe area at all (content fills the whole screen). STYLE WITH TAILWIND UTILITY CLASSES (injected live) — not inline style=; use lucide icons (<i data-lucide=\"…\">), never emoji.",
   inputSchema: {
     id: exports_external.string(),
     html: exports_external.string().describe("The screen body (HTML). With a layout, just the slot content. Use Tailwind utility classes for styling (NOT inline style=); lucide icons, not emoji. Inline style only for a genuinely dynamic value a utility can't express."),
@@ -24691,7 +24691,7 @@ server.registerTool("arta_set_screen", {
   return text({ ok: true, id, wrote: screenFile(id) });
 });
 server.registerTool("arta_delete_screen", {
-  description: 'Remove one screen: drops its manifest entry AND deletes .harness/prototype/screens/<id>.html. If it was the prototype `start`, start is repointed to the first remaining screen. Use this to clean up a stray / leftover screen — e.g. the seed `home` placeholder ("Ask Claude Code to design here") once you\'ve built the real screens, or a lo-fi sketch you no longer need. Leaving an empty placeholder in the manifest shows the dev a blank screen, so delete it.',
+  description: 'Remove one screen: drops its manifest entry AND deletes .arta/prototype/screens/<id>.html. If it was the prototype `start`, start is repointed to the first remaining screen. Use this to clean up a stray / leftover screen — e.g. the seed `home` placeholder ("Ask Claude Code to design here") once you\'ve built the real screens, or a lo-fi sketch you no longer need. Leaving an empty placeholder in the manifest shows the dev a blank screen, so delete it.',
   inputSchema: { id: exports_external.string().describe("Screen id to remove.") }
 }, async ({ id }) => {
   const state = readJson(STATE_FILE);
@@ -24713,7 +24713,7 @@ server.registerTool("arta_delete_screen", {
   return text({ ok: true, deleted: id, start: proto.start ?? null, remaining: proto.screens.map((s) => s.id) });
 });
 server.registerTool("arta_get_component", {
-  description: "Read a shared component's HTML (.harness/prototype/components/<name>.html).",
+  description: "Read a shared component's HTML (.arta/prototype/components/<name>.html).",
   inputSchema: { name: exports_external.string() }
 }, async ({ name }) => {
   const html = readRaw(componentFile(name));
@@ -24722,7 +24722,7 @@ server.registerTool("arta_get_component", {
   return text({ name, html });
 });
 server.registerTool("arta_set_component", {
-  description: "Create or replace a shared component (.harness/prototype/components/<name>.html), referenced as {{>name}} from the layout or screens. Edit it once and every screen that uses it updates — no per-screen edits. The file is the source of truth: this also clears any stale inline `prototype.components[name]` override in state.json, so a slim patch can't blank the component out. Style with Tailwind utility classes (injected live), not inline style=; lucide icons, not emoji.",
+  description: "Create or replace a shared component (.arta/prototype/components/<name>.html), referenced as {{>name}} from the layout or screens. Edit it once and every screen that uses it updates — no per-screen edits. The file is the source of truth: this also clears any stale inline `prototype.components[name]` override in state.json, so a slim patch can't blank the component out. Style with Tailwind utility classes (injected live), not inline style=; lucide icons, not emoji.",
   inputSchema: { name: exports_external.string(), html: exports_external.string().describe("Component HTML. Tailwind utility classes for styling (not inline style=); lucide icons, not emoji.") }
 }, async ({ name, html }) => {
   fs.mkdirSync(COMP_DIR, { recursive: true });
@@ -24735,7 +24735,7 @@ server.registerTool("arta_set_component", {
   return text({ ok: true, name, wrote: componentFile(name) });
 });
 server.registerTool("arta_get_design_system", {
-  description: "Read the shared prototype CSS (.harness/prototype/design-system.css).",
+  description: "Read the shared prototype CSS (.arta/prototype/design-system.css).",
   inputSchema: {}
 }, async () => {
   const css = readRaw(CSS_FILE);
@@ -24744,7 +24744,7 @@ server.registerTool("arta_get_design_system", {
   return text({ css });
 });
 server.registerTool("arta_set_design_system", {
-  description: "Replace the shared prototype CSS (.harness/prototype/design-system.css), injected into every freeform screen.",
+  description: "Replace the shared prototype CSS (.arta/prototype/design-system.css), injected into every freeform screen.",
   inputSchema: { css: exports_external.string() }
 }, async ({ css }) => {
   fs.mkdirSync(PROTO_DIR, { recursive: true });
@@ -24875,7 +24875,7 @@ server.registerTool("arta_get_screenshot", {
   description: "Get a PNG of how a prototype screen actually renders — the same pixels the dev sees, captured by the viewer. Use this to check your work visually instead of reasoning only from the HTML. Returns an image; if none exists yet, the screen may not have been viewed in the browser.",
   inputSchema: { screen: exports_external.string().describe("Screen id.") }
 }, async ({ screen }) => {
-  const file = path.join(HARNESS_DIR, "snapshots", sanitize(screen) + ".png");
+  const file = path.join(ARTA_DIR, "snapshots", sanitize(screen) + ".png");
   let buf;
   try {
     buf = fs.readFileSync(file);
@@ -24900,7 +24900,7 @@ server.registerTool("arta_get_feedback", {
   return text({ count: unread.length, feedback: unread });
 });
 server.registerTool("arta_start_viewer", {
-  description: "Start the Harness Studio viewer FROM THE INSTALLED PLUGIN, pointed at this project's .harness/. Because it runs the launcher that ships with the plugin, the viewer always matches the installed plugin version — no stale npx/bunx cache. First run installs the viewer's deps (a few seconds). Idempotent: if a viewer is already on the port, it just returns the URL (it does NOT restart it — use arta_restart_viewer to pick up a new build after an update). Call this once at the start of a design session so the dev has the canvas open, then keep using the other tools as normal.",
+  description: "Start the Harness Studio viewer FROM THE INSTALLED PLUGIN, pointed at this project's .arta/. Because it runs the launcher that ships with the plugin, the viewer always matches the installed plugin version — no stale npx/bunx cache. First run installs the viewer's deps (a few seconds). Idempotent: if a viewer is already on the port, it just returns the URL (it does NOT restart it — use arta_restart_viewer to pick up a new build after an update). Call this once at the start of a design session so the dev has the canvas open, then keep using the other tools as normal.",
   inputSchema: {
     port: exports_external.number().int().optional().describe("Port for the viewer (default 7317).")
   }
@@ -24920,7 +24920,7 @@ server.registerTool("arta_start_viewer", {
     ok: true,
     started: true,
     url: `http://localhost:${p}`,
-    watching: path.join(PROJECT_DIR, ".harness"),
+    watching: path.join(PROJECT_DIR, ".arta"),
     from: PLUGIN_ROOT,
     note: `Viewer starting from the installed plugin. First run installs its deps (a few seconds) — open ${`http://localhost:${p}`} in a moment. Logs: ${r.logFile}`
   });
@@ -24932,7 +24932,7 @@ server.registerTool("arta_restart_viewer", {
   }
 }, async ({ port }) => {
   const p = Number(port) || 7317;
-  const launcher = path.join(PLUGIN_ROOT, "bin", "harness.mjs");
+  const launcher = path.join(PLUGIN_ROOT, "bin", "arta.mjs");
   if (!fs.existsSync(launcher))
     return err(`Launcher not found at ${launcher}. The plugin may be installed incompletely; the dev can also run \`bunx github:AssetsArt/arta\` manually.`);
   const wasRunning = await portInUse(p);
@@ -24949,7 +24949,7 @@ server.registerTool("arta_restart_viewer", {
     wasRunning,
     stoppedPids: killed,
     url: `http://localhost:${p}`,
-    watching: path.join(PROJECT_DIR, ".harness"),
+    watching: path.join(PROJECT_DIR, ".arta"),
     from: PLUGIN_ROOT,
     note: `Viewer relaunched from the installed plugin — now matching the installed version. Reload ${`http://localhost:${p}`} in a moment (hard-refresh if your browser cached the old assets). Logs: ${r.logFile}`
   });
