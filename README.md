@@ -26,7 +26,7 @@ landing site for a "unified runtime for AI agents." The dark app chrome is the s
 the prototype lives inside the device frame. The same `.harness/` canvas drives all five
 tabs.
 
-[![Harness Studio — the Helix prototype in a device frame](docs/demo_01.png)](docs/demo_01.png)
+[![Harness Studio — the Helix prototype in a device frame](docs/demo_01_B1.png)](docs/demo_01_B1.png)
 
 *Prototype + Spec — the clickable Helix design rendered in a real device frame, with the
 screen list and frame switcher on the left and the spec rail on the right.*
