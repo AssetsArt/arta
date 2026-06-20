@@ -370,7 +370,10 @@ Use them; do not hand-roll what they give you, and **never use emoji as icons.**
   with classes — `<i data-lucide="shopping-cart" class="w-5 h-5 text-sky-500"></i>`
   (the SVG inherits `currentColor`). Names are the kebab-case lucide names from
   lucide.dev/icons. The runtime calls `lucide.createIcons()` on every render, so new
-  icons appear automatically. **Emoji are not icons — use lucide.**
+  icons appear automatically. An **unknown name renders nothing** (a blank gap — e.g.
+  `chevron-up-down` doesn't exist; it's `chevrons-up-down`); the error feed flags any
+  name it couldn't find, so check `harness_get_view` (or the screenshot) and fix it.
+  **Emoji are not icons — use lucide.**
 - Both load from a CDN, so the prototype needs network; offline, classes go
   unstyled and icons stay blank.
 

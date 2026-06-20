@@ -39,8 +39,25 @@ const RUNTIME = `
   function up(msg){ parent.postMessage(Object.assign({ source:'harness-frame' }, msg), '*'); }
   function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
   // Render any <i data-lucide="name"> placeholders into SVGs (lucide loads from
-  // the CDN injected in <head>). Idempotent — safe to call repeatedly.
-  function icons(){ try { if(window.lucide && window.lucide.createIcons) window.lucide.createIcons(); } catch(_){} }
+  // the CDN injected in <head>). Idempotent — safe to call repeatedly. After it
+  // runs, any <i data-lucide> still in the DOM had an UNKNOWN icon name (a typo /
+  // hallucinated name like "chevron-up-down" vs "chevrons-up-down") and renders
+  // BLANK. lucide only console.warns that, which is easy to miss — so surface each
+  // bad name once as an error, so harness_get_view shows it and the agent can fix it.
+  var _iconWarned = {};
+  function icons(){
+    var ready = !!(window.lucide && window.lucide.createIcons);
+    if(ready){ try { window.lucide.createIcons(); } catch(_){} }
+    if(!ready) return; // lucide not loaded yet — this re-runs on 'load'
+    try {
+      var names = [];
+      document.querySelectorAll('i[data-lucide]').forEach(function(el){
+        var n = el.getAttribute('data-lucide');
+        if(n && !_iconWarned[n]){ _iconWarned[n] = 1; names.push(n); }
+      });
+      if(names.length) up({ type:'error', message: 'lucide icon name(s) not found, rendering blank: ' + names.join(', ') + ' — check exact names at lucide.dev/icons' });
+    } catch(_){}
+  }
   window.addEventListener('load', icons);
   window.addEventListener('error', function(e){ up({ type:'error', message: e.message + (e.filename ? (' @ ' + e.filename + ':' + e.lineno) : '') }); });
   window.addEventListener('unhandledrejection', function(e){ up({ type:'error', message: 'unhandled rejection: ' + ((e.reason && e.reason.message) || e.reason) }); });
