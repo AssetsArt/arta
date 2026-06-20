@@ -24279,6 +24279,13 @@ function envDir(name) {
   return p && fs.existsSync(p) ? p : null;
 }
 var ARTA_DIR = envPath("ARTA_DIR") || path.join(envDir("CLAUDE_PROJECT_DIR") || process.cwd(), ".arta");
+try {
+  const legacyDir = path.join(path.dirname(ARTA_DIR), ".harness");
+  if (!fs.existsSync(ARTA_DIR) && fs.existsSync(legacyDir)) {
+    fs.renameSync(legacyDir, ARTA_DIR);
+    console.error("[arta] migrated legacy .harness/ → .arta/");
+  }
+} catch {}
 var STATE_FILE = path.join(ARTA_DIR, "state.json");
 var RUNTIME_FILE = path.join(ARTA_DIR, "runtime.json");
 var FEEDBACK_FILE = path.join(ARTA_DIR, "feedback.json");

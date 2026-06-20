@@ -49,6 +49,22 @@ function envDir(name) {
 //   ARTA_DIR (explicit) → CLAUDE_PROJECT_DIR/.arta (plugin) → cwd/.arta
 const ARTA_DIR =
   envPath("ARTA_DIR") || path.join(envDir("CLAUDE_PROJECT_DIR") || process.cwd(), ".arta");
+
+// One-time migration for projects created before the Arta rename: the canvas used
+// to live in .harness/. If there's no .arta/ yet but a legacy .harness/ sits next to
+// it, rename it so the existing design carries over with zero manual steps. Runs once
+// (skips when .arta/ already exists), non-destructive, and logs to STDERR — stdout is
+// the MCP protocol channel and must stay clean.
+try {
+  const legacyDir = path.join(path.dirname(ARTA_DIR), ".harness");
+  if (!fs.existsSync(ARTA_DIR) && fs.existsSync(legacyDir)) {
+    fs.renameSync(legacyDir, ARTA_DIR);
+    console.error("[arta] migrated legacy .harness/ → .arta/");
+  }
+} catch {
+  /* non-fatal: fall back to a fresh .arta/ */
+}
+
 const STATE_FILE = path.join(ARTA_DIR, "state.json");
 const RUNTIME_FILE = path.join(ARTA_DIR, "runtime.json");
 const FEEDBACK_FILE = path.join(ARTA_DIR, "feedback.json");

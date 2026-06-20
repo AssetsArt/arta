@@ -22,6 +22,20 @@ const projectDir = path.resolve(opt("--project", process.cwd()));
 const port = Number(opt("--port", "7317"));
 const artaDir = path.join(projectDir, ".arta");
 
+// One-time migration for projects created before the Arta rename: the canvas used to
+// live in .harness/. If there's no .arta/ yet but a legacy .harness/ exists, rename it
+// so the existing design carries over with no manual step (non-destructive — skipped
+// when .arta/ already exists).
+const legacyDir = path.join(projectDir, ".harness");
+if (!fs.existsSync(artaDir) && fs.existsSync(legacyDir)) {
+  try {
+    fs.renameSync(legacyDir, artaDir);
+    console.log(`[arta] migrated legacy .harness/ → .arta/ in ${projectDir}`);
+  } catch (e) {
+    console.error(`[arta] could not migrate .harness/ (${(e && e.message) || e}); seeding a fresh .arta/`);
+  }
+}
+
 // Seed a minimal canvas so the viewer has something to render on first run.
 if (!fs.existsSync(path.join(artaDir, "state.json"))) {
   fs.mkdirSync(path.join(artaDir, "prototype", "screens"), { recursive: true });
