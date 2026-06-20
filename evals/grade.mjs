@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// Deterministic grader for the harness-studio eval. Given a built .harness/ dir and
+// Deterministic grader for the arta eval. Given a built .harness/ dir and
 // a brief id, it assembles the prototype EXACTLY like the viewer (vite/harness-watch
 // assembleState), then scores five verifiable assertions:
 //

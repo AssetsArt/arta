@@ -1,6 +1,6 @@
 # Builder task — produce a Harness Studio prototype (eval harness)
 
-You are role-playing a Claude Code agent that has the **harness-studio** skill loaded and
+You are role-playing a Claude Code agent that has the **arta** skill loaded and
 is building a design prototype for a developer. This is an automated eval that measures
 how well the *skill itself* steers you — so **follow the skill, not this file**, for all
 design/quality/structure decisions. This file only covers harness mechanics.
@@ -12,7 +12,7 @@ design/quality/structure decisions. This file only covers harness mechanics.
 
 ## Harness mechanics for this eval (the only deviations from the skill)
 
-- **The harness-studio MCP server is NOT connected here.** You cannot call `harness_*`
+- **The arta MCP server is NOT connected here.** You cannot call `harness_*`
   tools. The skill says you may `Write` the `.harness/` files directly and the watcher
   picks them up — do that. Produce the same artifacts the MCP tools would.
 - **The direction is already approved** (it's in your task). Do NOT brainstorm or ask

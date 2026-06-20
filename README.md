@@ -51,11 +51,11 @@ Install the **plugin** once — it brings the skill, the MCP, **and** the viewer
 **1. Install the plugin (like any skill):**
 
 ```text
-/plugin marketplace add AssetsArt/harness-studio
-/plugin install harness-studio@harness-studio
+/plugin marketplace add AssetsArt/arta
+/plugin install arta@arta
 ```
 
-The `harness-studio` skill and its MCP tools are now available in any project, and
+The `arta` skill and its MCP tools are now available in any project, and
 the MCP reads/writes that project's `.harness/` folder.
 
 **2. The viewer starts itself.** You don't run anything — when you `/hns`, the skill
@@ -68,7 +68,7 @@ edits the canvas. **To update later, just `/hns update`** — that updates the v
 too, since it ships in the plugin.
 
 > Want to run the viewer without the plugin (a quick look)? `cd ~/my-app && bunx
-> github:AssetsArt/harness-studio`. Note `bunx` caches `github:` specs, so re-running
+> github:AssetsArt/arta`. Note `bunx` caches `github:` specs, so re-running
 > it can serve an old build — `bun pm cache rm` first to force the latest. Flags:
 > `--project <dir>`, `--port <n>`. Contributors: `git clone` + `bun install` +
 > `bun link` gives a global `harness` command.
@@ -95,8 +95,8 @@ Everything you can type, in one place.
 
 | Command | What it does |
 |---|---|
-| `/plugin marketplace add AssetsArt/harness-studio` | Add the marketplace (one time) |
-| `/plugin install harness-studio@harness-studio` | Install the plugin — skill + MCP + viewer |
+| `/plugin marketplace add AssetsArt/arta` | Add the marketplace (one time) |
+| `/plugin install arta@arta` | Install the plugin — skill + MCP + viewer |
 | `/hns <what to build>` | Brainstorm the idea, then design it in the harness |
 | `/hns update` | Update the plugin to the latest **and re-run the viewer** on the new build |
 | `/hns restart` | Re-run the viewer from the installed plugin (pick up a new build, no manual cache-clearing) |
@@ -104,8 +104,8 @@ Everything you can type, in one place.
 | `/hns review [screen]` | Design-quality pass — run impeccable's anti-slop detectors on the prototype and fix what they flag (`harness_design_review`) |
 | *"design this in the harness"* | Natural-language trigger — same as `/hns` |
 
-`/hns update` wraps `/plugin marketplace update harness-studio` then
-`/plugin update harness-studio@harness-studio` (or use `/plugin` → Manage → Update),
+`/hns update` wraps `/plugin marketplace update arta` then
+`/plugin update arta@arta` (or use `/plugin` → Manage → Update),
 then restarts the viewer via `harness_restart_viewer` so the new build shows up — after
 you **restart Claude Code** so the updated skill/commands/MCP load. Normally you never
 start the viewer yourself — `/hns` does it via the `harness_start_viewer` tool, and
@@ -115,10 +115,10 @@ start the viewer yourself — `/hns` does it via the `harness_start_viewer` tool
 
 | Command | What it does |
 |---|---|
-| `bunx github:AssetsArt/harness-studio` | Run the viewer in the current project (`:7317`) |
+| `bunx github:AssetsArt/arta` | Run the viewer in the current project (`:7317`) |
 | `bun pm cache rm` | Force `bunx` to re-fetch the latest (it caches `github:` specs) |
-| `bunx github:AssetsArt/harness-studio --project <dir>` | Point the viewer at another project |
-| `bunx github:AssetsArt/harness-studio --port <n>` | Use a different port (default `7317`) |
+| `bunx github:AssetsArt/arta --project <dir>` | Point the viewer at another project |
+| `bunx github:AssetsArt/arta --port <n>` | Use a different port (default `7317`) |
 
 **Develop / contribute** — in a clone of this repo:
 
@@ -172,7 +172,7 @@ screen to render it standalone.
 ### Brand-grade design systems
 
 The skill ships a library of opinionated, ready-to-adapt design languages
-(`skills/harness-studio/design-systems.md`) — **Ink** (editorial), **Graphite**
+(`skills/arta/design-systems.md`) — **Ink** (editorial), **Graphite**
 (technical dark), **Clay** (warm commerce), **Mist** (calm SaaS), **Signal** (bold
 display). The AI picks one for the brief, swaps in the project's accent, and sets it as
 the prototype's foundation (`harness_set_design_tokens` + `designSystem`) before
@@ -233,7 +233,7 @@ on the current project's `.harness/`:
 - `harness_get_view` — your active tab, prototype screen, store, and any prototype errors
 - `harness_get_feedback` — notes you left, including the element you clicked to comment on
 
-The skill (`skills/harness-studio/`) tells the agent how to run the prototype-based
+The skill (`skills/arta/`) tells the agent how to run the prototype-based
 loop. The agent can also just `Write` files under `.harness/` — the watcher catches
 them either way; the MCP tools add validation, manifest upkeep, screenshots, and the
 feedback channel.
@@ -267,13 +267,13 @@ Actions → Workflow permissions → Read and write*.)
 ```
 .claude-plugin/
   plugin.json                 # plugin manifest (install target)
-  marketplace.json            # listing → /plugin marketplace add AssetsArt/harness-studio
-skills/harness-studio/        # the design-loop skill
+  marketplace.json            # listing → /plugin marketplace add AssetsArt/arta
+skills/arta/        # the design-loop skill
 commands/hns.md               # the /hns command (design · update)
 .mcp.json                     # MCP config (points at the bundle via ${CLAUDE_PLUGIN_ROOT})
 mcp/server.mjs                # MCP server source — the agent's eyes & hands
 mcp/server.bundle.mjs         # self-contained bundle the plugin ships (no dep install)
-bin/harness.mjs               # viewer launcher — `harness` in any project
+bin/arta.mjs               # viewer launcher — `harness` in any project
 vite/harness-watch.ts         # Vite plugin: assembles split files, watch → WebSocket push, endpoints
 scripts/validate-plugin.mjs   # plugin-layout check (CI gate + local)
 .github/workflows/pack.yml    # build · validate · re-bundle on push

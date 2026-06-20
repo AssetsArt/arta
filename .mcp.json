@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "harness-studio": {
+    "arta": {
       "command": "node",
       "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/server.bundle.mjs"],
       "env": {

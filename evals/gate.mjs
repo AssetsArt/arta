@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// Regression gate for the harness-studio eval. ONE deterministic command:
+// Regression gate for the arta eval. ONE deterministic command:
 // grades the COMMITTED artifacts (the shipping .harness/ demo + a deliberately-bad
 // fixture) against evals/thresholds.json and exits non-zero on any regression.
 // No LLM, no network — safe to run in CI on every push that touches the skill/MCP.

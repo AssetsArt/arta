@@ -53,7 +53,7 @@ const STATE_FILE = path.join(HARNESS_DIR, "state.json");
 const RUNTIME_FILE = path.join(HARNESS_DIR, "runtime.json");
 const FEEDBACK_FILE = path.join(HARNESS_DIR, "feedback.json");
 
-// The viewer launcher (bin/harness.mjs) ships inside the plugin alongside this
+// The viewer launcher (bin/arta.mjs) ships inside the plugin alongside this
 // server. This file sits at <plugin-root>/mcp/server[.bundle].mjs, so dirname/..
 // is the plugin root — a RELIABLE, self-derived path that's correct even when the
 // launcher left ${CLAUDE_PLUGIN_ROOT} unexpanded in env (the bug that forced the
@@ -192,7 +192,7 @@ function spawnViewer(p) {
 }
 
 const server = new McpServer({
-  name: "harness-studio",
+  name: "arta",
   version: "0.1.0",
 });
 
@@ -894,7 +894,7 @@ server.registerTool(
     const r = spawnViewer(p);
     if (!r.ok)
       return err(
-        `Launcher not found at ${r.launcher}. The plugin may be installed incompletely; the dev can also run \`bunx github:AssetsArt/harness-studio\` manually.`
+        `Launcher not found at ${r.launcher}. The plugin may be installed incompletely; the dev can also run \`bunx github:AssetsArt/arta\` manually.`
       );
     return text({
       ok: true,
@@ -921,7 +921,7 @@ server.registerTool(
     const launcher = path.join(PLUGIN_ROOT, "bin", "harness.mjs");
     if (!fs.existsSync(launcher))
       return err(
-        `Launcher not found at ${launcher}. The plugin may be installed incompletely; the dev can also run \`bunx github:AssetsArt/harness-studio\` manually.`
+        `Launcher not found at ${launcher}. The plugin may be installed incompletely; the dev can also run \`bunx github:AssetsArt/arta\` manually.`
       );
     const wasRunning = await portInUse(p);
     const killed = wasRunning ? killPort(p) : [];

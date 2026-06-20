@@ -55,7 +55,7 @@ if (mkt) {
 }
 
 // skill
-const skillRel = "skills/harness-studio/SKILL.md";
+const skillRel = "skills/arta/SKILL.md";
 if (exists(skillRel, 200)) {
   const md = fs.readFileSync(path.join(root, skillRel), "utf8");
   if (!md.startsWith("---")) errors.push(`${skillRel}: missing YAML frontmatter`);
@@ -66,8 +66,8 @@ if (exists(skillRel, 200)) {
 // mcp config + bundle
 const mcp = readJson(".mcp.json");
 if (mcp) {
-  const srv = mcp.mcpServers && mcp.mcpServers["harness-studio"];
-  if (!srv) errors.push('.mcp.json: missing mcpServers["harness-studio"]');
+  const srv = mcp.mcpServers && mcp.mcpServers["arta"];
+  if (!srv) errors.push('.mcp.json: missing mcpServers["arta"]');
   else {
     const argStr = (srv.args || []).join(" ");
     if (!/server\.bundle\.mjs/.test(argStr)) errors.push(".mcp.json: should point at mcp/server.bundle.mjs");

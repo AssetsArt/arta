@@ -1,5 +1,5 @@
 ---
-name: harness-studio
+name: arta
 description: Use during the DESIGN phase of building a new app/feature, instead of dumping a wall of text. ALWAYS brainstorm the idea into an agreed direction first (questions one at a time, like superpowers:brainstorming) — never jump straight to a spec or prototype. Then drive Claude Code to build a shared, live design canvas (.harness/state.json) that the dev watches in the Harness Studio viewer — spec, prototype, data model, flow, plan — iterating from the dev's clicks and feedback. Trigger when the user wants to "design", "wireframe", "prototype", "sketch the data model/flow", "plan a feature visually", or says "open the harness / let's design this in the studio".
 ---
 
@@ -21,7 +21,7 @@ at and read their feedback through the MCP server. Design is one tight loop.
 
 Never describe a screen in prose when you could render it. Show, ask, adjust.
 
-## Tools (MCP server: harness-studio)
+## Tools (MCP server: arta)
 
 - `harness_start_viewer` — **call this once at the very start of a session** to open
   the viewer for the dev. It launches the viewer that ships **inside the installed

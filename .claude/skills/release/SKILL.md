@@ -22,7 +22,7 @@ end and verifies it, so a release can't silently fail to reach anyone.
   commit. The `[skip ci]` stops it from looping.
 - Because of that commit, **origin ends up one commit ahead of your local** after every
   release. Always `git pull --rebase` before pushing again.
-- The shipped pieces are: the skill (`skills/harness-studio/`), commands (`commands/`),
+- The shipped pieces are: the skill (`skills/arta/`), commands (`commands/`),
   the MCP bundle (`mcp/server.bundle.mjs`), `.mcp.json`, and the manifests
   (`.claude-plugin/`). The viewer source ships too (it runs from the installed plugin).
 
@@ -30,7 +30,7 @@ end and verifies it, so a release can't silently fail to reach anyone.
 
 Create a TodoWrite item per step and do them in order. Stop and report if any step fails.
 
-1. **Confirm repo & branch.** Must be the harness-studio repo on `main`
+1. **Confirm repo & branch.** Must be the arta repo on `main`
    (`git rev-parse --abbrev-ref HEAD`). If you're not on `main`, stop and ask — don't
    release from a feature branch.
 2. **Preflight — every check must pass before anything is pushed:**
@@ -63,12 +63,12 @@ Create a TodoWrite item per step and do them in order. Stop and report if any st
 9. **Report the release.** Tell the maintainer the new version and the exact steps a user
    takes to get it:
    ```text
-   /plugin marketplace update harness-studio
-   /plugin update harness-studio@harness-studio
+   /plugin marketplace update arta
+   /plugin update arta@arta
    ```
    then **restart Claude Code** — the skill, commands, and MCP server load at session
    start, so an in-session update keeps serving the old ones. Stubborn-cache fallback:
-   `rm -rf ~/.claude/plugins/cache/harness-studio` → `/plugin install harness-studio@harness-studio`
+   `rm -rf ~/.claude/plugins/cache/arta` → `/plugin install arta@arta`
    → restart.
 
 ## Rules

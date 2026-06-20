@@ -1,5 +1,5 @@
 {
-  "$schema": "Design-brief eval set for the harness-studio skill. Each brief is built by a builder agent following the skill, then graded deterministically by evals/grade.mjs. 'approvedDirection' lets the build-quality arm skip the interactive brainstorm (brainstorm-first is graded separately, cold-open). split: train = diagnose+fix on these; heldout = stop-condition only, never fit to them.",
+  "$schema": "Design-brief eval set for the arta skill. Each brief is built by a builder agent following the skill, then graded deterministically by evals/grade.mjs. 'approvedDirection' lets the build-quality arm skip the interactive brainstorm (brainstorm-first is graded separately, cold-open). split: train = diagnose+fix on these; heldout = stop-condition only, never fit to them.",
   "serious_antipatterns": [
     "gradient-text", "side-tab", "border-accent-on-rounded", "gpt-thin-border-wide-shadow",
     "repeating-stripes-gradient", "repeated-section-kickers",

@@ -3,7 +3,7 @@
 // Run from any project: starts the viewer (Vite) pointed at THAT project's
 // .harness/ folder, seeding a starter canvas if there isn't one.
 //
-//   bunx github:AssetsArt/harness-studio          # zero-install, from anywhere
+//   bunx github:AssetsArt/arta          # zero-install, from anywhere
 //   harness                                        # if linked globally
 //   harness --project ../other-app --port 5000
 import fs from "node:fs";

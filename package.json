@@ -1,13 +1,12 @@
 {
-  "name": "harness-studio",
+  "name": "arta",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "description": "A live design canvas the AI writes into and the dev watches — driven by a single .harness/ folder.",
   "bin": {
-    "harness-studio": "bin/harness.mjs",
-    "harness": "bin/harness.mjs",
-    "harness-mcp": "mcp/server.mjs"
+    "arta": "bin/arta.mjs",
+    "arta-mcp": "mcp/server.mjs"
   },
   "scripts": {
     "dev": "vite",

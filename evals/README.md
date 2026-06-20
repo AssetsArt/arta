@@ -1,6 +1,6 @@
 # Eval harness — measuring (and not regressing) the design skill
 
-This folder is how we keep the **harness-studio** skill/MCP producing good prototypes
+This folder is how we keep the **arta** skill/MCP producing good prototypes
 on purpose, not by vibes. It is a measured loop with a deterministic grader, plus a
 **regression gate** that can run in CI so a skill/MCP change can't silently make the
 output worse.

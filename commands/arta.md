@@ -13,8 +13,8 @@ Update Harness Studio to the latest version, then re-run the viewer so the new b
 actually shows up:
 
 1. Refresh the marketplace and update the plugin:
-   - `/plugin marketplace update harness-studio`
-   - then `/plugin update harness-studio@harness-studio` (or open `/plugin` → Manage → Update).
+   - `/plugin marketplace update arta`
+   - then `/plugin update arta@arta` (or open `/plugin` → Manage → Update).
 2. **The viewer ships inside the plugin, so this updates it too** — nothing separate to
    pull. (Only contributors running a local *clone* need `git pull && bun install`.)
 3. **Restart Claude Code** so the updated skill, commands, and MCP server load — an
@@ -39,7 +39,7 @@ viewer got into a bad state:
    installed plugin.
 2. Tell the user the URL it returns and to **hard-refresh** the tab (the browser may have
    cached the old assets). If the tool reports the launcher is missing, fall back to
-   `bunx github:AssetsArt/harness-studio`.
+   `bunx github:AssetsArt/arta`.
 
 ## If the argument is `feedback` (or begins with "feedback")
 
@@ -83,7 +83,7 @@ Run a design-quality pass on the prototype — catch AI-slop before the dev does
 
 ## Otherwise — design "$ARGUMENTS" in the harness
 
-**Use the `harness-studio` skill** and follow its flow. Brainstorm before you build.
+**Use the `arta` skill** and follow its flow. Brainstorm before you build.
 
 1. **Brainstorm first — don't build yet.** Ground yourself (`harness_get_state` /
    `harness_get_view`, skim the project), then ask the dev questions **one at a
@@ -98,7 +98,7 @@ Run a design-quality pass on the prototype — catch AI-slop before the dev does
    `bunx` cache) on http://localhost:7317, watching this project's `./.harness/`.
    It's idempotent (safe to call every run); tell the user the URL it returns. First
    run installs the viewer's deps, so it may take a few seconds to come up. (If the
-   tool isn't available, fall back: have them run `bunx github:AssetsArt/harness-studio`
+   tool isn't available, fall back: have them run `bunx github:AssetsArt/arta`
    in this project.)
 3. **Once the direction is approved, run the prototype-based loop:**
    Prototype + Spec → Data model → Flow → Plan. `harness_set_phase` to `prototype`,
