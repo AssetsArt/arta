@@ -1,0 +1,37 @@
+{
+  "_doc": "Regression-gate baseline for evals/gate.mjs. These are the COMMITTED, deterministic targets — graded with no LLM, so they can run in CI on every push that touches the skill/MCP. Thresholds were set from the measured baseline on 2026-06-20 (the live .harness/ demo graded 6/6 after the #eef2f0 tokenization fix; the bad fixture graded 1/6). A5 (impeccable detect) is enforced only when the detector is available (local); on a CI runner without ~/.claude/skills/impeccable it is reported as skipped, never a failure — so A1-A4 are the deterministic CI floor. The builder-loop briefs (train/heldout) are graded separately via `bun evals/gate.mjs --suite <built-dir>`; they need an LLM to build, so they are NOT part of the per-push CI gate.",
+  "version": 1,
+  "baselineDate": "2026-06-20",
+  "targets": [
+    {
+      "id": "demo",
+      "kind": "ship",
+      "brief": "demo",
+      "dir": ".harness",
+      "note": "The seeded Helix demo users receive on install — the real shipping artifact. Must stay a clean pass.",
+      "require": {
+        "A1a_tokens_defined": true,
+        "A1b_tokens_used": true,
+        "A2_shared": true,
+        "A3_interactivity": true,
+        "A4_render": true,
+        "A5_design": true
+      }
+    },
+    {
+      "id": "bad-fixture",
+      "kind": "guard",
+      "brief": "checkout",
+      "dir": "evals/fixtures/bad",
+      "note": "Deliberately bad. Guards the grader against silently going permissive — if a change makes grade.mjs pass everything, this target turns red.",
+      "maxScore": 0.5,
+      "mustFail": ["A1a_tokens_defined", "A2_shared", "A5_design"]
+    }
+  ],
+  "suite": {
+    "_doc": "For --suite runs (the LLM builder-loop arm). Aggregate floor across all built briefs and the parity floor: the WORST single design-language must not drop below worstFloor. Set from the eval baseline; raise as the loop improves.",
+    "meanFloor": 0.83,
+    "worstFloor": 0.66,
+    "heldoutMeanFloor": 0.83
+  }
+}

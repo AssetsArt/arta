@@ -1,0 +1,15 @@
+{
+  "meta": { "name": "Slopburger", "phase": "prototype" },
+  "_fixture": "DELIBERATELY BAD. The gate asserts this STAYS failing — it guards the grader against silently going permissive (a 'fix' that makes grade.mjs pass everything turns this red). Do not 'improve' it. Expected fails: A1a (only 2 colors), A1b (raw hex everywhere), A2 (no layout/components + near-identical bodies), A4 (2 < 3 screens), A5 (gradient text — when the detector is available).",
+  "prototype": {
+    "start": "one",
+    "frame": "web",
+    "store": {},
+    "tokens": { "colors": [ { "name": "blue", "value": "#3b82f6" }, { "name": "gray", "value": "#888888" } ] },
+    "designSystem": "",
+    "screens": [
+      { "id": "one", "title": "Step one", "html": "<section style=\"background:#ffffff;color:#111111;padding:40px\"><h1 style=\"font-size:18px;background:linear-gradient(90deg,#ff0000,#0000ff);-webkit-background-clip:text;background-clip:text;color:transparent\">Checkout</h1><p style=\"color:#aaaaaa\">Review the box of coffee beans and confirm the order before you continue to the next page.</p><a data-to=\"two\" style=\"color:#3b82f6\">Next</a></section>" },
+      { "id": "two", "title": "Step two", "html": "<section style=\"background:#ffffff;color:#111111;padding:40px\"><h1 style=\"font-size:18px;background:linear-gradient(90deg,#ff0000,#0000ff);-webkit-background-clip:text;background-clip:text;color:transparent\">Checkout</h1><p style=\"color:#aaaaaa\">Review the box of coffee beans and confirm the order before you continue to the next page.</p><a data-to=\"one\" style=\"color:#3b82f6\">Back</a></section>" }
+    ]
+  }
+}

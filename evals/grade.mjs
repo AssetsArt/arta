@@ -26,6 +26,13 @@ const DETECT =
   path.join(os.homedir(), ".claude/skills/impeccable/scripts/detect.mjs");
 
 const sanitize = (s) => String(s).replace(/[^a-z0-9_-]/gi, "");
+// Brand / social icon names lucide's UMD core DROPPED — they render BLANK (an empty gap,
+// the classic footer "social strip" tell). data-lucide on any of these = a render defect a
+// raw HTML check can catch without a browser. Keep in sync with the SKILL.md icon note.
+const BLANK_ICONS = new Set([
+  "github", "twitter", "x-twitter", "linkedin", "slack", "facebook", "instagram",
+  "youtube", "discord", "dribbble", "gitlab", "figma", "twitch", "tiktok", "whatsapp",
+]);
 const readRaw = (f) => { try { return fs.readFileSync(f, "utf8"); } catch { return null; } };
 const listHtml = (d) => { try { return fs.readdirSync(d).filter((f) => f.endsWith(".html")); } catch { return []; } };
 
@@ -91,7 +98,7 @@ function attrValues(html, attr) {
   return out;
 }
 
-function grade(briefId, dir) {
+export function grade(briefId, dir) {
   const brief = BRIEFS.briefs.find((b) => b.id === briefId);
   if (!brief) throw new Error(`unknown brief ${briefId}`);
   const state = assemble(dir);
@@ -201,7 +208,10 @@ function grade(briefId, dir) {
       if (Math.abs(open - close) > 1) renderIssues.push({ id: s.id, issue: `tag imbalance <${tag}>`, open, close });
     }
   }
-  metrics.render = { screens: screens.length, minScreens: brief.minScreens, issues: renderIssues };
+  // blank-prone icons: data-lucide names lucide's core dropped → they paint nothing.
+  const blankIcons = [...new Set(attrValues(allResolved, "data-lucide").filter((n) => BLANK_ICONS.has(n)))];
+  for (const n of blankIcons) renderIssues.push({ issue: "blank icon (not in lucide set)", name: n });
+  metrics.render = { screens: screens.length, minScreens: brief.minScreens, blankIcons, issues: renderIssues };
   const A4 = renderIssues.length === 0 && screens.length >= (brief.minScreens || 1);
 
   // ── A5 design-review (impeccable detect) ─────────────────────────────────────
@@ -234,13 +244,16 @@ function grade(briefId, dir) {
 }
 
 // ── CLI ────────────────────────────────────────────────────────────────────────
-const args = process.argv.slice(2);
-const get = (f) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };
-const briefId = get("--brief");
-const dir = get("--dir");
-if (!briefId || !dir) {
-  console.error("usage: bun evals/grade.mjs --brief <id> --dir <.harness dir>");
-  process.exit(2);
+// Only when run directly (not when imported by gate.mjs / a runner).
+if (import.meta.main) {
+  const args = process.argv.slice(2);
+  const get = (f) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };
+  const briefId = get("--brief");
+  const dir = get("--dir");
+  if (!briefId || !dir) {
+    console.error("usage: bun evals/grade.mjs --brief <id> --dir <.harness dir>");
+    process.exit(2);
+  }
+  const result = grade(briefId, path.resolve(dir));
+  console.log(JSON.stringify(result, null, 2));
 }
-const result = grade(briefId, path.resolve(dir));
-console.log(JSON.stringify(result, null, 2));

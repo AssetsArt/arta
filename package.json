@@ -15,7 +15,8 @@
     "build:mcp": "bun build mcp/server.mjs --target=node --outfile mcp/server.bundle.mjs",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
-    "mcp": "bun mcp/server.mjs"
+    "mcp": "bun mcp/server.mjs",
+    "eval:gate": "bun evals/gate.mjs"
   },
   "dependencies": {
     "@dagrejs/dagre": "^3.0.0",

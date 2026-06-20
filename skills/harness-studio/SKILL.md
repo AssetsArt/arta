@@ -375,11 +375,18 @@ Use them; do not hand-roll what they give you, and **never use emoji as icons.**
   keeps it consistent across reloads), with width/height + `object-cover` so layout stays
   stable. But picsum returns a RANDOM photo — fine where any evocative image works
   (editorial thumbnails, hero textures), wrong where the subject must match: a random
-  landscape standing in for a coffee bag is its own tell. For a specific subject, use a
-  real Unsplash photo URL for that subject, or an intentional branded treatment. When a real image
-  genuinely isn't right (avatars, logos, an icon slot), make the placeholder *intentional*
-  — a branded gradient or token-tinted fill with a centered lucide glyph or monogram —
-  never a bare gray box. Avatars: initials on a tinted disc read far better than a gray circle.
+  landscape standing in for a coffee bag is its own tell. For a specific subject, prefer a
+  source you can trust to resolve — `picsum.photos/seed/<word>/W/H` always returns an image,
+  so reach for it even on heroes and feature shots when the exact subject can flex. **Do NOT
+  hand-write an Unsplash URL (`images.unsplash.com/photo-<id>`) from memory — a guessed id
+  404s, and a broken-image glyph is an even LOUDER "unfinished" tell than a gray box** (it
+  sinks the whole screen). Use an Unsplash/CDN URL only when you're certain it resolves;
+  otherwise use picsum or an intentional branded treatment, and always set width/height + a
+  token-tinted background so a failed load degrades to something deliberate, never a broken
+  glyph. When a real image genuinely isn't right (avatars, logos, an icon slot), make the
+  placeholder *intentional* — a branded gradient or token-tinted fill with a centered lucide
+  glyph or monogram — never a bare gray box. Avatars: initials on a tinted disc read far
+  better than a gray circle.
 - **Write Tailwind utility classes — NOT inline `style="…"`.** The viewer injects
   `@tailwindcss/browser@4` (compiled live), so utilities are the default way to style
   *everything*: layout, spacing, colour, typography, radius, shadow, hover/focus
@@ -400,6 +407,14 @@ Use them; do not hand-roll what they give you, and **never use emoji as icons.**
   icons appear automatically. An **unknown name renders nothing** (a blank gap — e.g.
   `chevron-up-down` doesn't exist; it's `chevrons-up-down`); the error feed flags any
   name it couldn't find, so check `harness_get_view` (or the screenshot) and fix it.
+  - **Brand / social icons are NOT in the loaded set.** `github`, `twitter`, `linkedin`,
+    `slack`, `facebook`, `instagram`, `youtube`, `discord` and the like were dropped from
+    lucide's core and render BLANK — a row of empty gaps in a footer "trusted by" / social
+    strip is a classic tell (and it hits the exact place agents reach for them). For social
+    links use a **text label**, an in-set glyph (`link`, `at-sign`, `mail`, `rss`,
+    `globe`, `message-circle`), or an inline `<svg>` brand mark — never a `data-lucide`
+    brand name. Same for "logos" rows: real wordmarks (styled text) read better than blank
+    icon slots.
   **Emoji are not icons — use lucide.**
 - Both load from a CDN, so the prototype needs network; offline, classes go
   unstyled and icons stay blank.

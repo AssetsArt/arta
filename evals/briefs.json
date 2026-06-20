@@ -103,6 +103,83 @@
       "minScreens": 3,
       "store": { "set": 0, "reps": 10 },
       "expectInteractivity": ["data-to", "data-inc", "data-dec", "data-bind"]
+    },
+    {
+      "id": "parity-ink",
+      "split": "parity",
+      "designKit": "Ink",
+      "title": "Parity — Ink (monochrome editorial)",
+      "domain": "editorial",
+      "frame": "web",
+      "prompt": "Landing site for 'The Ledger', an independent longform journalism membership.",
+      "approvedDirection": "Use the INK design language (monochrome editorial) FULLY — its fonts, colours, type scale, restraint. Two web screens sharing a masthead + footer: (1) Home — a confident hero, three value blocks, a reader-quote / social-proof row, a join CTA; (2) Membership — three tiers with a monthly/annual toggle. Real copy, real names, real numbers. Type-forward and restrained; the writing is the product.",
+      "minScreens": 2,
+      "store": { "billing": "monthly" },
+      "expectInteractivity": ["data-to", "data-set", "data-show"]
+    },
+    {
+      "id": "parity-graphite",
+      "split": "parity",
+      "designKit": "Graphite",
+      "title": "Parity — Graphite (technical dark)",
+      "domain": "saas",
+      "frame": "web",
+      "prompt": "Landing site for 'Trace', a distributed-tracing tool for backend engineers.",
+      "approvedDirection": "Use the GRAPHITE design language (technical dark, Geist × Geist Mono, one electric accent) FULLY. Two web screens sharing a top bar + footer: (1) Home — a precise hero, three capability blocks (data-dense, mono numerics), a logos/social-proof row, a CTA; (2) Pricing — three tiers with a monthly/annual toggle. Real copy and metrics. Near-black surfaces, hairline borders, compact density — never a marketing-pastel page.",
+      "minScreens": 2,
+      "store": { "billing": "monthly" },
+      "expectInteractivity": ["data-to", "data-set", "data-show"]
+    },
+    {
+      "id": "parity-clay",
+      "split": "parity",
+      "designKit": "Clay",
+      "title": "Parity — Clay (warm commerce)",
+      "domain": "commerce",
+      "frame": "web",
+      "prompt": "Landing site for 'Maison', a specialty cookware studio with a kitchen club.",
+      "approvedDirection": "Use the CLAY design language (warm commerce, Instrument Serif × Geist, terracotta accent that carries the warmth — surface is a clean near-white, NOT cream) FULLY. Two web screens sharing a header + footer: (1) Home — a tactile hero with a real product image, three product/value blocks, a customer-quote row, a shop CTA; (2) Membership — three club tiers with a monthly/annual toggle. Real product names, real prices. Friendly-premium, warm via the accent not a beige background.",
+      "minScreens": 2,
+      "store": { "billing": "monthly" },
+      "expectInteractivity": ["data-to", "data-set", "data-show"]
+    },
+    {
+      "id": "parity-mist",
+      "split": "parity",
+      "designKit": "Mist",
+      "title": "Parity — Mist (calm SaaS)",
+      "domain": "saas",
+      "frame": "web",
+      "prompt": "Landing site for 'Cadence', a calm team planning and standup tool.",
+      "approvedDirection": "Use the MIST design language (calm SaaS, Geist one-family many-weights, single teal accent, airy whitespace, soft shadows) FULLY. Two web screens sharing a header + footer: (1) Home — a reassuring hero, three feature blocks, a social-proof row, a start-free CTA; (2) Pricing — three tiers with a monthly/annual toggle. Real copy, real numbers. Soft, airy, reassuring — high-contrast ink on white, never washed-out grey text.",
+      "minScreens": 2,
+      "store": { "billing": "monthly" },
+      "expectInteractivity": ["data-to", "data-set", "data-show"]
+    },
+    {
+      "id": "parity-signal",
+      "split": "parity",
+      "designKit": "Signal",
+      "title": "Parity — Signal (bold display)",
+      "domain": "marketing",
+      "frame": "web",
+      "prompt": "Landing site for 'Vault', a launch campaign for an encrypted file-drop app.",
+      "approvedDirection": "Use the SIGNAL design language (bold display, Space Grotesk × Geist, one acid accent on a near-black or drenched brand surface, oversized type, flat colour blocks, sharp corners) FULLY. Two web screens sharing a header + footer: (1) Home — a loud oversized hero, three punchy value blocks, a social-proof row, a get-access CTA; (2) Pricing — three tiers with a monthly/annual toggle. Real copy. High-contrast and confident; flatness is the point — no gradients or soft shadows.",
+      "minScreens": 2,
+      "store": { "billing": "monthly" },
+      "expectInteractivity": ["data-to", "data-set", "data-show"]
+    },
+    {
+      "id": "demo",
+      "split": "ship",
+      "title": "Helix — the .harness/ demo that ships in the repo",
+      "domain": "saas",
+      "frame": "web",
+      "prompt": "The seeded .harness/ demo users receive on install: Helix, a terminal-native landing site for a 'unified runtime for AI agents'.",
+      "approvedDirection": "The committed .harness/ demo (skills handoff showcase): home/platform/pricing/customers, terminal-native, run/trace/policy command tabs.",
+      "minScreens": 4,
+      "store": { "billing": "monthly", "view": "run" },
+      "expectInteractivity": ["data-to", "data-set", "data-show"]
     }
   ]
 }
