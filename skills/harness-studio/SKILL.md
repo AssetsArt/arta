@@ -353,6 +353,17 @@ Use them; do not hand-roll what they give you, and **never use emoji as icons.**
   radius / shadow / motion consistent across screens. Use **real content** (real copy,
   real names, real prices) — never lorem ipsum or "Card title". Generous whitespace and
   one confident accent beat many timid ones.
+- **Commit — timidity is the #1 reason solid structure still reads "AI-generic".** Two
+  places agents play it too safe, and both flatten a design into "competent but generic":
+  - *Colour:* the accent has to actually show up — on the primary action **and** the
+    active/selected state **and** a key highlight (3+ places), not one lonely button. Tint
+    the neutrals toward the brand hue (a warm off-white, a cool slate); flat grays and
+    pure `#fff`/`#000` read as an unstyled browser default. "Restrained" means *few* colours
+    used confidently, not *no* colour — a kit's accent ≤10% still has to be visibly present.
+  - *Type scale:* make the jump obvious — the display/hero size ≥ ~2× the body and heavy;
+    labels small, uppercase, muted, slightly spaced. When H1, card titles, metric values and
+    body all collapse into one narrow size band, hierarchy dies and it looks templated. Pick
+    a real scale and use its extremes (e.g. a 48px+ hero number over a 11px muted label).
 - **Real images, not empty gray boxes.** A flat gray placeholder rectangle where a photo
   or product shot belongs is one of the loudest "an AI made this" tells — it makes every
   other decision read as unfinished. Screens have network, so use REAL imagery: an
