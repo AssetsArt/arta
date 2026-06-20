@@ -353,6 +353,18 @@ Use them; do not hand-roll what they give you, and **never use emoji as icons.**
   radius / shadow / motion consistent across screens. Use **real content** (real copy,
   real names, real prices) — never lorem ipsum or "Card title". Generous whitespace and
   one confident accent beat many timid ones.
+- **Real images, not empty gray boxes.** A flat gray placeholder rectangle where a photo
+  or product shot belongs is one of the loudest "an AI made this" tells — it makes every
+  other decision read as unfinished. Screens have network, so use REAL imagery: an
+  `<img>` from a stable source like `https://picsum.photos/seed/<word>/600/400` (the seed
+  keeps it consistent across reloads), with width/height + `object-cover` so layout stays
+  stable. But picsum returns a RANDOM photo — fine where any evocative image works
+  (editorial thumbnails, hero textures), wrong where the subject must match: a random
+  landscape standing in for a coffee bag is its own tell. For a specific subject, use a
+  real Unsplash photo URL for that subject, or an intentional branded treatment. When a real image
+  genuinely isn't right (avatars, logos, an icon slot), make the placeholder *intentional*
+  — a branded gradient or token-tinted fill with a centered lucide glyph or monogram —
+  never a bare gray box. Avatars: initials on a tinted disc read far better than a gray circle.
 - **Write Tailwind utility classes — NOT inline `style="…"`.** The viewer injects
   `@tailwindcss/browser@4` (compiled live), so utilities are the default way to style
   *everything*: layout, spacing, colour, typography, radius, shadow, hover/focus
