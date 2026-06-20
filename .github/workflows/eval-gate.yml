@@ -1,0 +1,51 @@
+name: eval-gate
+
+# DRAFT — regression gate for the design skill/MCP. Awaiting maintainer review
+# before it goes live (see evals/README.md "Wiring into CI"). It grades the COMMITTED
+# artifacts (the shipping .harness/ demo + a deliberately-bad fixture) with the
+# deterministic grader and fails the run if any A1-A4 check regresses from the
+# baseline in evals/thresholds.json. No LLM, no network.
+#
+# A5 (impeccable anti-slop detect) lives at ~/.claude/skills/impeccable and is NOT on
+# the runner, so the gate reports A5 as skipped here — A1-A4 are the CI floor. A5 is
+# enforced locally (and in the builder-loop suite) where the detector exists.
+#
+# Scope: only runs when the design surface changes (skill prose, MCP server, the
+# prototype assembler the grader mirrors, or the eval harness itself) — so it doesn't
+# add latency to unrelated pushes. It runs ALONGSIDE pack.yml; to make it block a
+# release, either add it as a required status check (branch protection on main) or
+# fold the `bun evals/gate.mjs` step into pack.yml before the version bump.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "skills/**"
+      - "mcp/**"
+      - "src/lib/prototype.ts"
+      - "evals/**"
+      - ".harness/**"
+  pull_request:
+    paths:
+      - "skills/**"
+      - "mcp/**"
+      - "src/lib/prototype.ts"
+      - "evals/**"
+      - ".harness/**"
+  workflow_dispatch:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install
+        run: bun install
+
+      - name: Regression gate (grade committed artifacts vs baseline)
+        run: bun evals/gate.mjs

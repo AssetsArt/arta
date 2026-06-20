@@ -345,7 +345,15 @@ Use them; do not hand-roll what they give you, and **never use emoji as icons.**
   into every screen. Style screens from the tokens (`var(--color-brand)`,
   `bg-[var(--color-accent)]`, `rounded-[var(--radius-md)]`, the kit's `.display` class)
   plus shared `prototype.components` — one source of truth, never ad-hoc values per
-  screen.
+  screen. **No raw hex in a screen body** (no `style="color:#1a1a1a"`, no `bg-[#f5f5f5]`,
+  no `text-[#666]`): every colour is a `var(--color-*)` or a Tailwind class that maps to one.
+  Need a shade the kit doesn't have (a brighter heading ink, a tint)? **Add it to the tokens**
+  (`harness_set_design_tokens`) and reference the var — don't inline the hex. Hardcoded hex in
+  screens is the #1 reason a build "has a design system but doesn't use it." This bites hardest
+  in **data-dense apps**: the repeated **semantic palette** (status / priority / severity badge
+  colours — the same in-progress purple, done green, warning amber on every screen) belongs in
+  the tokens too (`status-done`, `severity-high`, …). Inlining the same `#hex` 10+ times across
+  screens — even a consistent one — is the classic miss; define it once as a token, reference the var.
 - **Craft, not just absence of slop** — commit to ONE color strategy (restrained /
   committed / drenched), pair fonts on a contrast axis (serif + sans, geometric +
   humanist, or one family in many weights — the 5 preloaded families: Geist, Geist Mono,
@@ -367,7 +375,10 @@ Use them; do not hand-roll what they give you, and **never use emoji as icons.**
   - *Interactive state must read:* a selected / active / current item needs an unmistakable
     change — shift the **fill** (a tint), not just a border, and use a solid control (a filled
     radio / check, not a ghost outline). On dark themes a border-only or faint-outline "selected"
-    state is nearly invisible; the dev can't tell what's chosen.
+    state is nearly invisible; the dev can't tell what's chosen. **Do NOT mark it with a thick
+    coloured `border-left` bar** — that's the banned side-stripe, and an active nav / sidebar /
+    list row is exactly where the reflex sneaks in. Tint the row's background (optionally a
+    1px full border or a subtle inset highlight via `box-shadow: inset`), never a left accent stripe.
 - **Real images, not empty gray boxes.** A flat gray placeholder rectangle where a photo
   or product shot belongs is one of the loudest "an AI made this" tells — it makes every
   other decision read as unfinished. Screens have network, so use REAL imagery: an
