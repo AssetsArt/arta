@@ -92,6 +92,24 @@ function runSpecRailSpecs() {
   return { ok: rows.every((r) => r.ok), rows };
 }
 
+// ── Render-layer spec: the device frame fills to the bottom edge ─────────────
+// A screen whose content is shorter than the device viewport must still paint to
+// the bottom — otherwise the body shows through as a dead WHITE band below the
+// content (the #1 recurring prototype defect; the AI fixes it inconsistently, so the
+// frame must enforce it). FreeformDevice's BASE_CSS guarantees it two ways: a full
+// height chain (so min-h-full/h-full roots actually fill) and a page-coloured body
+// background (so any gap is the design's bg, never raw white). Lock both in — a
+// revert silently brings the white band back. Verified live in a browser; here we
+// just guard that the enforcing rules stay present (whitespace-insensitive).
+function runFrameSpecs() {
+  const rows = [];
+  const spec = (name, ok, detail) => rows.push({ name, ok, detail });
+  const src = fs.readFileSync(path.join(ROOT, "src/components/proto/FreeformDevice.tsx"), "utf8").replace(/\s+/g, "");
+  spec("frame establishes a full height chain (html,body height:100%)", /html,body\{[^}]*height:100%/.test(src), "html,body height:100%");
+  spec("body background defaults to the page colour, not white", src.includes("background:var(--color-bg,#fff)"), "body background:var(--color-bg,#fff)");
+  return { ok: rows.every((r) => r.ok), rows };
+}
+
 // ── CI core: gate the committed targets ─────────────────────────────────────
 function runGate(json) {
   const rows = [];
@@ -101,6 +119,8 @@ function runGate(json) {
   if (!specs.ok) regressed = true;
   const railSpecs = runSpecRailSpecs();
   if (!railSpecs.ok) regressed = true;
+  const frameSpecs = runFrameSpecs();
+  if (!frameSpecs.ok) regressed = true;
 
   for (const t of TH.targets) {
     const r = grade(t.brief, path.join(ROOT, t.dir));
@@ -140,7 +160,7 @@ function runGate(json) {
   }
 
   if (json) {
-    console.log(JSON.stringify({ mode: "gate", ok: !regressed, a5Skipped: [...a5Skipped], rows, specs: specs.rows, railSpecs: railSpecs.rows }, null, 2));
+    console.log(JSON.stringify({ mode: "gate", ok: !regressed, a5Skipped: [...a5Skipped], rows, specs: specs.rows, railSpecs: railSpecs.rows, frameSpecs: frameSpecs.rows }, null, 2));
     return !regressed;
   }
 
@@ -161,6 +181,9 @@ function runGate(json) {
 
   console.log("\n  RENDER-LAYER SPECS — spec rail tolerates object-shaped data\n");
   for (const s of railSpecs.rows) console.log("  " + (s.ok ? GLYPH.pass : GLYPH.fail) + " " + pad(s.name, 44) + (s.detail ? "  " + s.detail : ""));
+
+  console.log("\n  RENDER-LAYER SPECS — device frame fills to the bottom edge (no white band)\n");
+  for (const s of frameSpecs.rows) console.log("  " + (s.ok ? GLYPH.pass : GLYPH.fail) + " " + pad(s.name, 52) + (s.detail ? "  " + s.detail : ""));
 
   console.log("\n  " + (regressed ? "GATE FAILED — a committed target or render-layer spec regressed." : "GATE PASSED — all committed targets hold the baseline.") + "\n");
   return !regressed;

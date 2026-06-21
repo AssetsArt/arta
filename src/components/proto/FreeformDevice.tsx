@@ -142,8 +142,16 @@ const RUNTIME = `
 
 const BASE_CSS = `
 *{box-sizing:border-box}
-html,body{margin:0;padding:0}
-body{font-family:'Geist','Noto Sans Thai',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;color:#18181b;background:#fff;-webkit-font-smoothing:antialiased}
+/* Fill the device frame. A screen whose content is shorter than the viewport must
+   still paint to the bottom edge — otherwise the area below it shows through as a
+   dead WHITE band (the #1 recurring prototype defect). Two guarantees, neither
+   relying on the AI remembering: html/body at full height gives min-h-full / h-full
+   roots a definite parent to actually fill, and the body background defaults to the
+   design's page colour (var(--color-bg)) — which propagates to the whole canvas — so
+   any remaining gap is the screen's own bg, never raw white. The design system's own
+   `+"`body{background:…}`"+` (loaded after this) still wins when it sets one. */
+html,body{margin:0;padding:0;height:100%}
+body{min-height:100%;font-family:'Geist','Noto Sans Thai',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;color:#18181b;background:var(--color-bg,#fff);-webkit-font-smoothing:antialiased}
 img{max-width:100%;display:block}
 a{color:inherit;text-decoration:none}
 button{font-family:inherit;cursor:pointer}
