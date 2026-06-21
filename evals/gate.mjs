@@ -130,6 +130,23 @@ function runFrameSpecs() {
   return { ok: rows.every((r) => r.ok), rows };
 }
 
+// ── Render-layer spec: the full-screenshot → PDF export ──────────────────────
+// The viewer exports every freeform screen's FULL-length screenshot as one PDF (a page per
+// screen) for the dev to save. It must reuse captureFullPng — the same helper the live loop
+// uses — with `always` (capture every screen, even ones that already fit), so the export
+// carries the same fixes (inner-scroll length, bars dropped to the true bottom). Lock the wiring.
+function runExportSpecs() {
+  const rows = [];
+  const spec = (name, ok, detail) => rows.push({ name, ok, detail });
+  const exp = fs.readFileSync(path.join(ROOT, "src/lib/exportPdf.ts"), "utf8");
+  const tab = fs.readFileSync(path.join(ROOT, "src/components/tabs/PrototypeTab.tsx"), "utf8");
+  spec("export reuses captureFullPng (shared with the live shot) with always", exp.includes("captureFullPng") && exp.includes("always: true"), "always:true");
+  spec("export renders each screen offscreen at its device width", exp.includes("FRAME_W") && exp.includes("srcdoc"), "offscreen iframe");
+  spec("export builds a PDF and opens it for the dev to save", exp.includes("jsPDF") && exp.includes('output("bloburl")') && exp.includes("window.open"), "jsPDF → bloburl → new tab");
+  spec("Prototype tab wires the Export PDF button", tab.includes("exportPrototypePdf") && tab.includes("Export PDF"), "button + handler");
+  return { ok: rows.every((r) => r.ok), rows };
+}
+
 // ── Multi-project spec: which canvas the one viewer shows ────────────────────
 // One viewer (one port) can host several projects; the active one is remembered in
 // localStorage. The agreed rule: use the stored project if it still exists, else fall
@@ -158,6 +175,8 @@ function runGate(json) {
   if (!frameSpecs.ok) regressed = true;
   const projectSpecs = runProjectSpecs();
   if (!projectSpecs.ok) regressed = true;
+  const exportSpecs = runExportSpecs();
+  if (!exportSpecs.ok) regressed = true;
 
   for (const t of TH.targets) {
     const r = grade(t.brief, path.join(ROOT, t.dir));
@@ -197,7 +216,7 @@ function runGate(json) {
   }
 
   if (json) {
-    console.log(JSON.stringify({ mode: "gate", ok: !regressed, a5Skipped: [...a5Skipped], rows, specs: specs.rows, railSpecs: railSpecs.rows, frameSpecs: frameSpecs.rows, projectSpecs: projectSpecs.rows }, null, 2));
+    console.log(JSON.stringify({ mode: "gate", ok: !regressed, a5Skipped: [...a5Skipped], rows, specs: specs.rows, railSpecs: railSpecs.rows, frameSpecs: frameSpecs.rows, projectSpecs: projectSpecs.rows, exportSpecs: exportSpecs.rows }, null, 2));
     return !regressed;
   }
 
@@ -224,6 +243,9 @@ function runGate(json) {
 
   console.log("\n  RENDER-LAYER SPECS — multi-project: which canvas the viewer shows\n");
   for (const s of projectSpecs.rows) console.log("  " + (s.ok ? GLYPH.pass : GLYPH.fail) + " " + pad(s.name, 52) + (s.detail ? "  " + s.detail : ""));
+
+  console.log("\n  RENDER-LAYER SPECS — export every full screenshot to one PDF\n");
+  for (const s of exportSpecs.rows) console.log("  " + (s.ok ? GLYPH.pass : GLYPH.fail) + " " + pad(s.name, 58) + (s.detail ? "  " + s.detail : ""));
 
   console.log("\n  " + (regressed ? "GATE FAILED — a committed target or render-layer spec regressed." : "GATE PASSED — all committed targets hold the baseline.") + "\n");
   return !regressed;

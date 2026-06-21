@@ -170,7 +170,7 @@ const RUNTIME = `
 })();
 `;
 
-const BASE_CSS = `
+export const BASE_CSS = `
 *{box-sizing:border-box}
 /* Fill the device frame. A screen whose content is shorter than the viewport must
    still paint to the bottom edge — otherwise the area below it shows through as a
@@ -207,11 +207,74 @@ body.arta-annotate *:hover{outline:2px solid #38bdf8 !important;outline-offset:-
 // classes and proper icons (<i data-lucide="name">) instead of emoji + inline CSS.
 // Loaded via CDN and deferred so the body parses first (no blocking on the fetch);
 // both run before DOMContentLoaded, so the runtime's icons() finds lucide ready.
-const HEAD_LIBS =
+export const HEAD_LIBS =
   `<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4" defer></script>` +
   // The bare `lucide` spec on jsDelivr resolves to the CJS build (no global, throws
   // "exports is not defined"); the UMD build is what exposes window.lucide.
   `<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js" defer></script>`;
+
+// Snapshot the framed device — the SAME viewport the dev sees (bezel + chrome + content).
+export async function captureFramedPng(node: HTMLElement): Promise<string> {
+  return domToPng(node, { scale: 2, height: Math.min(node.scrollHeight, 2400) });
+}
+
+// Snapshot the WHOLE screen at content length, in one tall image. A modern app screen
+// scrolls inside an INNER overflow region (a fixed-height shell of header + scroll-body +
+// tabbar), so the DOCUMENT itself doesn't scroll and documentElement.scrollHeight only
+// reports the viewport — which made `full` fall back to the framed shot. So find every real
+// scroll region, unclamp it (+ its ancestor chain) to natural height, AND re-root viewport-
+// anchored bars (a screen's own `absolute/fixed bottom-0` tabbar) to the full document — else
+// the bar lands mid-image and its translucent fill whites out the content behind it. Capture,
+// then restore the inline styles byte-for-byte. Returns null when nothing scrolls (the framed
+// shot already shows everything) — unless `always` is set (the PDF export wants every screen's
+// full content regardless). Shared by the live loop and the PDF export so both stay in sync.
+export async function captureFullPng(doc: Document, opts: { always?: boolean } = {}): Promise<string | null> {
+  const root = doc.documentElement;
+  const win = doc.defaultView;
+  if (!win) return null;
+  // One walk: find real scroll regions (overflowing auto/scroll) AND viewport-anchored
+  // bars (position:fixed) — both need handling for a faithful full-length shot.
+  const scrollers: HTMLElement[] = [];
+  const fixedBars: HTMLElement[] = [];
+  root.querySelectorAll<HTMLElement>("*").forEach((el) => {
+    const cs = win.getComputedStyle(el);
+    if ((cs.overflowY === "auto" || cs.overflowY === "scroll") && el.scrollHeight > el.clientHeight + 4) scrollers.push(el);
+    if (cs.position === "fixed") fixedBars.push(el);
+  });
+  const docScrolls = root.scrollHeight > root.clientHeight + 8;
+  if (!scrollers.length && !docScrolls && !opts.always) return null; // fits — framed shot is complete
+
+  // Build temporary style overrides per element (a Map dedups, so a node reached twice —
+  // e.g. <body> via two scrollers — is saved once and restores cleanly), then apply,
+  // capture, and restore byte-for-byte.
+  const want = new Map<HTMLElement, Record<string, string>>();
+  const set = (el: HTMLElement | null, styles: Record<string, string>) => {
+    if (el) want.set(el, Object.assign(want.get(el) || {}, styles));
+  };
+  // (a) Unclamp scroll regions + their ancestor chains to natural height so the whole
+  // content lays out (height:auto beats a fixed/flex/max-height; bottom:auto frees an
+  // inset-0 fill). Overflow is left ALONE so horizontal rails keep their peek.
+  const UNCLAMP: Record<string, string> = { flex: "none", height: "auto", maxHeight: "none", minHeight: "0", bottom: "auto" };
+  set(doc.body, UNCLAMP);
+  scrollers.forEach((sc) => { let n: HTMLElement | null = sc; while (n && n !== root) { set(n, UNCLAMP); n = n.parentElement; } });
+  // (b) Make the root a FULL-HEIGHT containing block and re-root viewport-anchored bars to it.
+  set(root, Object.assign({ position: "relative" }, UNCLAMP));
+  fixedBars.forEach((el) => set(el, { position: "absolute" }));
+
+  const saved: Array<[HTMLElement, Record<string, string>]> = [];
+  for (const [el, styles] of want) {
+    const prev: Record<string, string> = {};
+    for (const k of Object.keys(styles)) { prev[k] = (el.style as unknown as Record<string, string>)[k]; (el.style as unknown as Record<string, string>)[k] = styles[k]; }
+    saved.push([el, prev]);
+  }
+  const fullH = Math.max(root.scrollHeight, doc.body?.scrollHeight || 0); // reading it forces the reflow
+  const bg = win.getComputedStyle(doc.body).backgroundColor || "#fff";
+  try {
+    return await domToPng(root, { scale: 2, height: Math.min(fullH, 12000), backgroundColor: bg });
+  } finally {
+    for (const [el, prev] of saved) for (const k of Object.keys(prev)) (el.style as unknown as Record<string, string>)[k] = prev[k];
+  }
+}
 
 export function FreeformDevice({
   screenId,
@@ -298,71 +361,13 @@ export function FreeformDevice({
     // framed first, never overlapping.
     const shoot = async () => {
       try {
-        // 1) Framed device — the SAME viewport the dev sees (bezel + chrome + content).
-        try {
-          const dataUrl = await domToPng(node, { scale: 2, height: Math.min(node.scrollHeight, 2400) });
-          reportSnapshot(screenId, dataUrl);
-        } catch { /* leave the previous framed shot in place */ }
-
-        // 2) Full content — the WHOLE screen at content length, in one tall image. The
-        // catch a modern app screen scrolls inside an INNER overflow region (a fixed-
-        // height shell of header + scroll-body + tabbar), so the DOCUMENT itself doesn't
-        // scroll and documentElement.scrollHeight only reports the viewport — which made
-        // `full` silently fall back to the framed shot. So find every real scroll region,
-        // unclamp it (+ its ancestor chain) to natural height, capture, then restore the
-        // inline styles exactly. Plain document-level scroll is covered by the same path.
-        const root = doc.documentElement;
-        const win = doc.defaultView;
-        if (!win) return;
-        // One walk: find real scroll regions (overflowing auto/scroll) AND viewport-anchored
-        // bars (position:fixed) — both need handling for a faithful full-length shot.
-        const scrollers: HTMLElement[] = [];
-        const fixedBars: HTMLElement[] = [];
-        root.querySelectorAll<HTMLElement>("*").forEach((el) => {
-          const cs = win.getComputedStyle(el);
-          if ((cs.overflowY === "auto" || cs.overflowY === "scroll") && el.scrollHeight > el.clientHeight + 4) scrollers.push(el);
-          if (cs.position === "fixed") fixedBars.push(el);
-        });
-        const docScrolls = root.scrollHeight > root.clientHeight + 8;
-        if (!scrollers.length && !docScrolls) return; // genuinely fits — the framed shot is complete
-
-        // Build the temporary style overrides per element (a Map dedups, so a node reached
-        // twice — e.g. <body> via two scrollers — is saved once and restores cleanly), then
-        // apply, capture, and restore byte-for-byte.
-        const want = new Map<HTMLElement, Record<string, string>>();
-        const set = (el: HTMLElement | null, styles: Record<string, string>) => {
-          if (el) want.set(el, Object.assign(want.get(el) || {}, styles));
-        };
-        // (a) Unclamp scroll regions + their ancestor chains to natural height so the whole
-        // content lays out (height:auto beats a fixed/flex/max-height; bottom:auto frees an
-        // inset-0 fill). Overflow is left ALONE so horizontal rails keep their peek.
-        const UNCLAMP: Record<string, string> = { flex: "none", height: "auto", maxHeight: "none", minHeight: "0", bottom: "auto" };
-        set(doc.body, UNCLAMP);
-        scrollers.forEach((sc) => { let n: HTMLElement | null = sc; while (n && n !== root) { set(n, UNCLAMP); n = n.parentElement; } });
-        // (b) Make the root a FULL-HEIGHT containing block and re-root viewport-anchored bars
-        // to it. A screen's own bottom tabbar / sticky header is usually `absolute bottom-0`
-        // (or `fixed`) with no positioned ancestor, so it resolves against the 760px VIEWPORT
-        // — in a tall full shot that lands it mid-image, its translucent fill whiting-out the
-        // content behind it (the "collapsed cards + floating tabbar" bug). position:relative
-        // on <html> re-roots every such bar to the full document, dropping it to the true bottom.
-        set(root, Object.assign({ position: "relative" }, UNCLAMP));
-        fixedBars.forEach((el) => set(el, { position: "absolute" }));
-
-        const saved: Array<[HTMLElement, Record<string, string>]> = [];
-        for (const [el, styles] of want) {
-          const prev: Record<string, string> = {};
-          for (const k of Object.keys(styles)) { prev[k] = (el.style as unknown as Record<string, string>)[k]; (el.style as unknown as Record<string, string>)[k] = styles[k]; }
-          saved.push([el, prev]);
-        }
-
-        const fullH = Math.max(root.scrollHeight, doc.body?.scrollHeight || 0); // reading it forces the reflow
-        const bg = win.getComputedStyle(doc.body).backgroundColor || "#fff";
-        try {
-          const dataUrl = await domToPng(root, { scale: 2, height: Math.min(fullH, 12000), backgroundColor: bg });
-          reportSnapshot(screenId, dataUrl, true);
-        } finally {
-          for (const [el, prev] of saved) for (const k of Object.keys(prev)) (el.style as unknown as Record<string, string>)[k] = prev[k];
-        }
+        // Framed shot first (the dev's viewport), then the full-content shot. They SHARE
+        // this one iframe DOM and the full shot temporarily MUTATES it (unclamping scroll
+        // regions, re-rooting bars), so they must never overlap — both live in captureFullPng,
+        // the same helper the PDF export uses, so the two stay in sync.
+        try { reportSnapshot(screenId, await captureFramedPng(node)); } catch { /* keep prior framed shot */ }
+        const full = await captureFullPng(doc);
+        if (full) reportSnapshot(screenId, full, true);
       } finally {
         capturingRef.current = false;
       }

@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { AppWindow, Check, Copy, Monitor, MessageSquarePlus, Smartphone, Tablet, X } from "lucide-react";
+import { AppWindow, Check, Copy, FileDown, Monitor, MessageSquarePlus, Smartphone, Tablet, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { FrameKind, Prototype, Spec, StoreState } from "../../lib/types";
 import { LIGHT, MONO, useTheme } from "../../lib/theme";
 import { alpha, cn } from "../../lib/utils";
 import { designSheet, resolveScreenHtml } from "../../lib/prototype";
+import { exportPrototypePdf } from "../../lib/exportPdf";
 import { sendFeedback } from "../../lib/useArta";
 import { ComponentRenderer } from "../proto/ComponentRenderer";
 import { DeviceFrame } from "../proto/DeviceFrame";
@@ -75,6 +76,24 @@ export function PrototypeTab({
     setAnnotate(false);
     setTarget(null);
   }, [cur.id]);
+
+  // Export every freeform screen's full-length screenshot as one PDF (opens in a new tab
+  // for the dev to save). `exporting` doubles as the button label while it runs.
+  const [exporting, setExporting] = useState<string | null>(null);
+  const runExport = async () => {
+    if (exporting) return;
+    try {
+      setExporting("Rendering…");
+      const n = await exportPrototypePdf(prototype, (p) =>
+        setExporting(p.done < p.total ? `Rendering ${p.done + 1}/${p.total}…` : "Building PDF…")
+      );
+      setExporting(null);
+      if (!n) onError("PDF export: nothing captured.");
+    } catch (e) {
+      setExporting(null);
+      onError(`PDF export failed — ${(e as Error).message}`);
+    }
+  };
 
   return (
     <div className="flex h-full min-w-0 flex-1 flex-col">
@@ -166,6 +185,24 @@ export function PrototypeTab({
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {freeform && (
+          <div className="shrink-0 border-t px-3 py-3" style={{ borderColor: c.border }}>
+            <button
+              onClick={runExport}
+              disabled={!!exporting}
+              className="flex w-full items-center justify-center gap-2 rounded-md px-2 py-2 text-[12px] font-semibold transition-colors disabled:cursor-default disabled:opacity-60"
+              style={{ color: c.text, background: c.panel2, border: `1px solid ${c.border2}` }}
+              title="Capture every screen's full-length screenshot into one PDF"
+            >
+              <FileDown size={14} color={c.accent} />
+              {exporting ?? "Export PDF"}
+            </button>
+            <p className="mt-1.5 text-[10.5px] leading-snug" style={{ fontFamily: MONO, color: c.faint }}>
+              All screens, full length → opens a PDF to save.
+            </p>
           </div>
         )}
       </div>
