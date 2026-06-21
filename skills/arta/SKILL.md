@@ -533,11 +533,14 @@ element instead. (Run `arta_design_review` to catch them automatically.)
 
 **Pick the device frame** with `prototype.frame` (or per-screen `frame`):
 `web` (browser, default), `desktop` (native app window), `ios` or `android`
-(phone), `ipad` (tablet). The phone frames render the page at ~390px wide and the
-`ipad` frame at ~780px (a real tablet breakpoint, so `md:`/`lg:` utilities and your
-`@media` rules kick in) — write responsive CSS accordingly. Choose the frame that
-matches what you're actually building — a mobile app spec should preview in
-`ios`/`android`, a tablet layout in `ipad`, not a browser.
+(phone), `ipad` (tablet). The phone frames render the page at ~390px wide, the
+`ipad` frame at ~780px, and **`web`/`desktop` at a real desktop width (~1280px),
+scaled to fit the canvas** — so `md:`/`lg:`/`xl:` utilities and your `@media` rules
+fire exactly as they would in a browser at that width (the `web` preview shows the
+desktop nav, not the mobile hamburger, even when the canvas pane is narrow). Write
+responsive CSS accordingly. Choose the frame that matches what you're actually
+building — a mobile app spec should preview in `ios`/`android`, a tablet layout in
+`ipad`, a responsive site in `web`, not a phone.
 
 **Device frame & safe area (ios / android / ipad).** Content is **always
 full-screen** — it fills the whole device, edge-to-edge. There are **two chrome

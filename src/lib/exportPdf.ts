@@ -11,7 +11,7 @@ import { BASE_CSS, HEAD_LIBS, captureFullPng } from "../components/proto/Freefor
 // Width each device frame renders the screen at (matches DeviceFrame), so the export
 // captures the SAME layout the dev sees. Heights are only the initial layout viewport —
 // captureFullPng unclamps past them to the real content length.
-const FRAME_W: Record<FrameKind, number> = { ios: 384, android: 392, ipad: 810, web: 1180, desktop: 1180 };
+const FRAME_W: Record<FrameKind, number> = { ios: 384, android: 392, ipad: 810, web: 1280, desktop: 1280 };
 const FRAME_H: Record<FrameKind, number> = { ios: 820, android: 820, ipad: 1080, web: 820, desktop: 820 };
 
 // A minimal in-frame init for the export iframe: render lucide icons and reflect the mock

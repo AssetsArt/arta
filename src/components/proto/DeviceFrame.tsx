@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BatteryFull, Signal, Wifi } from "lucide-react";
 import type { FrameKind } from "../../lib/types";
 import { LIGHT, MONO, useTheme } from "../../lib/theme";
@@ -100,54 +100,98 @@ function TrafficLights() {
   );
 }
 
-function WebFrame({ url, rootRef, children }: { url: string; rootRef?: React.Ref<HTMLDivElement>; children: React.ReactNode }) {
+// A web / desktop preview is a REAL browser window: it lays the page out at a true desktop
+// width and is only scaled to fit the canvas visually. Before this, the web frame just filled
+// the (usually narrow) canvas, so the page's media queries saw that cramped width and a
+// responsive nav collapsed to its mobile hamburger in Arta — while a real browser at the same
+// screen showed the desktop nav. The transform is visual only, so the iframe still lays out at
+// `layoutWidth` and its md:/lg:/xl: breakpoints fire exactly as in a ~1280px browser.
+const WEB_LAYOUT_W = 1280;
+
+function BrowserWindow({
+  chromeBar,
+  rootRef,
+  children,
+  layoutWidth = WEB_LAYOUT_W,
+}: {
+  chromeBar: React.ReactNode;
+  rootRef?: React.Ref<HTMLDivElement>;
+  children: React.ReactNode;
+  layoutWidth?: number;
+}) {
   const { c } = useTheme();
+  const outerRef = useRef<HTMLDivElement>(null);
+  const [box, setBox] = useState({ w: layoutWidth, h: 800 });
+  useEffect(() => {
+    const el = outerRef.current;
+    if (!el) return;
+    const measure = () => setBox({ w: el.clientWidth, h: el.clientHeight });
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const scale = Math.min(1, box.w / layoutWidth); // only ever shrink — never blow a small page up
+  const innerH = scale > 0 ? box.h / scale : box.h; // unscaled height that fills the canvas after scaling
+  const offsetX = Math.max(0, (box.w - layoutWidth * scale) / 2); // centre the scaled window
+
   return (
-    <div
-      ref={rootRef}
-      className="flex h-full w-full max-w-[1180px] flex-col overflow-hidden rounded-[12px]"
-      style={{ background: LIGHT.bg, border: `1px solid ${c.border}`, boxShadow: "0 24px 64px rgba(0,0,0,.5)" }}
-    >
+    <div ref={outerRef} className="relative h-full w-full overflow-hidden">
       <div
-        className="flex shrink-0 items-center gap-3 border-b px-3.5 py-2.5"
-        style={{ borderColor: LIGHT.border, background: LIGHT.muted }}
+        ref={rootRef}
+        className="absolute top-0 flex flex-col overflow-hidden rounded-[12px]"
+        style={{
+          left: offsetX,
+          width: layoutWidth,
+          height: innerH,
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+          background: LIGHT.bg,
+          border: `1px solid ${c.border}`,
+          boxShadow: "0 24px 64px rgba(0,0,0,.5)",
+        }}
       >
-        <TrafficLights />
-        <div
-          className="flex h-7 flex-1 items-center rounded-md px-3 text-[12px]"
-          style={{ background: LIGHT.bg, border: `1px solid ${LIGHT.border}`, color: LIGHT.mutedFg, fontFamily: MONO }}
-        >
-          {url}
-        </div>
+        {chromeBar}
+        <div className="min-h-0 flex-1">{children}</div>
       </div>
-      {children}
     </div>
   );
 }
 
-function DesktopFrame({ title, rootRef, children }: { title: string; rootRef?: React.Ref<HTMLDivElement>; children: React.ReactNode }) {
-  const { c } = useTheme();
-  return (
+function WebFrame({ url, rootRef, children }: { url: string; rootRef?: React.Ref<HTMLDivElement>; children: React.ReactNode }) {
+  const chromeBar = (
     <div
-      ref={rootRef}
-      className="flex h-full w-full max-w-[1180px] flex-col overflow-hidden rounded-[12px]"
-      style={{ background: LIGHT.bg, border: `1px solid ${c.border}`, boxShadow: "0 24px 64px rgba(0,0,0,.5)" }}
+      className="flex shrink-0 items-center gap-3 border-b px-3.5 py-2.5"
+      style={{ borderColor: LIGHT.border, background: LIGHT.muted }}
     >
+      <TrafficLights />
       <div
-        className="relative flex shrink-0 items-center border-b px-3.5 py-2.5"
-        style={{ borderColor: LIGHT.border, background: LIGHT.muted }}
+        className="flex h-7 flex-1 items-center rounded-md px-3 text-[12px]"
+        style={{ background: LIGHT.bg, border: `1px solid ${LIGHT.border}`, color: LIGHT.mutedFg, fontFamily: MONO }}
       >
-        <TrafficLights />
-        <div
-          className="pointer-events-none absolute inset-x-0 text-center text-[12px] font-medium"
-          style={{ color: LIGHT.mutedFg }}
-        >
-          {title}
-        </div>
+        {url}
       </div>
-      {children}
     </div>
   );
+  return <BrowserWindow chromeBar={chromeBar} rootRef={rootRef}>{children}</BrowserWindow>;
+}
+
+function DesktopFrame({ title, rootRef, children }: { title: string; rootRef?: React.Ref<HTMLDivElement>; children: React.ReactNode }) {
+  const chromeBar = (
+    <div
+      className="relative flex shrink-0 items-center border-b px-3.5 py-2.5"
+      style={{ borderColor: LIGHT.border, background: LIGHT.muted }}
+    >
+      <TrafficLights />
+      <div
+        className="pointer-events-none absolute inset-x-0 text-center text-[12px] font-medium"
+        style={{ color: LIGHT.mutedFg }}
+      >
+        {title}
+      </div>
+    </div>
+  );
+  return <BrowserWindow chromeBar={chromeBar} rootRef={rootRef}>{children}</BrowserWindow>;
 }
 
 // Shared phone / tablet shell: dark bezel + rounded screen, sized to fit the canvas.
