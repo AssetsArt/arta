@@ -1,6 +1,18 @@
+import { useEffect, useState } from "react";
 import { BatteryFull, Signal, Wifi } from "lucide-react";
 import type { FrameKind } from "../../lib/types";
 import { LIGHT, MONO, useTheme } from "../../lib/theme";
+
+// The device status bar shows the REAL current time (not a frozen 9:41), refreshed
+// often enough to roll over the minute. iOS-style: hour without a leading zero.
+function useClock(): string {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 15000);
+    return () => clearInterval(t);
+  }, []);
+  return `${now.getHours()}:${String(now.getMinutes()).padStart(2, "0")}`;
+}
 
 interface Props {
   frame: FrameKind;
@@ -9,9 +21,10 @@ interface Props {
   /** Colour painted into the phone safe areas (status bar + home indicator);
    *  defaults to white. Status-bar contents auto-contrast against it. */
   safeArea?: string;
-  /** Show the device chrome (iOS-style status bar + home indicator) on phone frames.
-   *  Default FALSE — the prototype renders full-bleed like a full-screen app: no
-   *  status bar / notch overlay, no safe-area bands, content edge-to-edge. */
+  /** Show the device chrome (iOS-style status bar + notch + home indicator) as an
+   *  OVERLAY on phone frames. Default true. The content is always full-screen
+   *  (edge-to-edge, no safe-area bands); the chrome floats on top with the real time.
+   *  Set false to hide it entirely. */
   chrome?: boolean;
   /** Ref onto the device's outer element so the snapshot can capture the WHOLE
    *  framed device (bezel + chrome + content), not just the iframe body. */
@@ -54,7 +67,7 @@ function isDarkColor(color: string): boolean {
 
 // Wraps the freeform iframe in a believable device frame so the same HTML can be
 // previewed as desktop web, a native desktop app, or an iOS / Android phone.
-export function DeviceFrame({ frame, url, title, safeArea, chrome = false, rootRef, children }: Props) {
+export function DeviceFrame({ frame, url, title, safeArea, chrome = true, rootRef, children }: Props) {
   if (frame === "ios")
     return (
       <IosFrame title={title} safeArea={safeArea} chrome={chrome} rootRef={rootRef}>
@@ -176,14 +189,15 @@ function Phone({
         boxShadow: "0 30px 70px rgba(0,0,0,.55)",
       }}
     >
-      {/* screenBg fills the safe-area bands (status bar + home indicator); the
-          content iframe in the middle is opaque and paints over it. */}
+      {/* Full-screen: the content fills the WHOLE screen (edge-to-edge, no safe-area
+          bands). The status bar + home indicator are absolute overlays painted ON TOP
+          of it, like a real iOS app. screenBg shows only where content doesn't reach. */}
       <div
         className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
         style={{ background: screenBg, borderRadius: screenRadius }}
       >
-        {statusBar}
         <div className="relative min-h-0 flex-1">{children}</div>
+        {statusBar}
         {bottom}
       </div>
     </div>
@@ -202,7 +216,7 @@ function StatusIcons({ color }: { color: string }) {
 
 function IosFrame({
   safeArea,
-  chrome = false,
+  chrome = true,
   rootRef,
   children,
 }: {
@@ -214,6 +228,7 @@ function IosFrame({
 }) {
   const dark = safeArea ? isDarkColor(safeArea) : false;
   const fg = dark ? "#f5f5f7" : LIGHT.fg;
+  const time = useClock();
   return (
     <Phone
       rootRef={rootRef}
@@ -222,12 +237,12 @@ function IosFrame({
       screenRadius={42}
       pad={11}
       screenBg={safeArea || LIGHT.bg}
-      // Full / full-bleed: no status bar, no home indicator — content fills the screen.
+      // Status bar + notch overlay (real time), floating over the full-screen content.
       statusBar={
         chrome ? (
-          <div className="relative flex h-11 shrink-0 items-center justify-between px-7 pt-1">
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-11 items-center justify-between px-7 pt-1">
             <span className="text-[14px] font-semibold" style={{ color: fg }}>
-              9:41
+              {time}
             </span>
             {/* Dynamic Island — a physical cutout, always black */}
             <span className="absolute left-1/2 top-2 h-[26px] w-[96px] -translate-x-1/2 rounded-full bg-black" />
@@ -237,7 +252,7 @@ function IosFrame({
       }
       bottom={
         chrome ? (
-          <div className="flex h-6 shrink-0 items-end justify-center pb-2">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex h-6 items-end justify-center pb-2">
             <span
               className="h-[5px] w-[134px] rounded-full"
               style={{ background: dark ? "rgba(255,255,255,.85)" : "rgba(0,0,0,.85)" }}
@@ -253,7 +268,7 @@ function IosFrame({
 
 function AndroidFrame({
   safeArea,
-  chrome = false,
+  chrome = true,
   rootRef,
   children,
 }: {
@@ -265,6 +280,7 @@ function AndroidFrame({
 }) {
   const dark = safeArea ? isDarkColor(safeArea) : false;
   const fg = dark ? "#f5f5f7" : LIGHT.fg;
+  const time = useClock();
   return (
     <Phone
       rootRef={rootRef}
@@ -275,9 +291,9 @@ function AndroidFrame({
       screenBg={safeArea || LIGHT.bg}
       statusBar={
         chrome ? (
-          <div className="relative flex h-8 shrink-0 items-center justify-between px-4">
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-8 items-center justify-between px-4">
             <span className="text-[12px] font-medium" style={{ color: fg }}>
-              9:41
+              {time}
             </span>
             {/* punch-hole camera — a physical cutout, always black */}
             <span className="absolute left-1/2 top-2.5 h-3 w-3 -translate-x-1/2 rounded-full bg-black" />
@@ -291,7 +307,7 @@ function AndroidFrame({
       }
       bottom={
         chrome ? (
-          <div className="flex h-6 shrink-0 items-center justify-center pb-1.5">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex h-6 items-center justify-center pb-1.5">
             <span
               className="h-[4px] w-[118px] rounded-full"
               style={{ background: dark ? "rgba(255,255,255,.5)" : "rgba(0,0,0,.55)" }}
@@ -307,11 +323,11 @@ function AndroidFrame({
 
 // Tablet shell (iPad portrait): a uniform slim bezel, gently rounded corners, and —
 // unlike the phones — NO notch / Dynamic Island (just a status bar). Renders the page
-// at a tablet width so `md:` / `lg:` breakpoints kick in. safeArea + chrome behave the
-// same as the phones (chrome:false = full-bleed, no status bar / home indicator).
+// at a tablet width so `md:` / `lg:` breakpoints kick in. Same as the phones: the
+// content is full-screen and the status bar / home indicator overlay on top.
 function IpadFrame({
   safeArea,
-  chrome = false,
+  chrome = true,
   rootRef,
   children,
 }: {
@@ -323,6 +339,7 @@ function IpadFrame({
 }) {
   const dark = safeArea ? isDarkColor(safeArea) : false;
   const fg = dark ? "#f5f5f7" : LIGHT.fg;
+  const time = useClock();
   return (
     <Phone
       rootRef={rootRef}
@@ -334,9 +351,9 @@ function IpadFrame({
       screenBg={safeArea || LIGHT.bg}
       statusBar={
         chrome ? (
-          <div className="relative flex h-8 shrink-0 items-center justify-between px-6 pt-1">
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-8 items-center justify-between px-6 pt-1">
             <span className="text-[13px] font-semibold" style={{ color: fg }}>
-              9:41
+              {time}
             </span>
             <StatusIcons color={fg} />
           </div>
@@ -344,7 +361,7 @@ function IpadFrame({
       }
       bottom={
         chrome ? (
-          <div className="flex h-6 shrink-0 items-end justify-center pb-2">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex h-6 items-end justify-center pb-2">
             <span
               className="h-[5px] w-[180px] rounded-full"
               style={{ background: dark ? "rgba(255,255,255,.85)" : "rgba(0,0,0,.85)" }}

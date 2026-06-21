@@ -59,11 +59,10 @@ export function PrototypeTab({
   // Phone / tablet frames — they get the centered canvas layout. iPad included.
   const isMobile = frame === "ios" || frame === "android" || frame === "ipad";
 
-  // Always full-bleed: the prototype renders like a full-screen app — no iOS status
-  // bar / notch overlay, no safe-area bands, content edge-to-edge (the device bezel
-  // stays). A screen can still opt back into the chrome by setting `chrome: true` in
-  // state, but the default is off and there's no on/off toggle.
-  const chrome = cur.chrome ?? prototype.chrome ?? false;
+  // Full-screen with the chrome on top: content is edge-to-edge (no safe-area bands)
+  // and the iOS-style status bar (real time) + notch + home indicator float OVER it —
+  // no on/off toggle. A screen can hide the chrome with `chrome: false` in state.
+  const chrome = cur.chrome ?? prototype.chrome ?? true;
 
   // The device-frame outer node — the snapshot captures THIS (bezel + chrome + content),
   // so the agent sees the same framed device the dev sees, not a bare content card.
