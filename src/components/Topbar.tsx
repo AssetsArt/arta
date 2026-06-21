@@ -1,9 +1,20 @@
 import { useState } from "react";
-import { Moon, Sun, SlidersHorizontal } from "lucide-react";
+import { Moon, Sun, SlidersHorizontal, ChevronDown, Check } from "lucide-react";
 import type { Meta } from "../lib/types";
+import type { Project } from "../lib/useArta";
 import { MONO, useTheme, ACCENT_PRESETS } from "../lib/theme";
 
-export function Topbar({ meta }: { meta: Meta }) {
+export function Topbar({
+  meta,
+  projects = [],
+  activeProject = "",
+  onSelectProject,
+}: {
+  meta: Meta;
+  projects?: Project[];
+  activeProject?: string;
+  onSelectProject?: (id: string) => void;
+}) {
   const { c, mode, toggleMode } = useTheme();
 
   return (
@@ -17,9 +28,18 @@ export function Topbar({ meta }: { meta: Meta }) {
           Arta
         </span>
         <span style={{ color: c.borderStrong }}>/</span>
-        <span className="text-[14px] font-medium" style={{ color: c.dim }}>
-          {meta.name}
-        </span>
+        {projects.length > 1 ? (
+          <ProjectSwitcher
+            projects={projects}
+            activeProject={activeProject}
+            fallbackName={meta.name}
+            onSelect={onSelectProject}
+          />
+        ) : (
+          <span className="text-[14px] font-medium" style={{ color: c.dim }}>
+            {meta.name}
+          </span>
+        )}
       </div>
 
       <div className="flex-1" />
@@ -65,6 +85,71 @@ function ArtaMark({ size = 22, frame, dot }: { size?: number; frame: string; dot
       <path d="M12 6.6 L16.6 16 L13.9 16 L12 11.9 L10.1 16 L7.4 16 Z" fill={frame} />
       <circle cx="17.4" cy="6.6" r="1.7" fill={dot} />
     </svg>
+  );
+}
+
+// The project switcher — shown only when one viewer hosts more than one canvas.
+// Each `/arta` run in another project registers it, so the list builds itself; the
+// pick is persisted in localStorage by useArta.
+function ProjectSwitcher({
+  projects,
+  activeProject,
+  fallbackName,
+  onSelect,
+}: {
+  projects: Project[];
+  activeProject: string;
+  fallbackName: string;
+  onSelect?: (id: string) => void;
+}) {
+  const { c } = useTheme();
+  const [open, setOpen] = useState(false);
+  const active = projects.find((p) => p.id === activeProject);
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex h-7 items-center gap-1.5 rounded-[7px] pl-1.5 pr-1 text-[14px] font-medium transition-colors"
+        style={{ color: c.dim, background: open ? c.panel2 : "transparent" }}
+        title="Switch project"
+      >
+        <span className="max-w-[180px] truncate">{active?.name || fallbackName}</span>
+        <ChevronDown size={13} style={{ color: c.faint }} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div
+            className="absolute left-0 z-20 mt-2 max-h-[60vh] w-60 overflow-auto rounded-xl p-1.5"
+            style={{ background: c.panel, border: `1px solid ${c.border2}`, boxShadow: c.shadow }}
+          >
+            <div
+              className="px-2 pb-1.5 pt-1 text-[9.5px] font-medium uppercase tracking-[0.6px]"
+              style={{ fontFamily: MONO, color: c.faint }}
+            >
+              Projects · {projects.length}
+            </div>
+            {projects.map((p) => {
+              const on = p.id === activeProject;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    onSelect?.(p.id);
+                    setOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] transition-colors"
+                  style={{ color: on ? c.text : c.dim, background: on ? c.panel2 : "transparent" }}
+                >
+                  <span className="flex-1 truncate">{p.name}</span>
+                  {on && <Check size={13} style={{ color: c.accent }} />}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 

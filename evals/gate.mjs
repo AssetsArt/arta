@@ -21,6 +21,7 @@ import { grade } from "./grade.mjs";
 import { compileTokens } from "../src/lib/prototype.ts";
 import { ThemeProvider } from "../src/lib/theme.tsx";
 import { SpecRail } from "../src/components/tabs/SpecRail.tsx";
+import { resolveActive } from "../src/lib/useArta.ts";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CHECKS = ["A1a_tokens_defined", "A1b_tokens_used", "A2_shared", "A3_interactivity", "A4_render", "A5_design"];
@@ -114,6 +115,21 @@ function runFrameSpecs() {
   return { ok: rows.every((r) => r.ok), rows };
 }
 
+// ── Multi-project spec: which canvas the one viewer shows ────────────────────
+// One viewer (one port) can host several projects; the active one is remembered in
+// localStorage. The agreed rule: use the stored project if it still exists, else fall
+// back to the FIRST project — never a blank canvas. Lock that resolution.
+function runProjectSpecs() {
+  const rows = [];
+  const spec = (name, ok, detail) => rows.push({ name, ok, detail });
+  const list = [{ id: "a", name: "A" }, { id: "b", name: "B" }];
+  spec("stored project that exists is honoured", resolveActive(list, "b") === "b", `→ ${resolveActive(list, "b")}`);
+  spec("unknown stored project falls back to the first", resolveActive(list, "zzz") === "a", `→ ${resolveActive(list, "zzz")}`);
+  spec("no stored project falls back to the first", resolveActive(list, null) === "a", `→ ${resolveActive(list, null)}`);
+  spec("empty project list resolves to nothing (no crash)", resolveActive([], "x") === "", `→ "${resolveActive([], "x")}"`);
+  return { ok: rows.every((r) => r.ok), rows };
+}
+
 // ── CI core: gate the committed targets ─────────────────────────────────────
 function runGate(json) {
   const rows = [];
@@ -125,6 +141,8 @@ function runGate(json) {
   if (!railSpecs.ok) regressed = true;
   const frameSpecs = runFrameSpecs();
   if (!frameSpecs.ok) regressed = true;
+  const projectSpecs = runProjectSpecs();
+  if (!projectSpecs.ok) regressed = true;
 
   for (const t of TH.targets) {
     const r = grade(t.brief, path.join(ROOT, t.dir));
@@ -164,7 +182,7 @@ function runGate(json) {
   }
 
   if (json) {
-    console.log(JSON.stringify({ mode: "gate", ok: !regressed, a5Skipped: [...a5Skipped], rows, specs: specs.rows, railSpecs: railSpecs.rows, frameSpecs: frameSpecs.rows }, null, 2));
+    console.log(JSON.stringify({ mode: "gate", ok: !regressed, a5Skipped: [...a5Skipped], rows, specs: specs.rows, railSpecs: railSpecs.rows, frameSpecs: frameSpecs.rows, projectSpecs: projectSpecs.rows }, null, 2));
     return !regressed;
   }
 
@@ -188,6 +206,9 @@ function runGate(json) {
 
   console.log("\n  RENDER-LAYER SPECS — device frame: fills to bottom + blocks stray <a href> nav\n");
   for (const s of frameSpecs.rows) console.log("  " + (s.ok ? GLYPH.pass : GLYPH.fail) + " " + pad(s.name, 52) + (s.detail ? "  " + s.detail : ""));
+
+  console.log("\n  RENDER-LAYER SPECS — multi-project: which canvas the viewer shows\n");
+  for (const s of projectSpecs.rows) console.log("  " + (s.ok ? GLYPH.pass : GLYPH.fail) + " " + pad(s.name, 52) + (s.detail ? "  " + s.detail : ""));
 
   console.log("\n  " + (regressed ? "GATE FAILED — a committed target or render-layer spec regressed." : "GATE PASSED — all committed targets hold the baseline.") + "\n");
   return !regressed;
