@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AppWindow, Monitor, MessageSquarePlus, Send, Smartphone, Tablet, X } from "lucide-react";
+import { AppWindow, Check, Copy, Monitor, MessageSquarePlus, Smartphone, Tablet, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { FrameKind, Prototype, Spec, StoreState } from "../../lib/types";
 import { LIGHT, MONO, useTheme } from "../../lib/theme";
@@ -257,6 +257,10 @@ export function PrototypeTab({
             target={target}
             screen={cur.id}
             onClose={() => setTarget(null)}
+            onCommentMore={() => {
+              setTarget(null);
+              setAnnotate(true); // back to click-an-element mode for the next note
+            }}
           />
         )}
       </div>
@@ -269,28 +273,42 @@ export function PrototypeTab({
 }
 
 // Compose feedback anchored to a clicked element, so the note reaches the agent
-// with the exact target ("this button on cart"), not as a vague description.
+// with the exact target ("this button on cart"), not as a vague description. The
+// viewer is read-only and CAN'T message the AI itself — saving queues the note in
+// .arta/feedback.json; the dev then runs `/arta:arta feedback` in chat to have the AI
+// drain it. So the button SAVES (not "sends"), and the saved state surfaces that command.
+const FEEDBACK_CMD = "/arta:arta feedback";
 function AnnotationComposer({
   target,
   screen,
   onClose,
+  onCommentMore,
 }: {
   target: AnnotateTarget;
   screen: string;
   onClose: () => void;
+  onCommentMore: () => void;
 }) {
   const { c } = useTheme();
   const [text, setText] = useState("");
-  const [sent, setSent] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const submit = async () => {
     const t = text.trim();
     if (!t) return;
     const ok = await sendFeedback({ text: t, tab: "prototype", screen, element: target });
-    if (ok) {
-      setSent(true);
-      setTimeout(onClose, 900);
-    }
+    if (ok) setSaved(true); // don't auto-close — show the "what next" step
+  };
+
+  const copyCmd = () => {
+    navigator.clipboard
+      ?.writeText(FEEDBACK_CMD)
+      .then(() => {
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1500);
+      })
+      .catch(() => {});
   };
 
   return (
@@ -300,48 +318,98 @@ function AnnotationComposer({
     >
       <div className="mb-2 flex items-center gap-2">
         <span className="text-[10px] uppercase tracking-[0.6px]" style={{ color: c.faint }}>
-          Comment on
+          {saved ? "Comment saved" : "Comment on"}
         </span>
-        <code
-          className="rounded px-1.5 py-0.5 text-[11px]"
-          style={{ fontFamily: MONO, background: c.panel2, color: c.accent }}
-        >
-          {target.selector}
-        </code>
+        {!saved && (
+          <code
+            className="rounded px-1.5 py-0.5 text-[11px]"
+            style={{ fontFamily: MONO, background: c.panel2, color: c.accent }}
+          >
+            {target.selector}
+          </code>
+        )}
         <button onClick={onClose} className="ml-auto" style={{ color: c.faint }}>
           <X size={14} />
         </button>
       </div>
-      {target.text && (
-        <div className="mb-2 truncate text-[11px]" style={{ color: c.dim }}>
-          “{target.text}”
+
+      {saved ? (
+        <div className="flex flex-col gap-2.5">
+          <div className="flex items-center gap-1.5 text-[12px] font-medium" style={{ color: c.green }}>
+            <Check size={13} /> Saved to this project
+          </div>
+          <p className="text-[11.5px] leading-[1.5]" style={{ color: c.dim }}>
+            The viewer can’t message the AI itself. Run this in chat so it picks up your
+            comments:
+          </p>
+          <div
+            className="flex items-center gap-2 rounded-lg p-1 pl-2.5"
+            style={{ background: c.bg, border: `1px solid ${c.border}` }}
+          >
+            <code className="flex-1 truncate text-[12px]" style={{ fontFamily: MONO, color: c.text }}>
+              {FEEDBACK_CMD}
+            </code>
+            <button
+              onClick={copyCmd}
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-semibold"
+              style={{ background: c.invBg, color: c.invFg }}
+            >
+              {copied ? <Check size={12} /> : <Copy size={12} />}
+              {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
+          <div className="flex items-center gap-2 pt-0.5">
+            <button
+              onClick={() => onCommentMore()}
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium"
+              style={{ border: `1px solid ${c.border2}`, color: c.text, background: c.panel2 }}
+            >
+              <MessageSquarePlus size={12} /> Comment more
+            </button>
+            <button
+              onClick={onClose}
+              className="ml-auto rounded-lg px-3 py-1.5 text-[12px] font-medium"
+              style={{ color: c.dim }}
+            >
+              Done
+            </button>
+          </div>
         </div>
+      ) : (
+        <>
+          {target.text && (
+            <div className="mb-2 truncate text-[11px]" style={{ color: c.dim }}>
+              “{target.text}”
+            </div>
+          )}
+          <textarea
+            autoFocus
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit();
+            }}
+            placeholder="What should change here?"
+            spellCheck={false}
+            className="h-16 w-full resize-none rounded-lg p-2.5 text-[12px] leading-[1.5] outline-none"
+            style={{ fontFamily: "var(--font-sans)", background: c.bg, border: `1px solid ${c.border}`, color: c.text }}
+          />
+          <div className="mt-2 flex items-center justify-between">
+            <span className="text-[10px]" style={{ color: c.faint }}>
+              ⌘↵ to save
+            </span>
+            <button
+              onClick={submit}
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-semibold disabled:opacity-50"
+              style={{ background: c.invBg, color: c.invFg }}
+              disabled={!text.trim()}
+            >
+              <MessageSquarePlus size={12} />
+              Save comment
+            </button>
+          </div>
+        </>
       )}
-      <textarea
-        autoFocus
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit();
-        }}
-        placeholder="What should change here?"
-        spellCheck={false}
-        className="h-16 w-full resize-none rounded-lg p-2.5 text-[12px] leading-[1.5] outline-none"
-        style={{ fontFamily: "var(--font-sans)", background: c.bg, border: `1px solid ${c.border}`, color: c.text }}
-      />
-      <div className="mt-2 flex items-center justify-between">
-        <span className="text-[10px]" style={{ color: c.faint }}>
-          {sent ? "✓ sent to agent" : "⌘↵ to send"}
-        </span>
-        <button
-          onClick={submit}
-          className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-semibold"
-          style={{ background: c.invBg, color: c.invFg }}
-        >
-          <Send size={12} />
-          Send
-        </button>
-      </div>
     </div>
   );
 }
