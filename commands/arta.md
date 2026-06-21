@@ -1,6 +1,6 @@
 ---
-description: Arta — design in the live canvas; `update`, `restart`, `feedback`, or `review`
-argument-hint: <what to design> | update | restart | feedback | review [screen]
+description: Arta — design in the live canvas; `open`, `update`, `restart`, `feedback`, or `review`
+argument-hint: <what to design> | open | update | restart | feedback | review [screen]
 ---
 
 The user ran `/arta` with arguments: **$ARGUMENTS**
@@ -40,6 +40,22 @@ viewer got into a bad state:
 2. Tell the user the URL it returns and to **hard-refresh** the tab (the browser may have
    cached the old assets). If the tool reports the launcher is missing, fall back to
    `bunx github:AssetsArt/arta`.
+
+## If the argument is `open` (or begins with "open")
+
+Just bring the canvas up — no brainstorming, no designing. Use this to look at the
+prototype, or to switch between projects when one viewer hosts several:
+
+1. Call the `arta_start_viewer` MCP tool (optionally pass `port` if they run it off the
+   default 7317). It's idempotent — it launches the viewer from the installed plugin if
+   none is up, or reuses the one already running, and registers **this** project so it
+   appears in the viewer's project switcher.
+2. Tell the user the URL it returns (default http://localhost:7317). **One viewer can
+   host several projects:** if it's already showing a different one, they pick this
+   project from the switcher in the top bar (the choice is remembered). If the tool
+   reports the launcher is missing, fall back to `bunx github:AssetsArt/arta`.
+
+Don't design or change anything in open mode — just open the viewer and report the URL.
 
 ## If the argument is `feedback` (or begins with "feedback")
 
