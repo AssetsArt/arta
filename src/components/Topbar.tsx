@@ -12,12 +12,7 @@ export function Topbar({ meta }: { meta: Meta }) {
       style={{ borderBottom: `1px solid ${c.border}`, background: c.bg }}
     >
       <div className="flex items-center gap-[9px] whitespace-nowrap">
-        <div
-          className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md text-[13px] font-bold"
-          style={{ background: c.invBg, color: c.invFg, letterSpacing: "-0.5px" }}
-        >
-          H
-        </div>
+        <ArtaMark size={22} frame={c.text} dot={c.accent} />
         <span className="text-[14px] font-semibold tracking-[-0.2px]" style={{ color: c.text }}>
           Arta
         </span>
@@ -57,6 +52,19 @@ export function Topbar({ meta }: { meta: Meta }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// The Arta mark — a solid "A" wedge inside a rounded canvas frame, with a live-agent
+// accent dot. Monochrome: `frame` colours the frame + A (so it inverts with the theme),
+// `dot` follows the accent preset. Mirrors public/favicon.svg + docs/arta-mark.svg.
+function ArtaMark({ size = 22, frame, dot }: { size?: number; frame: string; dot: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" role="img" aria-label="Arta" className="block shrink-0">
+      <rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke={frame} strokeWidth="1.8" />
+      <path d="M12 6.6 L16.6 16 L13.9 16 L12 11.9 L10.1 16 L7.4 16 Z" fill={frame} />
+      <circle cx="17.4" cy="6.6" r="1.7" fill={dot} />
+    </svg>
   );
 }
 

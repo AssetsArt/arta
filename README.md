@@ -1,4 +1,8 @@
+<img src="docs/arta-mark.svg" alt="Arta" width="64" height="64" align="left" />
+
 # Arta
+
+<br clear="left" />
 
 A live design canvas you leave running while an AI coding agent (Claude Code)
 designs an app **into your screen** — prototype, spec, data model, flow, and plan —
@@ -30,7 +34,7 @@ Three layers, one loop:
 ## What it looks like
 
 Below is the **Arta viewer** with its seeded demo loaded — **Helix**, a
-landing site for a "unified runtime for AI agents." The dark app chrome is the studio;
+landing site for a "unified runtime for AI agents." The dark app chrome is Arta;
 the prototype lives inside the device frame. The same `.arta/` canvas drives all five
 tabs.
 
@@ -41,9 +45,9 @@ screen list and frame switcher on the left and the spec rail on the right.*
 
 | Data model — entities as an ER diagram | Flow (API) — routes, middleware & screen→API edges |
 |---|---|
-| [![Studio — data model](docs/demo_02.png)](docs/demo_02.png) | [![Studio — API flow](docs/demo_03.png)](docs/demo_03.png) |
+| [![Arta — data model](docs/demo_02.png)](docs/demo_02.png) | [![Arta — API flow](docs/demo_03.png)](docs/demo_03.png) |
 | **Architecture — C4 system diagram + ADRs** | **Plan — a Kanban of milestones & tasks** |
-| [![Studio — architecture](docs/demo_04.png)](docs/demo_04.png) | [![Studio — plan](docs/demo_05.png)](docs/demo_05.png) |
+| [![Arta — architecture](docs/demo_04.png)](docs/demo_04.png) | [![Arta — plan](docs/demo_05.png)](docs/demo_05.png) |
 
 One canvas, five views: the prototype is real HTML (a terminal-native design system —
 near-black, monospace-forward, one phosphor-green accent, with a live CLI hero, clickable
