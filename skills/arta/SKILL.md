@@ -197,6 +197,18 @@ a document.
 Move the phase with `arta_set_phase` as each is settled. Don't race ahead — let
 the dev react at each step.
 
+> **HARD-GATE — the prototype is the approval checkpoint.** Build **Prototype + Spec**
+> first and **stop there** until the dev has clicked through it and explicitly approved
+> it. Do **not** start Data / Flow / Architecture / Plan on your own initiative before
+> that sign-off. Within the prototype, work **one screen at a time** — set it,
+> self-review it (below), ask the dev to open it (that's also what captures the
+> snapshot you review), fold in their reaction, then the next screen. Building every
+> phase in one autonomous sprint — five screens, then data, flow, architecture and plan,
+> all before the dev has reacted to a single screen — is the **#1 way this tool
+> disappoints**. The dev wants to *shape* the product on the canvas with you, not be
+> handed a finished pile to accept or reject. "Faster" here is slower: you'll redo the
+> later phases once the prototype shifts.
+
 ## How to work
 
 1. **On a fresh design request, brainstorm first** (above) and get a direction
@@ -225,6 +237,11 @@ Do this for every screen you touched:
 1. **Look at the pixels** — `arta_get_screenshot` for each screen, and actually read
    the image. The snapshot is the full framed device (chrome + safe area), i.e. exactly
    what the dev sees. Also check `arta_get_view`'s `errors` for runtime/icon problems.
+   **No snapshot yet** (the dev hasn't opened that screen — a fresh build has none)? It
+   is *never* a reason to skip review or jump to the next phase. Review your own
+   **markup** instead (read it back with `arta_get_screen`, run the checklist + craft
+   check below — none of those need a snapshot), and **ask the dev to open the screen**
+   so the pixels get captured. Then you both look.
 2. **Run the craft check** — `arta_design_review` on the screen(s); fix every finding
    (gradient text, side-stripe borders, low contrast, identical card grids, blank icons…).
    It's a static reader, so it has blind spots: it can't resolve a Tailwind colour utility

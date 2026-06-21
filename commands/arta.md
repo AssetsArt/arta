@@ -100,13 +100,24 @@ Run a design-quality pass on the prototype — catch AI-slop before the dev does
    run installs the viewer's deps, so it may take a few seconds to come up. (If the
    tool isn't available, fall back: have them run `bunx github:AssetsArt/arta`
    in this project.)
-3. **Once the direction is approved, run the prototype-based loop:**
-   Prototype + Spec → Data model → Flow → Plan. `arta_set_phase` to `prototype`,
-   then write to `.arta/` with the `arta_*` MCP tools (`arta_set_screen`,
-   `arta_set_component`, `arta_patch_state`, …), editing one piece at a time.
-4. **Close the loop:** after meaningful changes, check `arta_get_view` (what the
-   dev is looking at, plus any errors), `arta_get_screenshot` (see your own
-   render), and `arta_get_feedback` (notes the dev left). React to what you find.
+3. **Build the PROTOTYPE first — and stop there until the dev is happy with it.**
+   The prototype is the approval checkpoint, not a phase to blow past. `arta_set_phase`
+   to `prototype`, then with the `arta_*` tools (`arta_set_screen`, `arta_set_component`,
+   `arta_patch_state`, …) build the key screens **one at a time** — set a screen,
+   self-review your own work, ask the dev to open that screen in the viewer (that's also
+   the only way a snapshot is captured, so you can then check `arta_get_screenshot`),
+   fold in their reaction, then the next screen.
+   **HARD-GATE: do NOT touch Data model / Flow / Architecture / Plan until the dev has
+   clicked through the prototype and explicitly said it's good.** Building all five
+   phases in one autonomous sprint — five screens, then data, flow, architecture and
+   plan, before the dev has reacted to a single screen — is the #1 way this disappoints.
+   The dev wants to *shape* the product on the canvas with you, not be handed a finished
+   pile to accept or reject.
+4. **Only after the prototype is approved, advance ONE phase at a time** — Data model →
+   Flow → Architecture → Plan — `arta_set_phase` for each and **pause for the dev's
+   reaction before the next**. After every change close the loop: `arta_get_view` (what
+   the dev is looking at, plus any errors), `arta_get_screenshot` (see your own render
+   once they've opened the screen), and `arta_get_feedback` (notes the dev left).
 
 5. **When the design is approved, implement with subagents.** Don't hand-code the
    whole thing in one context — use `superpowers:subagent-driven-development`. The
