@@ -9,6 +9,7 @@ import { Topbar } from "./components/Topbar";
 import { TabBar } from "./components/TabBar";
 import { StatusBar } from "./components/StatusBar";
 import { StateDrawer } from "./components/StateDrawer";
+import { ErrorBoundary } from "./components/ui/ErrorBoundary";
 import { PrototypeTab } from "./components/tabs/PrototypeTab";
 import { DataTab } from "./components/tabs/DataTab";
 import { FlowTab } from "./components/tabs/FlowTab";
@@ -117,6 +118,7 @@ function AppInner() {
       <TabBar tab={tab} setTab={setTab} />
 
       <div className={"relative flex min-h-0 flex-1" + (flashing ? " hs-flash" : "")}>
+        <ErrorBoundary resetKey={updatedAt} onError={onError}>
         <Routes>
           <Route
             path="/prototype"
@@ -141,6 +143,7 @@ function AppInner() {
           <Route path="/plan" element={<PlanTab plan={data.plan ?? {}} />} />
           <Route path="*" element={<Navigate to="/prototype" replace />} />
         </Routes>
+        </ErrorBoundary>
       </div>
 
       <StatusBar

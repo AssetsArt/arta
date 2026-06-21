@@ -9,12 +9,17 @@ export interface Meta {
   phase: Phase | "spec" | "dataModel" | string;
 }
 
+/** A user/persona. The AI may write a bare string ("Host") or a richer object. */
+export type SpecUser = string | { name?: string; role?: string; need?: string };
+
 export interface Spec {
   goal?: string;
-  users?: string[];
-  userStories?: string[];
+  // Permissive on purpose — the AI writes these freely. The rail normalizes each
+  // item to a label before rendering, so a stray object never crashes the viewer.
+  users?: SpecUser[];
+  userStories?: (string | Record<string, unknown>)[];
   scope?: { in?: string[]; out?: string[] };
-  constraints?: string[];
+  constraints?: (string | Record<string, unknown>)[];
 }
 
 export type TaskStatus = "todo" | "doing" | "done"; // legacy default ids

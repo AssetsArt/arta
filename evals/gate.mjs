@@ -15,8 +15,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { renderToString } from "react-dom/server";
+import { createElement as h } from "react";
 import { grade } from "./grade.mjs";
 import { compileTokens } from "../src/lib/prototype.ts";
+import { ThemeProvider } from "../src/lib/theme.tsx";
+import { SpecRail } from "../src/components/tabs/SpecRail.tsx";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CHECKS = ["A1a_tokens_defined", "A1b_tokens_used", "A2_shared", "A3_interactivity", "A4_render", "A5_design"];
@@ -57,6 +61,37 @@ function runSpecs() {
   return { ok: rows.every((r) => r.ok), rows };
 }
 
+// ── Render-layer spec: SpecRail must survive object-shaped data ──────────────
+// The AI writes .arta/state.json freely, so a spec array item can arrive as an
+// OBJECT (e.g. a user as { name, need }) instead of a string. Before the guard,
+// SpecRail passed that object straight to JSX → React threw "Objects are not valid
+// as a React child" and, with no error boundary, took down the WHOLE viewer (blank
+// screen). Real regression observed in a Carfe (queue-SaaS) build. Locked in here:
+// the rail renders the richer shape, never crashes, and never leaks "[object Object]".
+function runSpecRailSpecs() {
+  const rows = [];
+  const spec = (name, ok, detail) => rows.push({ name, ok, detail });
+  const badSpec = {
+    goal: "queue system",
+    users: [{ name: "Host", need: "call the next ticket" }, "Walk-in customer"],
+    userStories: ["As a host, I want to call the next queue", { broken: "object" }],
+    scope: { in: ["Live board"], out: ["Billing"] },
+    constraints: ["readable at distance", { broken: "object" }],
+  };
+  let html = "";
+  try {
+    html = renderToString(h(ThemeProvider, null, h(SpecRail, { spec: badSpec, open: true, onToggle: () => {} })));
+    spec("renders object-shaped spec without throwing", html.length > 0);
+  } catch (e) {
+    spec("renders object-shaped spec without throwing", false, e?.message);
+  }
+  spec("object user renders its name", html.includes("Host"));
+  spec("object user renders its need", html.includes("call the next ticket"));
+  spec("string user still renders", html.includes("Walk-in customer"));
+  spec("no raw [object Object] leaks into markup", html.length > 0 && !html.includes("[object Object]"));
+  return { ok: rows.every((r) => r.ok), rows };
+}
+
 // ── CI core: gate the committed targets ─────────────────────────────────────
 function runGate(json) {
   const rows = [];
@@ -64,6 +99,8 @@ function runGate(json) {
   let regressed = false;
   const specs = runSpecs();
   if (!specs.ok) regressed = true;
+  const railSpecs = runSpecRailSpecs();
+  if (!railSpecs.ok) regressed = true;
 
   for (const t of TH.targets) {
     const r = grade(t.brief, path.join(ROOT, t.dir));
@@ -103,7 +140,7 @@ function runGate(json) {
   }
 
   if (json) {
-    console.log(JSON.stringify({ mode: "gate", ok: !regressed, a5Skipped: [...a5Skipped], rows, specs: specs.rows }, null, 2));
+    console.log(JSON.stringify({ mode: "gate", ok: !regressed, a5Skipped: [...a5Skipped], rows, specs: specs.rows, railSpecs: railSpecs.rows }, null, 2));
     return !regressed;
   }
 
@@ -121,6 +158,9 @@ function runGate(json) {
 
   console.log("\n  RENDER-LAYER SPECS — font parity (snapshot ↔ live)\n");
   for (const s of specs.rows) console.log("  " + (s.ok ? GLYPH.pass : GLYPH.fail) + " " + pad(s.name, 44) + (s.detail ? "  " + s.detail : ""));
+
+  console.log("\n  RENDER-LAYER SPECS — spec rail tolerates object-shaped data\n");
+  for (const s of railSpecs.rows) console.log("  " + (s.ok ? GLYPH.pass : GLYPH.fail) + " " + pad(s.name, 44) + (s.detail ? "  " + s.detail : ""));
 
   console.log("\n  " + (regressed ? "GATE FAILED — a committed target or render-layer spec regressed." : "GATE PASSED — all committed targets hold the baseline.") + "\n");
   return !regressed;
