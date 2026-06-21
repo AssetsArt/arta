@@ -89,28 +89,56 @@ export async function exportPrototypePdf(
   const screens = (proto.screens || []).filter((s) => typeof s.html === "string" && s.html.trim().length > 0);
   if (!screens.length) throw new Error("No freeform screens to export — this exports hi-fi (HTML) screens.");
 
-  const pages: Array<{ dataUrl: string; w: number; h: number }> = [];
-  for (let i = 0; i < screens.length; i++) {
-    const s = screens[i];
-    onProgress?.({ done: i, total: screens.length, label: s.title || s.id });
-    const dataUrl = await renderScreenFull(proto, s);
-    if (!dataUrl) continue;
-    pages.push({ dataUrl, ...(await imageSize(dataUrl)) });
+  // Open the destination tab NOW — synchronously, while we're still inside the click
+  // gesture. Opening it AFTER the async render below counts as a non-user popup and gets
+  // blocked (the export then silently does nothing). We fill this tab with the finished PDF,
+  // or fall back to a direct download if the popup was blocked anyway.
+  const win = window.open("", "_blank");
+  if (win?.document?.body) {
+    win.document.title = "Exporting…";
+    const msg = win.document.createElement("div");
+    msg.textContent = "Generating PDF…"; // static text — set via textContent, no markup injection
+    msg.setAttribute("style", "display:grid;place-items:center;height:100vh;font-family:system-ui,sans-serif;color:#71717a");
+    win.document.body.style.margin = "0";
+    win.document.body.appendChild(msg);
   }
-  if (!pages.length) throw new Error("Nothing captured.");
-  onProgress?.({ done: screens.length, total: screens.length, label: "Building PDF…" });
 
-  // One page per screenshot, page sized to the image. The capture is @2x, so the logical
-  // page is half its pixels (keeps the PDF dimensions sane while the image stays crisp).
-  let pdf: jsPDF | null = null;
-  for (const p of pages) {
-    const w = Math.max(1, Math.round(p.w / 2));
-    const h = Math.max(1, Math.round(p.h / 2));
-    if (!pdf) pdf = new jsPDF({ unit: "px", format: [w, h], orientation: w >= h ? "landscape" : "portrait" });
-    else pdf.addPage([w, h], w >= h ? "landscape" : "portrait");
-    pdf.addImage(p.dataUrl, "PNG", 0, 0, w, h);
+  try {
+    const pages: Array<{ dataUrl: string; w: number; h: number }> = [];
+    for (let i = 0; i < screens.length; i++) {
+      const s = screens[i];
+      onProgress?.({ done: i, total: screens.length, label: s.title || s.id });
+      const dataUrl = await renderScreenFull(proto, s);
+      if (!dataUrl) continue;
+      pages.push({ dataUrl, ...(await imageSize(dataUrl)) });
+    }
+    if (!pages.length) throw new Error("Nothing captured.");
+    onProgress?.({ done: screens.length, total: screens.length, label: "Building PDF…" });
+
+    // One page per screenshot, page sized to the image. The capture is @2x, so the logical
+    // page is half its pixels (keeps the PDF dimensions sane while the image stays crisp).
+    let pdf: jsPDF | null = null;
+    for (const p of pages) {
+      const w = Math.max(1, Math.round(p.w / 2));
+      const h = Math.max(1, Math.round(p.h / 2));
+      if (!pdf) pdf = new jsPDF({ unit: "px", format: [w, h], orientation: w >= h ? "landscape" : "portrait" });
+      else pdf.addPage([w, h], w >= h ? "landscape" : "portrait");
+      pdf.addImage(p.dataUrl, "PNG", 0, 0, w, h);
+    }
+
+    const url = String(pdf!.output("bloburl"));
+    if (win) {
+      win.location.href = url; // show the PDF in the tab we already opened in-gesture (not blocked)
+    } else {
+      // Popup blocked despite the in-gesture open — download the file straight to Downloads.
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "arta-prototype.pdf";
+      a.click();
+    }
+    return pages.length;
+  } catch (e) {
+    if (win) win.close(); // don't leave the "Generating…" placeholder tab hanging
+    throw e;
   }
-  // Open the PDF in a new tab — the dev saves it from the browser's PDF viewer.
-  window.open(pdf!.output("bloburl"), "_blank");
-  return pages.length;
 }
