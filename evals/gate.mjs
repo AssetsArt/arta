@@ -107,6 +107,10 @@ function runFrameSpecs() {
   const src = fs.readFileSync(path.join(ROOT, "src/components/proto/FreeformDevice.tsx"), "utf8").replace(/\s+/g, "");
   spec("frame establishes a full height chain (html,body height:100%)", /html,body\{[^}]*height:100%/.test(src), "html,body height:100%");
   spec("body background defaults to the page colour, not white", src.includes("background:var(--color-bg,#fff)"), "body background:var(--color-bg,#fff)");
+  // A stray <a href> in a srcdoc frame would load the viewer into itself (nested Arta);
+  // the runtime must intercept href clicks and inject the screen list to recover them.
+  spec("runtime intercepts raw <a href> navigation", src.includes("closest('a[href]')") && src.includes("functionwarnHref"), "a[href] interceptor + warnHref");
+  spec("screen list injected so href can resolve to a real screen", src.includes("window.__SCREENS__"), "__SCREENS__");
   return { ok: rows.every((r) => r.ok), rows };
 }
 
@@ -182,7 +186,7 @@ function runGate(json) {
   console.log("\n  RENDER-LAYER SPECS — spec rail tolerates object-shaped data\n");
   for (const s of railSpecs.rows) console.log("  " + (s.ok ? GLYPH.pass : GLYPH.fail) + " " + pad(s.name, 44) + (s.detail ? "  " + s.detail : ""));
 
-  console.log("\n  RENDER-LAYER SPECS — device frame fills to the bottom edge (no white band)\n");
+  console.log("\n  RENDER-LAYER SPECS — device frame: fills to bottom + blocks stray <a href> nav\n");
   for (const s of frameSpecs.rows) console.log("  " + (s.ok ? GLYPH.pass : GLYPH.fail) + " " + pad(s.name, 52) + (s.detail ? "  " + s.detail : ""));
 
   console.log("\n  " + (regressed ? "GATE FAILED — a committed target or render-layer spec regressed." : "GATE PASSED — all committed targets hold the baseline.") + "\n");

@@ -229,6 +229,7 @@ export function PrototypeTab({
           >
             <FreeformDevice
               screenId={cur.id}
+              screenIds={screens.map((s) => s.id)}
               title={cur.title}
               html={resolveScreenHtml(prototype, cur)}
               css={cur.css}

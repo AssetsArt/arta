@@ -12,6 +12,9 @@ export interface AnnotateTarget {
 
 interface Props {
   screenId: string;
+  /** All screen ids in the prototype — injected so the frame can resolve a stray
+   *  `<a href="screenId">` to a real nav instead of letting it reload the viewer. */
+  screenIds: string[];
   title: string;
   html: string;
   css: string | undefined;
@@ -39,9 +42,20 @@ const RUNTIME = `
 (function(){
   var store = window.__STORE__ || {};
   var screenId = window.__SCREEN__;
+  var SCREENS = window.__SCREENS__ || [];
   var annotate = false;
   function up(msg){ parent.postMessage(Object.assign({ source:'arta-frame' }, msg), '*'); }
   function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
+  function safeSel(s){ try { return document.querySelector(s); } catch(_){ return null; } }
+  // The prototype navigates via data-to, never a real href. This frame is a srcdoc
+  // iframe, so a relative href resolves against the VIEWER origin — clicking it would
+  // load the whole Arta app INTO the frame (a viewer nested in itself). Warn once per
+  // bad href so arta_get_view surfaces it and the agent switches to data-to.
+  var _hrefWarned = {};
+  function warnHref(h){
+    if(_hrefWarned[h]) return; _hrefWarned[h] = 1;
+    up({ type:'error', message: 'a link used href="' + h + '" to navigate — use data-to="screenId" instead; in the prototype an href reloads the viewer into itself.' });
+  }
   // Render any <i data-lucide="name"> placeholders into SVGs (lucide loads from
   // the CDN injected in <head>). Idempotent — safe to call repeatedly. After it
   // runs, any <i data-lucide> still in the DOM had an UNKNOWN icon name (a typo /
@@ -115,6 +129,22 @@ const RUNTIME = `
     }, true);
     document.addEventListener('click', function(e){
       if(annotate) return;
+      // Intercept raw <a href> nav before anything else (see warnHref). A bare data-*
+      // anchor is handled below; only plain hrefs reach here.
+      var a = e.target.closest('a[href]');
+      if(a && !a.hasAttribute('data-to') && !a.hasAttribute('data-set') && !a.hasAttribute('data-inc') && !a.hasAttribute('data-dec')){
+        var href = a.getAttribute('href') || '';
+        if(href.charAt(0) === '#'){ if(href === '#' || !safeSel(href)) e.preventDefault(); return; }
+        e.preventDefault();
+        warnHref(href);
+        // If the href names a real screen (e.g. href="/customer-status"), do that nav
+        // so the agent's mistake still lands on the right screen; otherwise it's a safe
+        // no-op (the destructive frame-reload is already prevented).
+        var seg = href.replace(/[?#].*$/, '').replace(/^[a-z]+:\\/\\/[^/]+/i, '').replace(/^[./]+/, '').replace(/\\/+$/, '').replace(/\\.html?$/i, '');
+        var id = seg.split('/').pop();
+        if(id && SCREENS.indexOf(id) > -1) up({ type:'nav', to: id });
+        return;
+      }
       var t = e.target.closest('[data-to],[data-set],[data-inc],[data-dec]');
       if(!t) return;
       e.preventDefault();
@@ -172,6 +202,7 @@ const HEAD_LIBS =
 
 export function FreeformDevice({
   screenId,
+  screenIds,
   title,
   html,
   css,
@@ -188,6 +219,11 @@ export function FreeformDevice({
   const frameRef = useRef<HTMLIFrameElement>(null);
   const storeRef = useRef<StoreState>(store);
   storeRef.current = store;
+  const screenIdsRef = useRef(screenIds);
+  screenIdsRef.current = screenIds;
+  // Stable dep so the iframe only rebuilds when the screen LIST actually changes,
+  // not on every render (screenIds is a fresh array each time).
+  const screensKey = screenIds.join("");
 
   // Keep callbacks in refs so the single message listener never re-subscribes.
   const cbs = useRef({ go, onStore, onError, onAnnotate });
@@ -195,12 +231,12 @@ export function FreeformDevice({
 
   const srcDoc = useMemo(() => {
     const sheet = `${BASE_CSS}\n${designSystem ?? ""}\n${css ?? ""}`;
-    const boot = `<script>window.__STORE__=${JSON.stringify(storeRef.current)};window.__SCREEN__=${JSON.stringify(screenId)}</script>`;
+    const boot = `<script>window.__STORE__=${JSON.stringify(storeRef.current)};window.__SCREEN__=${JSON.stringify(screenId)};window.__SCREENS__=${JSON.stringify(screenIdsRef.current)}</script>`;
     // boot + runtime go in <head> so error capture is armed before the body
     // (and any screen-authored <script>) runs.
     return `<!doctype html><html><head><meta charset="utf-8">${FONT_LINK}<style>${sheet}</style>${boot}<script>${RUNTIME}</script>${HEAD_LIBS}</head><body>${html}</body></html>`;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screenId, html, css, designSystem, storeVersion]);
+  }, [screenId, html, css, designSystem, storeVersion, screensKey]);
 
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
