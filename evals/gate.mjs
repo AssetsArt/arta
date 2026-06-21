@@ -127,6 +127,10 @@ function runFrameSpecs() {
   // scrollbar) and a gradient cover (so an image slot is never a bare gray box).
   spec("BASE_CSS ships the horizontal rail primitive (.hs-rail)", src.includes(".hs-rail{"), ".hs-rail");
   spec("BASE_CSS ships a gradient cover, not a gray box (.hs-cover)", src.includes(".hs-cover{") && src.includes("linear-gradient"), ".hs-cover gradient");
+  // modern-screenshot can't render backdrop-filter (frosted glass), so a `bg-white/90
+  // backdrop-blur` bar smears the content behind it. The capture neutralizes it (blur off +
+  // opaque bg) so bars render solid. Lock the helper in for both the framed and full shots.
+  spec("snapshot neutralizes backdrop-filter (no frosted-glass smear)", src.includes("neutralizeBackdropBlur") && src.includes('backdropFilter="none"'), "backdrop-blur neutralize");
   return { ok: rows.every((r) => r.ok), rows };
 }
 

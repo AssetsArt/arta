@@ -218,6 +218,39 @@ export async function captureFramedPng(node: HTMLElement): Promise<string> {
   return domToPng(node, { scale: 2, height: Math.min(node.scrollHeight, 2400) });
 }
 
+// modern-screenshot can't render `backdrop-filter: blur()` (frosted glass) — a
+// `bg-white/90 backdrop-blur` bar (a sticky header, a bottom CTA, a tabbar) comes out as a
+// translucent GHOST smearing the content behind it. For the shot, drop the blur and make the
+// (usually translucent) background opaque, so the bar reads as the clean solid bar the dev
+// effectively sees. Returns a restore fn. Applied to both the framed and full captures (and
+// the PDF export, via captureFullPng), then reverted so the live view is untouched.
+function neutralizeBackdropBlur(doc: Document): () => void {
+  const win = doc.defaultView;
+  if (!win) return () => {};
+  const saved: Array<[HTMLElement, Record<string, string>]> = [];
+  doc.querySelectorAll<HTMLElement>("*").forEach((el) => {
+    const cs = win.getComputedStyle(el);
+    const bf = cs.backdropFilter || (cs as unknown as Record<string, string>).webkitBackdropFilter || "";
+    if (!bf || bf === "none") return;
+    const prev: Record<string, string> = {
+      backdropFilter: el.style.backdropFilter,
+      webkitBackdropFilter: (el.style as unknown as Record<string, string>).webkitBackdropFilter,
+      backgroundColor: el.style.backgroundColor,
+    };
+    (el.style as unknown as Record<string, string>).backdropFilter = "none";
+    (el.style as unknown as Record<string, string>).webkitBackdropFilter = "none";
+    const m = cs.backgroundColor.match(/^rgba?\(([^)]+)\)/); // drop the alpha → a solid bar, not a ghost
+    if (m) {
+      const p = m[1].split(",").map((s) => s.trim());
+      if (p.length >= 3) el.style.backgroundColor = `rgb(${p[0]}, ${p[1]}, ${p[2]})`;
+    }
+    saved.push([el, prev]);
+  });
+  return () => {
+    for (const [el, prev] of saved) for (const k of Object.keys(prev)) (el.style as unknown as Record<string, string>)[k] = prev[k];
+  };
+}
+
 // Snapshot the WHOLE screen at content length, in one tall image. A modern app screen
 // scrolls inside an INNER overflow region (a fixed-height shell of header + scroll-body +
 // tabbar), so the DOCUMENT itself doesn't scroll and documentElement.scrollHeight only
@@ -244,6 +277,8 @@ export async function captureFullPng(doc: Document, opts: { always?: boolean } =
   const docScrolls = root.scrollHeight > root.clientHeight + 8;
   if (!scrollers.length && !docScrolls && !opts.always) return null; // fits — framed shot is complete
 
+  // Drop frosted-glass (backdrop-filter) so bars render solid, not as a translucent smear.
+  const restoreBlur = neutralizeBackdropBlur(doc);
   // Build temporary style overrides per element (a Map dedups, so a node reached twice —
   // e.g. <body> via two scrollers — is saved once and restores cleanly), then apply,
   // capture, and restore byte-for-byte.
@@ -273,6 +308,7 @@ export async function captureFullPng(doc: Document, opts: { always?: boolean } =
     return await domToPng(root, { scale: 2, height: Math.min(fullH, 12000), backgroundColor: bg });
   } finally {
     for (const [el, prev] of saved) for (const k of Object.keys(prev)) (el.style as unknown as Record<string, string>)[k] = prev[k];
+    restoreBlur();
   }
 }
 
@@ -365,7 +401,12 @@ export function FreeformDevice({
         // this one iframe DOM and the full shot temporarily MUTATES it (unclamping scroll
         // regions, re-rooting bars), so they must never overlap — both live in captureFullPng,
         // the same helper the PDF export uses, so the two stay in sync.
-        try { reportSnapshot(screenId, await captureFramedPng(node)); } catch { /* keep prior framed shot */ }
+        // Framed shot: neutralize frosted glass (backdrop-blur) just for the capture, so a
+        // sticky header / bottom CTA doesn't smear; captureFullPng does the same internally.
+        const restoreBlur = neutralizeBackdropBlur(doc);
+        try { reportSnapshot(screenId, await captureFramedPng(node)); }
+        catch { /* keep prior framed shot */ }
+        finally { restoreBlur(); }
         const full = await captureFullPng(doc);
         if (full) reportSnapshot(screenId, full, true);
       } finally {
