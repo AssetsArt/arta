@@ -38,16 +38,16 @@ landing site for a "unified runtime for AI agents." The dark app chrome is Arta;
 the prototype lives inside the device frame. The same `.arta/` canvas drives all five
 tabs.
 
-[![Arta — the Helix prototype in a device frame](docs/demo_01_B1.png)](docs/demo_01_B1.png)
+[![Arta — the Helix prototype in a device frame](docs/arta-hero.png)](docs/arta-hero.png)
 
 *Prototype + Spec — the clickable Helix design rendered in a real device frame, with the
 screen list and frame switcher on the left and the spec rail on the right.*
 
 | Data model — entities as an ER diagram | Flow (API) — routes, middleware & screen→API edges |
 |---|---|
-| [![Arta — data model](docs/demo_02.png)](docs/demo_02.png) | [![Arta — API flow](docs/demo_03.png)](docs/demo_03.png) |
+| [![Arta — data model](docs/arta-data-model.png)](docs/arta-data-model.png) | [![Arta — API flow](docs/arta-api-flow.png)](docs/arta-api-flow.png) |
 | **Architecture — C4 system diagram + ADRs** | **Plan — a Kanban of milestones & tasks** |
-| [![Arta — architecture](docs/demo_04.png)](docs/demo_04.png) | [![Arta — plan](docs/demo_05.png)](docs/demo_05.png) |
+| [![Arta — architecture](docs/arta-architecture.png)](docs/arta-architecture.png) | [![Arta — plan](docs/arta-plan.png)](docs/arta-plan.png) |
 
 One canvas, five views: the prototype is real HTML (a terminal-native design system —
 near-black, monospace-forward, one phosphor-green accent, with a live CLI hero, clickable
