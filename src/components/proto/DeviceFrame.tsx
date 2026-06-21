@@ -9,8 +9,9 @@ interface Props {
   /** Colour painted into the phone safe areas (status bar + home indicator);
    *  defaults to white. Status-bar contents auto-contrast against it. */
   safeArea?: string;
-  /** Show the device chrome (status bar + home indicator) on phone frames.
-   *  Default true; false renders Full / full-bleed with no safe area. */
+  /** Show the device chrome (iOS-style status bar + home indicator) on phone frames.
+   *  Default FALSE — the prototype renders full-bleed like a full-screen app: no
+   *  status bar / notch overlay, no safe-area bands, content edge-to-edge. */
   chrome?: boolean;
   /** Ref onto the device's outer element so the snapshot can capture the WHOLE
    *  framed device (bezel + chrome + content), not just the iframe body. */
@@ -53,7 +54,7 @@ function isDarkColor(color: string): boolean {
 
 // Wraps the freeform iframe in a believable device frame so the same HTML can be
 // previewed as desktop web, a native desktop app, or an iOS / Android phone.
-export function DeviceFrame({ frame, url, title, safeArea, chrome = true, rootRef, children }: Props) {
+export function DeviceFrame({ frame, url, title, safeArea, chrome = false, rootRef, children }: Props) {
   if (frame === "ios")
     return (
       <IosFrame title={title} safeArea={safeArea} chrome={chrome} rootRef={rootRef}>
@@ -201,7 +202,7 @@ function StatusIcons({ color }: { color: string }) {
 
 function IosFrame({
   safeArea,
-  chrome = true,
+  chrome = false,
   rootRef,
   children,
 }: {
@@ -252,7 +253,7 @@ function IosFrame({
 
 function AndroidFrame({
   safeArea,
-  chrome = true,
+  chrome = false,
   rootRef,
   children,
 }: {
@@ -310,7 +311,7 @@ function AndroidFrame({
 // same as the phones (chrome:false = full-bleed, no status bar / home indicator).
 function IpadFrame({
   safeArea,
-  chrome = true,
+  chrome = false,
   rootRef,
   children,
 }: {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AppWindow, Maximize, Monitor, MessageSquarePlus, Send, Smartphone, Tablet, X } from "lucide-react";
+import { AppWindow, Monitor, MessageSquarePlus, Send, Smartphone, Tablet, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { FrameKind, Prototype, Spec, StoreState } from "../../lib/types";
 import { LIGHT, MONO, useTheme } from "../../lib/theme";
@@ -56,15 +56,14 @@ export function PrototypeTab({
   const [frameOverride, setFrameOverride] = useState<FrameKind | null>(null);
   useEffect(() => setFrameOverride(null), [stateFrame]);
   const frame = frameOverride ?? stateFrame;
-  // Device frames with a safe area (status bar + home indicator) — they get the
-  // centered canvas layout and the Full-screen (no-safe-area) toggle. iPad included.
+  // Phone / tablet frames — they get the centered canvas layout. iPad included.
   const isMobile = frame === "ios" || frame === "android" || frame === "ipad";
 
-  // Full / full-bleed toggle: hide the status bar + home indicator (no safe area).
-  const stateChrome = cur.chrome ?? prototype.chrome ?? true;
-  const [chromeOverride, setChromeOverride] = useState<boolean | null>(null);
-  useEffect(() => setChromeOverride(null), [stateChrome]);
-  const chrome = chromeOverride ?? stateChrome;
+  // Always full-bleed: the prototype renders like a full-screen app — no iOS status
+  // bar / notch overlay, no safe-area bands, content edge-to-edge (the device bezel
+  // stays). A screen can still opt back into the chrome by setting `chrome: true` in
+  // state, but the default is off and there's no on/off toggle.
+  const chrome = cur.chrome ?? prototype.chrome ?? false;
 
   // The device-frame outer node — the snapshot captures THIS (bezel + chrome + content),
   // so the agent sees the same framed device the dev sees, not a bare content card.
@@ -168,21 +167,6 @@ export function PrototypeTab({
                 );
               })}
             </div>
-            {isMobile && (
-              <button
-                onClick={() => setChromeOverride(!chrome)}
-                className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] font-medium transition-colors"
-                style={{
-                  color: !chrome ? c.text : c.dim,
-                  background: !chrome ? c.panel2 : "transparent",
-                  border: `1px solid ${!chrome ? alpha(c.accent, 0.4) : c.border}`,
-                }}
-                title="Full-bleed — hide the status bar and home indicator (no safe area)"
-              >
-                <Maximize size={13} color={!chrome ? c.accent : c.faint} />
-                Full screen{!chrome ? " · on" : ""}
-              </button>
-            )}
           </div>
         )}
       </div>
