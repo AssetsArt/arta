@@ -20026,15 +20026,15 @@ server.registerTool("arta_get_screen", {
   return text({ id, html });
 });
 server.registerTool("arta_set_screen", {
-  description: "Create or replace one screen: writes only .arta/prototype/screens/<id>.html and upserts the screen's entry in the manifest (title/url/frame/safeArea). Other screens and the rest of the design are untouched. This is how you edit a screen cheaply. For an ios/android/ipad screen, pass `safeArea` so the status-bar + home-indicator bands take the screen's edge colour instead of staying white — or `chrome:false` for a Full / full-bleed screen with no safe area at all (content fills the whole screen). STYLE WITH TAILWIND UTILITY CLASSES (injected live) — not inline style=; use lucide icons (<i data-lucide=\"…\">), never emoji.",
+  description: 'Create or replace one screen: writes only .arta/prototype/screens/<id>.html and upserts the screen\'s entry in the manifest (title/url/frame/safeArea). Other screens and the rest of the design are untouched. This is how you edit a screen cheaply. For an ios/android/ipad screen the content is full-screen and the status bar + notch overlay it by default — so PAD the top/bottom (≈48/28px on ios) so the header and bottom bar clear them, and set `safeArea` to the top-edge colour so the clock auto-contrasts. Pass `chrome:false` to drop the status bar entirely (true edge-to-edge: splash/login/media). STYLE WITH TAILWIND UTILITY CLASSES (injected live) — not inline style=; use lucide icons (<i data-lucide="…">), never emoji.',
   inputSchema: {
     id: exports_external.string(),
     html: exports_external.string().describe("The screen body (HTML). With a layout, just the slot content. Use Tailwind utility classes for styling (NOT inline style=); lucide icons, not emoji. Inline style only for a genuinely dynamic value a utility can't express."),
     title: exports_external.string().optional(),
     url: exports_external.string().optional(),
     frame: exports_external.enum(["web", "desktop", "ios", "android", "ipad"]).optional(),
-    safeArea: exports_external.string().optional().describe("For ios/android/ipad frames: the colour painted into the device safe areas (status bar + home indicator) so the screen reads edge-to-edge instead of leaving white bands. Use any CSS colour — set it to this screen's top/bottom edge colour. Status-bar text auto-contrasts. Empty string clears it."),
-    chrome: exports_external.boolean().optional().describe("Show the device chrome (status bar + home indicator) on ios/android/ipad. Default true. Pass false for a Full / full-bleed screen with NO safe area — content fills the whole screen (splash, camera, media viewer, or a design that draws its own status bar).")
+    safeArea: exports_external.string().optional().describe("For ios/android/ipad frames: the screen's top-edge colour (any CSS colour) so the overlaid status-bar clock + icons auto-contrast. Empty string clears it."),
+    chrome: exports_external.boolean().optional().describe("Chrome mode on ios/android/ipad. Default true = the status bar (real time) + notch + home indicator overlay the full-screen content (pad top/bottom to clear them). false = no status bar at all (splash, camera, media, or a screen that draws its own bars).")
   }
 }, async ({ id, html, title, url, frame, safeArea, chrome }) => {
   fs.mkdirSync(SCREEN_DIR, { recursive: true });
@@ -20203,11 +20203,11 @@ server.registerTool("arta_design_review", {
   return text({ ok: true, target, findings });
 });
 server.registerTool("arta_set_frame", {
-  description: "Set the device frame, safe-area background, and/or chrome visibility — for one screen (pass `screen`) or the prototype default. `safeArea` is the colour painted into a phone's status-bar + home-indicator bands for ios/android/ipad frames; set it to the screen's edge colour so it reads edge-to-edge instead of leaving white bands (status-bar text auto-contrasts), or pass `safeArea: \"\"` to clear it. `chrome:false` renders Full / full-bleed with NO safe area — content fills the whole screen. Provide at least one of `frame` / `safeArea` / `chrome`.",
+  description: 'Set the device frame, safe-area colour, and/or chrome mode — for one screen (pass `screen`) or the prototype default. On ios/android/ipad the content is ALWAYS full-screen (edge-to-edge). `chrome` (default true) overlays the status bar (REAL time) + notch + home indicator ON TOP of the content, so the screen must pad its own top/bottom to clear them (≈48/28px on ios). `safeArea` is the screen\'s top-edge colour so the overlaid clock/icons auto-contrast (pass `safeArea: ""` to clear). `chrome:false` drops the status bar entirely for true edge-to-edge (splash / login / media). Provide at least one of `frame` / `safeArea` / `chrome`.',
   inputSchema: {
     frame: exports_external.enum(["web", "desktop", "ios", "android", "ipad"]).optional(),
-    safeArea: exports_external.string().optional().describe("Safe-area background for ios/android/ipad frames (any CSS colour). Empty string clears it."),
-    chrome: exports_external.boolean().optional().describe("Show the device chrome (status bar + home indicator) on ios/android/ipad. false = Full / full-bleed, no safe area."),
+    safeArea: exports_external.string().optional().describe("The screen's top-edge colour (any CSS colour) so the overlaid status-bar clock/icons auto-contrast on ios/android/ipad. Empty string clears it."),
+    chrome: exports_external.boolean().optional().describe("Chrome mode on ios/android/ipad. Default true = status bar (real time) + notch + home indicator overlay the full-screen content (pad top/bottom to clear them). false = no status bar at all, true edge-to-edge."),
     screen: exports_external.string().optional().describe("Screen id to scope to; omit for the prototype default.")
   }
 }, async ({ frame, safeArea, chrome, screen }) => {
