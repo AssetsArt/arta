@@ -99,10 +99,13 @@ you keep big prototypes cheap to edit):
   properties (`--color-*`, `--space-*`, `--radius-*`, `--shadow-*`, `--text-*`,
   `--font-*`) injected into every screen.
 - `arta_set_frame` — set the device frame, `safeArea` colour, and/or `chrome`
-  (prototype default or per screen). On ios/android/ipad, `safeArea` paints the status-bar
-  + home-indicator bands so a full-bleed screen reads edge-to-edge instead of leaving
-  white bands (contents auto-contrast); `chrome:false` is **Full** — drops those bands
-  entirely so the design fills the whole screen.
+  (prototype default or per screen). Phone/tablet content is ALWAYS full-screen
+  (edge-to-edge). `chrome` (default **true**) overlays the iOS-style status bar (with
+  the **real** time) + notch + home indicator ON TOP of the content — so the screen
+  must pad its own top/bottom to clear them (see "Device frame & safe area" below).
+  `safeArea` is the screen's top-edge colour, used so the clock/icons auto-contrast.
+  `chrome:false` drops the status bar/notch/home-indicator entirely for true
+  edge-to-edge (splash / login / media). There is no on/off toggle — it's saved state.
 
 ## Storage layout (.arta/)
 
@@ -260,8 +263,12 @@ Do this for every screen you touched:
      component now — `data-nav` gives the active state for free, so one shared bar fits all.
    - **The screen fills its frame — no dead band.** A short / confirmation / empty-state
      screen **centers** its content (don't top-align it and leave a white gap below); a
-     list / feed fills top-down. On ios/android/ipad the `safeArea` colour matches the
-     screen's top/bottom edge so it reads edge-to-edge, not floating in white.
+     list / feed fills top-down. On ios/android/ipad set `safeArea` to the top-edge
+     colour so the clock/icons contrast.
+   - **Content clears the status-bar overlay (chrome mode).** On ios/android/ipad with
+     the default chrome, the status bar + notch + home indicator float ON TOP — so the
+     top header and bottom bar/CTA must carry the safe-area padding (≈48/28px ios) or
+     they hide under the clock and home pill. Full-bleed media/splash → `chrome:false`.
    - **Non-Latin text renders in a real font.** Thai / CJK headings set in a Latin display
      face (Instrument Serif / Fraunces / Space Grotesk) fall back to a broken system face —
      collided tone-marks, wrong line-height. Add the `'Noto Sans/Serif Thai'` fallback (or
@@ -527,20 +534,33 @@ element instead. (Run `arta_design_review` to catch them automatically.)
 matches what you're actually building — a mobile app spec should preview in
 `ios`/`android`, a tablet layout in `ipad`, not a browser.
 
-**Full-bleed phone / tablet screens** — for `ios`/`android`/`ipad`, set `safeArea` (on the screen,
-or `prototype.safeArea` as the default) to the screen's top/bottom edge colour so
-the status-bar and home-indicator bands take that colour instead of leaving white
-bands above and below your design. Status-bar text and the home pill auto-contrast
-(light on a dark safe area). Set it via `arta_set_frame` / `arta_set_screen`,
-or in state: `"safeArea": "#0b0b0c"`. A dark app with no `safeArea` looks like it's
-floating in white — match it to the edge colour for a real edge-to-edge look.
+**Device frame & safe area (ios / android / ipad).** Content is **always
+full-screen** — it fills the whole device, edge-to-edge. There are **two chrome
+modes**, set with `chrome` (per screen or `prototype.chrome`); there is no on/off
+toggle in the UI.
 
-**Full screen (no safe area)** — set `chrome: false` (per screen or
-`prototype.chrome`) to drop the simulated status bar and home indicator entirely;
-the design fills the whole phone screen. Use it for splash, login, camera, media
-viewers, or any screen that draws its own top/bottom bars. With `chrome:false`,
-`safeArea` is moot (there are no bands). The viewer's frame switcher also has a
-**Full screen** toggle for previewing this without changing the saved state.
+1. **`chrome: true` (default) — status bar overlaid.** The iOS-style status bar
+   (showing the **real** current time), the notch / Dynamic Island, and the home
+   indicator float **on top of** your content. Because they overlay it, **you must
+   reserve the safe area yourself** — pad the screen's top and bottom so nothing hides
+   under the status bar/notch or the home pill. Rough insets to bake into the top-level
+   padding (or a sticky header):
+   - `ios` — top **≈ 48px** (status bar + Dynamic Island), bottom **≈ 28px** (home indicator)
+   - `android` — top **≈ 32px**, bottom **≈ 20px**
+   - `ipad` — top **≈ 32px**, bottom **≈ 24px**
+
+   Also set **`safeArea`** to the screen's **top-edge colour** (the colour directly
+   under the status bar) so the clock + icons auto-contrast (light on dark, dark on
+   light): `arta_set_frame` / `arta_set_screen`, or `"safeArea": "#0b0b0c"` in state.
+   A sticky/fixed top bar must include the top inset so it sits clear of the status bar.
+
+2. **`chrome: false` — true edge-to-edge, no status bar.** Drops the status bar,
+   notch, and home indicator entirely; the design owns every pixel and needs **no**
+   safe-area padding. Use for splash, login, onboarding, camera, full-bleed media, or
+   any screen that draws its own top/bottom bars.
+
+Default to mode 1 for normal app screens (pad for the overlay), and switch to
+`chrome: false` for the full-bleed cases above.
 
 Example button: `<button class="btn" data-inc="cart">Add to cart</button>` and a
 header badge `<span data-bind="cart">0</span>`.
