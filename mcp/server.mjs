@@ -214,6 +214,35 @@ function killPort(port) {
   return killed;
 }
 
+// Stop EVERY Arta viewer (and its bundled esbuild service) across all installed
+// versions and ports — not just the one LISTENing on a single port. Each plugin
+// version lives at its own cache path, so after a few updates old viewers pile up
+// (and orphan their esbuild children); this is what makes `restart`/`update` actually
+// clean instead of needing a manual kill. Matches by command line; never the MCP self.
+function killAllViewers(signal = "SIGTERM") {
+  const killed = [];
+  try {
+    const out = spawnSync("ps", ["-axo", "pid=,command="], { encoding: "utf8" }).stdout || "";
+    for (const line of out.split("\n")) {
+      const t = line.trim();
+      const sp = t.indexOf(" ");
+      if (sp < 1) continue;
+      const pid = Number(t.slice(0, sp));
+      if (!pid || pid === process.pid) continue;
+      const cmd = t.slice(sp + 1);
+      const isViewer = /[/\\]bin[/\\]arta\.mjs(\s|$)/.test(cmd);
+      const isArtaEsbuild = cmd.includes("esbuild") && /[/\\]arta[/\\]arta[/\\]/.test(cmd);
+      if (isViewer || isArtaEsbuild) {
+        try {
+          process.kill(pid, signal);
+          killed.push(pid);
+        } catch {}
+      }
+    }
+  } catch {}
+  return killed;
+}
+
 // Wait until `port` is free (the old viewer has actually exited) or timeout.
 async function waitPortFree(port, ms = 4000) {
   const start = Date.now();
@@ -947,6 +976,9 @@ server.registerTool(
         project: readJson(STATE_FILE)?.meta?.name || path.basename(path.resolve(PROJECT_DIR)),
         note: `A viewer is already running on this port — reuse it. It can host several projects: if it's showing a different one, pick this project from the switcher in the top bar. (Serving an old build after an update? use arta_restart_viewer.)`,
       });
+    // Port is free → we're spawning THE viewer. First clear any strays left by older
+    // versions / bumped ports so they don't pile up (one viewer hosts every project).
+    killAllViewers();
     const r = spawnViewer(p);
     if (!r.ok)
       return err(
@@ -981,8 +1013,15 @@ server.registerTool(
         `Launcher not found at ${launcher}. The plugin may be installed incompletely; the dev can also run \`bunx github:AssetsArt/arta\` manually.`
       );
     const wasRunning = await portInUse(p);
-    const killed = wasRunning ? killPort(p) : [];
-    const freed = await waitPortFree(p);
+    // Clean slate: stop EVERY Arta viewer (all versions/ports) + the one on this port,
+    // so stale builds from past updates don't linger. Escalate to SIGKILL if needed.
+    const killed = [...new Set([...killAllViewers(), ...killPort(p)])];
+    let freed = await waitPortFree(p);
+    if (!freed) {
+      killAllViewers("SIGKILL");
+      killPort(p);
+      freed = await waitPortFree(p, 2500);
+    }
     if (!freed)
       return err(
         `Port ${p} is still in use after trying to stop the old viewer${
@@ -999,7 +1038,7 @@ server.registerTool(
       url: `http://localhost:${p}`,
       watching: path.join(PROJECT_DIR, ".arta"),
       from: PLUGIN_ROOT,
-      note: `Viewer relaunched from the installed plugin — now matching the installed version. Reload ${`http://localhost:${p}`} in a moment (hard-refresh if your browser cached the old assets). Logs: ${r.logFile}`,
+      note: `Stopped ${killed.length} stale Arta process(es) and relaunched from the installed plugin — now matching the installed version. Reload ${`http://localhost:${p}`} in a moment (hard-refresh if your browser cached the old assets). Logs: ${r.logFile}`,
     });
   }
 );

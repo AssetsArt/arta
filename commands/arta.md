@@ -35,8 +35,10 @@ Re-run the viewer without touching the design — use this to pick up a new buil
 viewer got into a bad state:
 
 1. Call the `arta_restart_viewer` MCP tool (optionally pass `port` if they run it off
-   the default 7317). It stops whatever is serving on the port and relaunches from the
-   installed plugin.
+   the default 7317). It now stops **every** running Arta viewer — all versions and
+   ports, plus any orphaned esbuild service — so stale processes from past updates don't
+   pile up, then relaunches one fresh from the installed plugin. (It reports how many it
+   stopped.) No need to hunt down and kill old processes by hand.
 2. Tell the user the URL it returns and to **hard-refresh** the tab (the browser may have
    cached the old assets). If the tool reports the launcher is missing, fall back to
    `bunx github:AssetsArt/arta`.
