@@ -20249,17 +20249,21 @@ server.registerTool("arta_get_view", {
   return text({ live: true, ...runtime });
 });
 server.registerTool("arta_get_screenshot", {
-  description: "Get a PNG of how a prototype screen actually renders — the same pixels the dev sees, captured by the viewer. Use this to check your work visually instead of reasoning only from the HTML. Returns an image; if none exists yet, the screen may not have been viewed in the browser.",
-  inputSchema: { screen: exports_external.string().describe("Screen id.") }
-}, async ({ screen }) => {
-  const file = path.join(ARTA_DIR, "snapshots", sanitize(screen) + ".png");
-  let buf;
-  try {
-    buf = fs.readFileSync(file);
-  } catch {
-    return text({ exists: false, screen, note: "No snapshot yet — open the viewer and visit this screen." });
+  description: "Get a PNG of how a prototype screen actually renders — the same pixels the dev sees, captured by the viewer. Use this to check your work visually instead of reasoning only from the HTML. Returns an image; if none exists yet, the screen may not have been viewed in the browser. Pass `full: true` for the WHOLE screen at its full content length (the entire scroll captured in one tall image, not just the device viewport) — best for reviewing a long / scrolling screen end to end. When the screen fits the viewport (nothing to scroll) `full` falls back to the framed shot.",
+  inputSchema: {
+    screen: exports_external.string().describe("Screen id."),
+    full: exports_external.boolean().optional().describe("Capture the entire content length (the whole scrollable screen) instead of just the visible device viewport.")
   }
-  return { content: [{ type: "image", data: buf.toString("base64"), mimeType: "image/png" }] };
+}, async ({ screen, full }) => {
+  const dir = path.join(ARTA_DIR, "snapshots");
+  const candidates = full ? [sanitize(screen) + ".full.png", sanitize(screen) + ".png"] : [sanitize(screen) + ".png"];
+  for (const name of candidates) {
+    try {
+      const buf = fs.readFileSync(path.join(dir, name));
+      return { content: [{ type: "image", data: buf.toString("base64"), mimeType: "image/png" }] };
+    } catch {}
+  }
+  return text({ exists: false, screen, note: "No snapshot yet — open the viewer and visit this screen." });
 });
 server.registerTool("arta_get_feedback", {
   description: "Drain the feedback the dev left from inside the viewer (notes attached to a tab/screen). Returns unread items and marks them read. This is how the dev → AI half of the loop closes without leaving the viewer.",
