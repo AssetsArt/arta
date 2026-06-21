@@ -1,103 +1,47 @@
-<img src="docs/arta-mark.svg" alt="Arta" width="64" height="64" align="left" />
+<div align="center">
+
+<img src="docs/arta-mark.svg" alt="Arta" width="76" height="76" />
 
 # Arta
 
-<br clear="left" />
+**Watch your AI design your app — live, on a canvas you can actually see.**
 
-A live design canvas you leave running while an AI coding agent (Claude Code)
-designs an app **into your screen** — prototype, spec, data model, flow, and plan —
-instead of replying with a wall of text. It's `superpowers:brainstorming`, but as a
-picture you can click.
+A live design canvas for the AI-coding era. Your coding agent designs the app onto a
+screen you watch in real time — full prototype, spec, data model, flow, architecture,
+and plan — instead of replying with a wall of text. Free, open-source, runs on your
+machine.
 
-> **Renamed from Harness Studio → Arta.** The plugin id changed (`harness-studio` →
-> `arta`), so existing installs don't auto-update — uninstall the old plugin and
-> install `arta` (see [Install](#install)). The command is now `/arta` (was `/hns`),
-> the MCP tools are `arta_*` (were `harness_*`), and the canvas folder is `.arta/`
-> (was `.harness/`). **Your existing canvas migrates automatically:** the first time
-> the viewer or MCP server starts in a project that still has `.harness/`, it renames
-> it to `.arta/`. Nothing to move by hand.
+![Claude Code plugin](https://img.shields.io/badge/Claude_Code-plugin-111111)
+&nbsp;[![License: MIT](https://img.shields.io/badge/License-MIT-22c55e)](LICENSE)
 
-Three layers, one loop:
+<sub>by **Assets Art**</sub>
 
-| Layer | What it is |
-|---|---|
-| **Viewer (the screen)** | A React + Vite + Tailwind + shadcn-style app showing five tabs — **Prototype + Spec · Data model · Flow (API) · Architecture · Plan** — rendered from the canvas. The prototype is **freeform**: the AI writes real HTML + a shared CSS design system per screen, in a real device frame, wired up with a few attributes. |
-| **Canvas** | A `.arta/` folder in your project. The AI writes it with its normal tools (or the MCP); the viewer watches it and live-reloads in place with a cyan flash. |
-| **Skill + MCP** | A Claude Code skill drives the phases; an MCP server is the agent's eyes & hands — it edits the canvas, *sees* its own render (screenshots) and errors, and reads your feedback. |
-
-```
- ┌─ AI writes .arta/ (skill + MCP) ──▶ viewer repaints; you click, switch frames ─┐
- │                                                                                    │
- └─ AI reads screenshots · errors · feedback ◀── you comment on an element, leave notes┘
-```
-
-## What it looks like
-
-Below is the **Arta viewer** with its seeded demo loaded — **Helix**, a
-landing site for a "unified runtime for AI agents." The dark app chrome is Arta;
-the prototype lives inside the device frame. The same `.arta/` canvas drives all five
-tabs.
+</div>
 
 [![Arta — the Helix prototype in a device frame](docs/arta-hero.png)](docs/arta-hero.png)
 
-*Prototype + Spec — the clickable Helix design rendered in a real device frame, with the
-screen list and frame switcher on the left and the spec rail on the right.*
+<div align="center"><sub><em>The Arta viewer with its seeded demo — <strong>Helix</strong>, a landing site for a "unified runtime for AI agents." The dark chrome is Arta; the prototype lives inside the device frame.</em></sub></div>
 
-| Data model — entities as an ER diagram | Flow (API) — routes, middleware & screen→API edges |
-|---|---|
-| [![Arta — data model](docs/arta-data-model.png)](docs/arta-data-model.png) | [![Arta — API flow](docs/arta-api-flow.png)](docs/arta-api-flow.png) |
-| **Architecture — C4 system diagram + ADRs** | **Plan — a Kanban of milestones & tasks** |
-| [![Arta — architecture](docs/arta-architecture.png)](docs/arta-architecture.png) | [![Arta — plan](docs/arta-plan.png)](docs/arta-plan.png) |
+## Quick start
 
-One canvas, five views: the prototype is real HTML (a terminal-native design system —
-near-black, monospace-forward, one phosphor-green accent, with a live CLI hero, clickable
-nav, a Monthly/Annual pricing toggle and `run` / `trace` / `policy` command tabs), and the
-data model, API flow, architecture, and plan are all read from the same `state.json` the
-AI writes.
-
-## Quick start — use it in your own project
-
-Install the **plugin** once — it brings the skill, the MCP, **and** the viewer.
-`/arta` starts the viewer for you, so there's nothing else to install or keep in sync.
-
-**1. Install the plugin (like any skill):**
+**1. Install the plugin** — in Claude Code:
 
 ```text
 /plugin marketplace add AssetsArt/arta
 /plugin install arta@arta
 ```
 
-The `arta` skill and its MCP tools are now available in any project, and
-the MCP reads/writes that project's `.arta/` folder.
+**2. Design** — tell it what to build:
 
-**2. The viewer starts itself.** You don't run anything — when you `/arta`, the skill
-calls the `arta_start_viewer` MCP tool, which launches the viewer **from the
-installed plugin** (so it always matches your installed version — no stale cache) on
-`http://localhost:7317`, watching this project's `./.arta/`. The first launch
-installs the viewer's deps (a few seconds, needs [Bun](https://bun.sh)); it seeds a
-starter `.arta/` if there isn't one. Leave the tab open; it repaints as the AI
-edits the canvas. **To update later, just `/arta update`** — that updates the viewer
-too, since it ships in the plugin.
+```text
+/arta a checkout flow for a coffee shop
+```
 
-> Want to run the viewer without the plugin (a quick look)? `cd ~/my-app && bunx
-> github:AssetsArt/arta`. Note `bunx` caches `github:` specs, so re-running
-> it can serve an old build — `bun pm cache rm` first to force the latest. Flags:
-> `--project <dir>`, `--port <n>`. Contributors: `git clone` + `bun install` +
-> `bun link` gives a global `arta` command.
+Arta brainstorms the idea with you first, then designs it onto a live canvas — the
+viewer opens itself at `http://localhost:7317` (first run needs [Bun](https://bun.sh)).
+Update anytime with `/arta update`, or just say *"design this in Arta"*.
 
-**3. Design:** run **`/arta <what to build>`** (e.g. `/arta a checkout flow`) — the
-skill **brainstorms the idea with you first** (questions one at a time, 2–3
-approaches, an agreed direction — sketching lo-fi options on the canvas when a
-question is easier shown than told), and only then writes the spec and builds the
-prototype, repainting your viewer live as it goes. It won't dump a full prototype on
-the first message. Update later with **`/arta update`**. (Or just say *"design this in
-Arta"* — the skill triggers on its own.)
-
-Try the viewer by hand: click between the **Helix** screens in the **Prototype**
-sidebar, flip the **Monthly / Annual** toggle on Pricing (the prices swap live), switch
-the **Orchestrate / Observe / Govern** tabs on Platform, change device frames
-(Web / Desktop / iOS / Android), **Comment** on an element, follow the **Changes**
-feed, collapse the **Spec** rail, or hit **Edit state** to paste new state.
+> No plugin? Run the viewer straight from any project: `bunx github:AssetsArt/arta`.
 
 ## Commands
 
@@ -142,6 +86,58 @@ start the viewer yourself — `/arta` does it via the `arta_start_viewer` tool, 
 | `bun run build:mcp` | Re-bundle the MCP after editing `mcp/server.mjs` |
 | `node scripts/validate-plugin.mjs` | Check the plugin layout (the CI gate) |
 | `bun link` | Expose a global `arta` command, runnable from any project |
+
+## What it looks like
+
+A canvas you leave open beside your agent while it designs your app, screen by
+screen, in real time. Each project isn't just a prototype mockup — it carries the
+whole thinking behind it:
+
+- **Prototype + Spec** — real, clickable screens *and* why each one exists
+- **Data model** — entities as an ER diagram
+- **Flow (API)** — routes, middleware, and which screens call them
+- **Architecture** — a C4-style system diagram + the decisions behind it
+- **Plan** — a Kanban of milestones and tasks
+
+Preview any screen across **web / desktop / iOS / iPad / Android** frames, swap
+design systems, and let a built-in **design review** catch anything that looks
+AI-generated.
+
+| Data model — entities as an ER diagram | Flow (API) — routes, middleware & screen→API edges |
+|---|---|
+| [![Arta — data model](docs/arta-data-model.png)](docs/arta-data-model.png) | [![Arta — API flow](docs/arta-api-flow.png)](docs/arta-api-flow.png) |
+| **Architecture — C4 system diagram + ADRs** | **Plan — a Kanban of milestones & tasks** |
+| [![Arta — architecture](docs/arta-architecture.png)](docs/arta-architecture.png) | [![Arta — plan](docs/arta-plan.png)](docs/arta-plan.png) |
+
+One canvas, five views. The prototype is real HTML (the demo is a terminal-native
+design system — near-black, monospace-forward, one phosphor-green accent, a live CLI
+hero, a Monthly/Annual pricing toggle), and the data model, API flow, architecture,
+and plan are all read from the same `state.json` the agent writes.
+
+Three layers, one loop:
+
+| Layer | What it is |
+|---|---|
+| **Viewer** | A React + Vite + Tailwind app showing five tabs rendered from the canvas. The prototype is **freeform**: the agent writes real HTML + a shared CSS design system per screen, in a real device frame, wired up with a few attributes. |
+| **Canvas** | A `.arta/` folder in your project. The agent writes it with its normal tools (or the MCP); the viewer watches it and live-reloads in place with a cyan flash. |
+| **Skill + MCP** | A Claude Code skill drives the phases; an MCP server is the agent's eyes & hands — it edits the canvas, *sees* its own render (screenshots) and errors, and reads your feedback. |
+
+## How it works
+
+```
+1. You give the brief in Claude Code → Arta brainstorms first
+   (asks one question at a time, proposes 2–3 directions, agrees on one)
+2. The agent designs onto the canvas — writing spec / data model / flow live on screen
+3. You watch it repaint, click through the screens, and leave comments on any element
+4. The agent reads your feedback → revises → repeat until it's right
+5. The settled spec / data model / API = the blueprint the agent builds for real
+```
+
+Try the viewer by hand: click between the **Helix** screens in the **Prototype**
+sidebar, flip the **Monthly / Annual** toggle on Pricing (the prices swap live), switch
+the **Orchestrate / Observe / Govern** tabs on Platform, change device frames
+(Web / Desktop / iOS / iPad / Android), **Comment** on an element, follow the
+**Changes** feed, collapse the **Spec** rail, or hit **Edit state** to paste new state.
 
 ## How the canvas works
 
@@ -194,9 +190,9 @@ that with `/arta review` (anti-slop) for a craft pass.
 ### Device frames
 
 Preview the same HTML in different shells via `prototype.frame` (or a per-screen
-`frame`): **`web`** (browser, default), **`desktop`** (native app window), **`ios`**
-and **`android`** (phone frames with status bar, notch / punch-hole, home
-indicator). Phone frames render at ~390px so your responsive CSS kicks in. A frame
+`frame`): **`web`** (browser, default), **`desktop`** (native app window), **`ios`**,
+**`ipad`**, and **`android`** (phone/tablet frames with status bar, notch / punch-hole,
+home indicator). Phone frames render at ~390px so your responsive CSS kicks in. A frame
 switcher in the sidebar previews any screen in any frame; the AI's declared frame is
 the default and wins whenever it changes. For a full-bleed phone screen, set
 `safeArea` (per screen or `prototype.safeArea`) to the edge colour so the status-bar
@@ -262,9 +258,9 @@ dev watches the build advance on the same board they designed.
 The dev commands live in [Commands → Develop / contribute](#commands)
 (`bun install`, `bun run dev`, `bun run build`, …).
 
-A seed project (**Helix** — the landing site shown in [What it looks like](#what-it-looks-like))
-is included so there's something to look at immediately. `mcp/server.bundle.mjs` is what
-the plugin ships; rerun `bun run build:mcp` after editing `mcp/server.mjs`.
+A seed project (**Helix** — the landing site shown above) is included so there's
+something to look at immediately. `mcp/server.bundle.mjs` is what the plugin ships;
+rerun `bun run build:mcp` after editing `mcp/server.mjs`.
 
 CI (`.github/workflows/pack.yml`) keeps `main` installable: every push builds,
 type-checks, validates the plugin layout, re-commits the MCP bundle if it drifted
@@ -280,17 +276,17 @@ Actions → Workflow permissions → Read and write*.)
 .claude-plugin/
   plugin.json                 # plugin manifest (install target)
   marketplace.json            # listing → /plugin marketplace add AssetsArt/arta
-skills/arta/        # the design-loop skill
-commands/arta.md               # the /arta command (design · update)
+skills/arta/                  # the design-loop skill
+commands/arta.md              # the /arta command (design · update)
 .mcp.json                     # MCP config (points at the bundle via ${CLAUDE_PLUGIN_ROOT})
 mcp/server.mjs                # MCP server source — the agent's eyes & hands
 mcp/server.bundle.mjs         # self-contained bundle the plugin ships (no dep install)
-bin/arta.mjs               # viewer launcher — `arta` in any project
-vite/arta-watch.ts         # Vite plugin: assembles split files, watch → WebSocket push, endpoints
+bin/arta.mjs                  # viewer launcher — `arta` in any project
+vite/arta-watch.ts            # Vite plugin: assembles split files, watch → WebSocket push, endpoints
 scripts/validate-plugin.mjs   # plugin-layout check (CI gate + local)
 .github/workflows/pack.yml    # build · validate · re-bundle on push
 src/                          # the viewer (React + Tailwind + shadcn-style + lucide)
-.arta/                     # the canvas (seeded with the Helix demo)
+.arta/                        # the canvas (seeded with the Helix demo)
 ```
 
 ## Stack
@@ -299,3 +295,12 @@ Bun · React 19 · Vite 6 · Tailwind CSS v4 · shadcn-style components · lucid
 React Flow (`@xyflow/react`) + dagre for the data-model & API-flow diagrams ·
 `yaml` for OpenAPI 3 export · TypeScript · `@modelcontextprotocol/sdk`. Fonts:
 Geist / Geist Mono.
+
+## License
+
+**MIT.** Everything in this repo — the plugin, viewer, skill, and MCP server — is
+[MIT licensed](LICENSE): free to use, fork, and self-host, forever.
+
+---
+
+<div align="center"><sub>Arta — by <strong>Assets Art</strong> · <a href="LICENSE">MIT licensed</a></sub></div>

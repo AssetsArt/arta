@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "description": "A live design canvas the AI writes into and the dev watches — driven by a single .arta/ folder.",
+  "license": "MIT",
   "bin": {
     "arta": "bin/arta.mjs",
     "arta-mcp": "mcp/server.mjs"
