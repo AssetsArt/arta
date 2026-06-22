@@ -309,10 +309,11 @@ function runPreviewSpecs() {
   spec("honours the start screen", html.includes('var START = "alpha"'));
   spec("ships the image safety net (failed <img> → skeleton)", html.includes("data-hs-fallback") && html.includes("hs-img-skeleton"));
   spec("ships the icon safety net (blank lucide name → fallback glyph)", html.includes("?'globe':'circle'"));
-  // Regression guard: the net must swap ONLY icons lucide left unrendered (no child <svg>),
-  // never elements that still carry data-lucide after a successful render — else it overwrites
-  // EVERY icon with the fallback (the v0.1.80 bug: whole pages turned to circles).
-  spec("icon net only touches unresolved icons (no child svg)", html.includes("!el.querySelector('svg')"));
+  // Regression guard: lucide REPLACES a resolved <i data-lucide> with an <svg data-lucide>, so
+  // a blank icon is one whose tag is still NOT 'svg'. The net must key off that — NOT a nested
+  // <svg> (which no rendered icon has either, so it matched every icon and turned whole pages
+  // to circles: the v0.1.80 + v0.1.81 bug). Verified live against the lucide UMD build.
+  spec("icon net detects blanks by non-svg tag (not nested svg)", html.includes("tagName.toLowerCase()!=='svg'") && !html.includes("!el.querySelector('svg')"));
   spec("default preview shows the navigator (floating button + sidebar)", html.includes('class="pv-fab"') && html.includes('class="pv-side"'));
 
   // The static export (chrome:false) is a client demo: SAME screens + data-to navigation,
