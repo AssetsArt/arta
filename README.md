@@ -35,7 +35,7 @@ machine.
 **2. Design** — tell it what to build:
 
 ```text
-/arta a checkout flow for a coffee shop
+/arta:arta a checkout flow for a coffee shop
 ```
 
 Arta brainstorms the idea with you first, then designs it onto a live canvas — the
@@ -54,20 +54,20 @@ Everything you can type, in one place.
 |---|---|
 | `/plugin marketplace add AssetsArt/arta` | Add the marketplace (one time) |
 | `/plugin install arta@arta` | Install the plugin — skill + MCP + viewer |
-| `/arta <what to build>` | Brainstorm the idea, then design it in Arta |
-| `/arta update` | Update the plugin to the latest **and re-run the viewer** on the new build |
-| `/arta restart` | Re-run the viewer from the installed plugin (pick up a new build, no manual cache-clearing) |
-| `/arta open` | Just bring the canvas up — no designing. Look at the prototype, or switch between projects one viewer hosts (`arta_start_viewer`) |
-| `/arta feedback` | Drain the comments the dev left in the viewer and act on them (`arta_get_feedback`) |
-| `/arta review [screen]` | Design-quality pass — Arta's own offline anti-slop detector flags the tells (error → warn → info) and you fix them (`arta_design_review`) |
-| *"design this in Arta"* | Natural-language trigger — same as `/arta` |
+| `/arta:arta <what to build>` | Brainstorm the idea, then design it in Arta |
+| `/arta:arta update` | Update the plugin to the latest **and re-run the viewer** on the new build |
+| `/arta:arta restart` | Re-run the viewer from the installed plugin (pick up a new build, no manual cache-clearing) |
+| `/arta:arta open` | Just bring the canvas up — no designing. Look at the prototype, or switch between projects one viewer hosts (`arta_start_viewer`) |
+| `/arta:arta feedback` | Drain the comments the dev left in the viewer and act on them (`arta_get_feedback`) |
+| `/arta:arta review [screen]` | Design-quality pass — Arta's own offline anti-slop detector flags the tells (error → warn → info) and you fix them (`arta_design_review`) |
+| *"design this in Arta"* | Natural-language trigger — same as `/arta:arta` |
 
 `/arta update` wraps `/plugin marketplace update arta` then
 `/plugin update arta@arta` (or use `/plugin` → Manage → Update),
 then restarts the viewer via `arta_restart_viewer` so the new build shows up — after
 you **restart Claude Code** so the updated skill/commands/MCP load. Normally you never
-start the viewer yourself — `/arta` does it via the `arta_start_viewer` tool, and
-`/arta restart` re-runs it.
+start the viewer yourself — `/arta:arta` does it via the `arta_start_viewer` tool, and
+`/arta:arta restart` re-runs it.
 
 **In your shell** — only if you want the viewer *without* the plugin:
 
@@ -188,7 +188,7 @@ The skill ships a library of opinionated, ready-to-adapt design languages
 display). The AI picks one for the brief, swaps in the project's accent, and sets it as
 the prototype's foundation (`arta_set_design_tokens` + `designSystem`) before
 building any screen — so output looks *designed*, not like a generic AI webpage. Pair
-that with `/arta review` (anti-slop) for a craft pass.
+that with `/arta:arta review` (anti-slop) for a craft pass.
 
 ### Device frames
 
@@ -238,7 +238,7 @@ on the current project's `.arta/`:
 - `arta_get_architecture` / `arta_set_architecture` — the `architecture` section (the Architecture tab): C4-style system diagram (nodes/edges), ADRs (`decisions`), `nfrs`, `security` notes, `stack`
 - `arta_get_plan` / `arta_set_plan` / `arta_set_task` — the `plan` Kanban board (custom statuses = columns, milestones = swimlanes, tasks = cards w/ priority); `set_task` moves a card between columns
 - `arta_start_viewer` — launch the viewer from the installed plugin (idempotent; no stale cache)
-- `arta_restart_viewer` — re-run the viewer from the installed plugin so it serves the latest build (what `/arta update` / `/arta restart` use; no manual cache-clearing)
+- `arta_restart_viewer` — re-run the viewer from the installed plugin so it serves the latest build (what `/arta:arta update` / `/arta:arta restart` use; no manual cache-clearing)
 - `arta_get_screenshot` — a PNG of how a screen actually renders (the pixels you see)
 - `arta_design_review` — run Arta's own deterministic anti-slop detector over a screen's HTML and return craft findings ranked error → warn → info (gradient text, side-stripe borders, stripe backgrounds, cramped tracking, nested cards, transition:all, emoji-as-icon, italic headings, over-rounded cards, …). Offline and instant — no `npx`, no network
 - `arta_get_view` — your active tab, prototype screen, store, and any prototype errors
@@ -280,7 +280,7 @@ Actions → Workflow permissions → Read and write*.)
   plugin.json                 # plugin manifest (install target)
   marketplace.json            # listing → /plugin marketplace add AssetsArt/arta
 skills/arta/                  # the design-loop skill
-commands/arta.md              # the /arta command (design · update)
+commands/arta.md              # the /arta:arta command (design · update)
 .mcp.json                     # MCP config (points at the bundle via ${CLAUDE_PLUGIN_ROOT})
 mcp/server.mjs                # MCP server source — the agent's eyes & hands
 mcp/server.bundle.mjs         # self-contained bundle the plugin ships (no dep install)
