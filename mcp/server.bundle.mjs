@@ -19613,6 +19613,7 @@ var COMP_DIR = path.join(PROTO_DIR, "components");
 var SCREEN_DIR = path.join(PROTO_DIR, "screens");
 var PHASES = ["prototype", "data", "flow", "architecture", "plan"];
 var sanitize = (s) => String(s).replace(/[^a-z0-9_-]/gi, "");
+var lastViewerPort = 7317;
 var REGISTRY_FILE = path.join(os.homedir(), ".arta", "registry.json");
 function idForDir(dir) {
   const s = path.resolve(dir);
@@ -20249,13 +20250,25 @@ server.registerTool("arta_get_view", {
   return text({ live: true, ...runtime });
 });
 server.registerTool("arta_get_screenshot", {
-  description: "Get a PNG of how a prototype screen actually renders — the same pixels the dev sees, captured by the viewer. Use this to check your work visually instead of reasoning only from the HTML. Returns an image; if none exists yet, the screen may not have been viewed in the browser. Pass `full: true` for the WHOLE screen at its full content length (the entire scroll captured in one tall image, not just the device viewport) — best for reviewing a long / scrolling screen end to end. This captures screens that scroll inside an INNER region too (the usual header + scroll-body + tabbar shell), not just document-level scroll; `full` falls back to the framed shot only when NOTHING scrolls anywhere.",
+  description: "Get a PNG of how a prototype screen actually renders. Two engines: `engine:\"chrome\"` (DEFAULT) is a REAL headless-Chrome render — pixel-identical to the dev's browser, no DOM-serialisation drift — and renders ON DEMAND, so you do NOT need the dev to have opened the screen first; it's the screen content at its device width (no device bezel / status-bar chrome). `engine:\"client\"` reads the viewer's own modern-screenshot capture instead — that one INCLUDES the device bezel + status bar (what the dev literally sees), but only exists for screens the dev has opened in the viewer, and can drift on some CSS (web fonts, backdrop-filter). Use the default for faithful content review; use `client` when you specifically need the framed device chrome. Pass `full: true` for the WHOLE screen at its content length (the entire scroll in one tall image, including screens that scroll inside an INNER region). If `chrome` is requested but Chrome isn't installed, it falls back to the client shot.",
   inputSchema: {
     screen: exports_external.string().describe("Screen id."),
-    full: exports_external.boolean().optional().describe("Capture the entire content length (the whole scrollable screen) instead of just the visible device viewport.")
+    full: exports_external.boolean().optional().describe("Capture the entire content length (the whole scrollable screen) instead of just the visible device viewport."),
+    engine: exports_external.enum(["chrome", "client"]).optional().describe(`Render engine. "chrome" (default) = a fresh, browser-faithful headless-Chrome render (content only, no dev-view needed). "client" = the viewer's modern-screenshot capture (includes the device bezel/status bar; needs the dev to have opened the screen).`)
   }
-}, async ({ screen, full }) => {
+}, async ({ screen, full, engine }) => {
   const dir = path.join(ARTA_DIR, "snapshots");
+  if (engine !== "client") {
+    try {
+      const pid = idForDir(path.resolve(ARTA_DIR));
+      await fetch(`http://localhost:${lastViewerPort}/__arta/capture?project=${encodeURIComponent(pid)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ screen, full: !!full }),
+        signal: AbortSignal.timeout(25000)
+      });
+    } catch {}
+  }
   const candidates = full ? [sanitize(screen) + ".full.png", sanitize(screen) + ".png"] : [sanitize(screen) + ".png"];
   for (const name of candidates) {
     try {
@@ -20287,6 +20300,7 @@ server.registerTool("arta_start_viewer", {
   }
 }, async ({ port }) => {
   const p = Number(port) || 7317;
+  lastViewerPort = p;
   registerProject();
   if (await portInUse(p))
     return text({
@@ -20316,6 +20330,7 @@ server.registerTool("arta_restart_viewer", {
   }
 }, async ({ port }) => {
   const p = Number(port) || 7317;
+  lastViewerPort = p;
   registerProject();
   const launcher = path.join(PLUGIN_ROOT, "bin", "arta.mjs");
   if (!fs.existsSync(launcher))
