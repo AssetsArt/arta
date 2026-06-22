@@ -38,7 +38,7 @@ export function SpecRail({
   const chip = (txt: string, col: string, key: React.Key) => (
     <span
       key={key}
-      className="inline-block whitespace-nowrap rounded-[14px] px-[9px] py-[3px] text-[11px]"
+      className="inline-block max-w-full whitespace-normal [overflow-wrap:anywhere] rounded-[14px] px-[9px] py-[3px] text-[11px] leading-snug"
       style={{ fontFamily: MONO, border: `1px solid ${alpha(col, 0.4)}`, background: alpha(col, 0.1), color: col }}
     >
       {txt}
@@ -61,7 +61,7 @@ export function SpecRail({
 
   return (
     <div
-      className="flex w-[312px] shrink-0 flex-col overflow-auto border-l"
+      className="flex w-[312px] shrink-0 flex-col overflow-y-auto overflow-x-hidden border-l"
       style={{ borderColor: c.border, background: c.panel }}
     >
       <div
@@ -177,7 +177,7 @@ function UsersBlock({ users }: { users?: readonly unknown[] }) {
         {rows.map((r, i) => (
           <span
             key={i}
-            className="inline-block whitespace-nowrap rounded-[14px] px-[9px] py-[3px] text-[11px]"
+            className="inline-block max-w-full whitespace-normal [overflow-wrap:anywhere] rounded-[14px] px-[9px] py-[3px] text-[11px] leading-snug"
             style={{
               fontFamily: MONO,
               border: `1px solid ${alpha(c.accent, 0.4)}`,

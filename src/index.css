@@ -67,24 +67,14 @@ body {
 }
 * {
   box-sizing: border-box;
+  scrollbar-width: none; /* Firefox: hide scrollbars — content still scrolls */
 }
 
+/* Scrollbars hidden across the whole viewer chrome — every panel still scrolls on
+   wheel/trackpad, just with no visible track (matches the device iframe's clean look). */
 ::-webkit-scrollbar {
-  width: 9px;
-  height: 9px;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--scroll);
-  border-radius: 6px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--scroll-hover);
-  background-clip: padding-box;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
+  width: 0;
+  height: 0;
 }
 
 button {
