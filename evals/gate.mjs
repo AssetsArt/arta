@@ -250,7 +250,8 @@ function runSlopDetectorSpecs() {
   spec("flags emoji-as-icon (warn)", has("<button>🚀 Launch</button>", "emoji-icon"));
   spec("flags italic heading (warn)", has('<h2 class="italic">Title</h2>', "italic-heading"));
   spec("flags placeholder name (warn)", has("<p>Jane Doe, CEO</p>", "placeholder-name"));
-  spec("flags hand-written Unsplash url (warn)", has('<img src="https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?w=700">', "guessed-unsplash"));
+  spec("flags dead image host picsum.photos (warn)", has('<img src="https://picsum.photos/seed/x/600/400">', "dead-image-host"));
+  spec("a real Unsplash url is NOT flagged (it is the recommended source now)", !has('<img src="https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?w=700">', "dead-image-host"));
   spec("flags brand lucide icon that renders blank (warn)", has('<i data-lucide="instagram"></i>', "brand-lucide-icon"));
 
   // Discrimination: clean markup is silent, AND emits nothing in the serious set.
@@ -308,6 +309,7 @@ function runPreviewSpecs() {
   spec("renders a screen switcher for each screen", html.includes('data-goto="alpha"') && html.includes('data-goto="beta"'));
   spec("honours the start screen", html.includes('var START = "alpha"'));
   spec("ships the image safety net (failed <img> → skeleton)", html.includes("data-hs-fallback") && html.includes("hs-img-skeleton"));
+  spec("ships Iconify alongside lucide (brand + non-core sets)", html.includes("iconify-icon@2") && html.includes("lucide@latest"));
   spec("ships the icon safety net (blank lucide name → fallback glyph)", html.includes("?'globe':'circle'"));
   // Regression guard: lucide REPLACES a resolved <i data-lucide> with an <svg data-lucide>, so
   // a blank icon is one whose tag is still NOT 'svg'. The net must key off that — NOT a nested

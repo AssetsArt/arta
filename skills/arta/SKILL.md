@@ -532,14 +532,19 @@ Use them; do not hand-roll what they give you, and **never use emoji as icons.**
   bare solid fill.** A flat coloured/gray rectangle dropped where a photo belongs is one of
   the loudest "an AI made this" tells; it makes every other decision read as unfinished.
   Make an explicit call per image slot:
-  - **Real image** — use it whenever a photo genuinely helps. `<img>` from a source you can
-    trust to RESOLVE: `https://picsum.photos/seed/<word>/W/H` always returns one (the seed
-    keeps it stable across reloads); reach for it even on heroes/feature shots when the exact
-    subject can flex. Always set width/height (or an `aspect-[…]` wrapper) + `object-cover` so
-    layout stays put. **Do NOT hand-write an Unsplash URL (`images.unsplash.com/photo-<id>`)
-    from memory** — a guessed id 404s. (The platform now catches a failed `<img>` and swaps
-    it to a skeleton tile, so a dead URL won't show a broken glyph — but a screen full of
-    skeletons because you guessed every id is still a fail. Use a source you trust.)
+  - **Real image** — use it whenever a photo genuinely helps. Always set width/height (or an
+    `aspect-[…]` wrapper) + `object-cover` so layout stays put. Pick a source that RESOLVES
+    (verified working June 2026):
+    - **Unsplash** `https://images.unsplash.com/photo-<id>?w=<W>&q=70&auto=format` — the
+      preferred source. Use a real photo id you're confident exists (a guessed id 404s).
+      **`picsum.photos` is dead — do NOT use it** (every URL times out → blank). The old
+      `source.unsplash.com/...` random endpoint is also retired.
+    - **`https://loremflickr.com/<W>/<H>/<keyword>`** — when you have no specific Unsplash id:
+      a live keyword-relevant random photo (the picsum replacement). Add `?lock=<n>` to keep
+      it stable across reloads.
+    (The platform catches a failed `<img>` and swaps it to a skeleton tile, so a dead URL
+    won't show a broken glyph — but a screen full of skeletons is still a fail. Use a source
+    that resolves.)
   - **Skeleton + colour** — when a real image isn't right (avatars, logos, an icon slot, or
     the subject must match and you have no trustworthy URL), make the placeholder *intentional*:
     `class="hs-cover"` (a brand-tinted gradient surface) or `class="hs-img-skeleton"` (a tinted
@@ -566,19 +571,24 @@ Use them; do not hand-roll what they give you, and **never use emoji as icons.**
   icons appear automatically. An **unknown name renders nothing** (a blank gap — e.g.
   `chevron-up-down` doesn't exist; it's `chevrons-up-down`); the error feed flags any
   name it couldn't find, so check `arta_get_view` (or the screenshot) and fix it.
-  - **Brand / social icons are NOT in the loaded set.** `github`, `twitter`, `linkedin`,
-    `slack`, `facebook`, `instagram`, `youtube`, `discord` and the like were dropped from
-    lucide's core and render BLANK — a row of empty gaps in a footer "trusted by" / social
-    strip is a classic tell (and it hits the exact place agents reach for them). For social
-    links use a **text label**, an in-set glyph (`link`, `at-sign`, `mail`, `rss`,
-    `globe`, `message-circle`), or an inline `<svg>` brand mark — never a `data-lucide`
-    brand name. Same for "logos" rows: real wordmarks (styled text) read better than blank
-    icon slots. (The platform now backstops any unresolved name — brand or typo — by swapping
-    it to a safe glyph so a slot never renders empty; but a row of fallback circles is still a
-    tell, so pick a real glyph or an inline brand `<svg>` deliberately.)
-  **Emoji are not icons — use lucide.**
-- Both load from a CDN, so the prototype needs network; offline, classes go
-  unstyled and icons stay blank.
+  - **Brand / social icons are NOT in lucide's core** (`github`, `facebook`, `instagram`,
+    `youtube`, `linkedin`, `discord`, … render BLANK — the classic footer row of empty gaps).
+    Use **Iconify** for these (below), not a `data-lucide` brand name.
+- **Iconify — works alongside lucide for brand logos + any non-lucide icon.** A second
+  system is loaded: the `<iconify-icon>` web component, with 200k+ icons across every set.
+  Usage: `<iconify-icon icon="set:name"></iconify-icon>` — it fetches the icon on demand and
+  renders inline SVG (inherits `currentColor`; size with `width`/`height`, a `w-/h-` class,
+  or font-size). Reach for it when lucide's core doesn't have what you need:
+  - **Brand / social logos** → `simple-icons:*` — `<iconify-icon icon="simple-icons:facebook"></iconify-icon>`,
+    `simple-icons:instagram`, `simple-icons:github`, `simple-icons:line`, `simple-icons:tiktok`, …
+  - **Anything else lucide lacks** → other sets — `mdi:*` (Material), `ph:*` (Phosphor),
+    `tabler:*`, `fa6-brands:*`, etc. Browse at icon-sets.iconify.design.
+  Keep it tasteful: **lucide stays the default for UI glyphs** (one consistent stroke style);
+  use Iconify mainly for brands and the occasional gap, not to scatter clashing sets across
+  one screen.
+  **Emoji are not icons — use lucide (or Iconify for brands).**
+- All three (Tailwind, lucide, Iconify) load from a CDN, so the prototype needs network;
+  offline, classes go unstyled and icons stay blank.
 
 **Avoid AI-slop — these read as "an AI made this".** Don't ship them; rework the
 element instead. (Run `arta_design_review` to catch them automatically.)

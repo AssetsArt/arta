@@ -33,6 +33,10 @@ body{min-height:100%;font-family:'Geist','Noto Sans Thai',system-ui,-apple-syste
    as a last resort so a display heading never punches past the edge. (gate 51.) */
 h1,h2,h3{overflow-wrap:anywhere}
 img{max-width:100%;display:block}
+/* Iconify web component (brand/social + any non-lucide set): inherits currentColor and
+   sizes to 1em by default — set width/height or a w-/h- class to scale, like lucide.
+   Nudge the baseline so it sits inline with text cleanly. */
+iconify-icon{display:inline-block;vertical-align:-0.125em}
 a{color:inherit;text-decoration:none}
 button{font-family:inherit;cursor:pointer}
 /* Keyboard-focus ring fallback: every interactive element shows a visible ring even
@@ -93,7 +97,13 @@ export const HEAD_LIBS =
   `<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4" defer></script>` +
   // The bare `lucide` spec on jsDelivr resolves to the CJS build (no global, throws
   // "exports is not defined"); the UMD build is what exposes window.lucide.
-  `<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js" defer></script>`;
+  `<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js" defer></script>` +
+  // Iconify web component — works ALONGSIDE lucide for everything lucide's core lacks:
+  // brand/social logos (`simple-icons:facebook`), and any of 200k+ icons across sets
+  // (`mdi:*`, `ph:*`, `tabler:*`, …). Usage: <iconify-icon icon="set:name"></iconify-icon>;
+  // it fetches the icon from api.iconify.design on demand and renders inline SVG (so the
+  // deployed export needs network, same as Tailwind/lucide). Verified live against this URL.
+  `<script src="https://cdn.jsdelivr.net/npm/iconify-icon@2/dist/iconify-icon.min.js" defer></script>`;
 
 // A minimal init for a STATIC render (PDF export, headless snapshot): render lucide icons and
 // reflect the mock store into data-bind/data-show — WITHOUT the live runtime's nav / parent
