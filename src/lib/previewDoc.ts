@@ -91,28 +91,49 @@ const IFRAME_RUNTIME = `
 })();
 `;
 
-// Chrome for the preview shell: an airy light stage, the device lifted in the centre, a slim
-// screen switcher along the bottom. Mirrors the viewer's light/airy tokens (lib/theme LIGHTC)
-// so a shared export feels like the same product — bg #f7f8f8, white surfaces, #ececec hairlines,
-// #1f2328 ink, and the emerald accent (accent2 #0b6b3f on accentSoft) on the active screen pill.
+// Chrome for the preview shell: a FULL-PAGE airy stage with the device lifted in the centre —
+// no permanent menu. A floating pill (top-left) opens a slide-out screen navigator, the same
+// pattern as the prototype tab's floating toolbars + Screens rail. Mirrors the viewer's
+// light/airy tokens (lib/theme LIGHTC): bg #f7f8f8, white surfaces, #ececec hairlines, #1f2328
+// ink, and the emerald accent (accent #10b981 icon, ring #e6e7e7) on the active screen.
 const PREVIEW_CSS = `
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:#f7f8f8;color:#1f2328;font-family:'Geist','Noto Sans Thai',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
-.pv-stage{position:fixed;inset:0;bottom:56px;display:flex;align-items:center;justify-content:center;padding:32px;overflow:auto}
+/* Full-page stage — the device fills the viewport, centred, edge to edge. */
+.pv-stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;overflow:auto}
 /* The device is a real white screen, lifted off the light canvas with a soft shadow (not a hard
    dark one) — the way Figma/Linear float a device preview. The hairline border defines the bezel. */
 .pv-device{background:#fff;overflow:hidden;flex:0 0 auto;max-width:100%;box-shadow:0 1px 2px rgba(15,17,21,.04),0 18px 48px -16px rgba(15,17,21,.18)}
 .pv-device--phone{border-radius:44px;border:1px solid #ececec}
-.pv-device--flat{border-radius:14px;border:1px solid #ececec}
+.pv-device--flat{border-radius:0;border:0}
 #pv{display:block;border:0;width:100%;height:100%;background:#fff}
-.pv-bar{position:fixed;left:0;right:0;bottom:0;height:56px;display:flex;align-items:center;gap:6px;padding:0 14px;background:#ffffff;border-top:1px solid #ececec;overflow-x:auto;scrollbar-width:none}
-.pv-bar::-webkit-scrollbar{display:none}
-.pv-title{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#1f2328;font-weight:600;margin-right:6px;white-space:nowrap}
-.pv-title .pv-dot{width:7px;height:7px;border-radius:50%;background:#10b981;flex:0 0 auto}
-.pv-tab{flex:0 0 auto;font:inherit;font-size:12.5px;font-weight:500;color:#5e6168;background:transparent;border:0;border-radius:8px;padding:6px 11px;cursor:pointer;white-space:nowrap;transition:background .12s,color .12s}
-.pv-tab:hover{color:#1f2328;background:#f3f4f4}
-.pv-tab.is-active{color:#0b6b3f;background:rgba(16,185,129,.10);font-weight:600}
+/* Floating toggle — a translucent pill that opens the navigator; shows the current screen as
+   context, then slides out of the way once the panel is open. */
+.pv-fab{position:fixed;left:18px;top:18px;z-index:30;display:flex;align-items:center;gap:8px;height:38px;padding:0 13px;border-radius:11px;background:rgba(255,255,255,.88);border:1px solid #ececec;box-shadow:0 1px 2px rgba(15,17,21,.04),0 8px 24px -8px rgba(15,17,21,.12);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);cursor:pointer;color:#1f2328;font:inherit;font-size:12.5px;font-weight:500;transition:background .12s,opacity .18s,transform .18s}
+.pv-fab:hover{background:#fff}
+.pv-fab svg{color:#5e6168;flex:0 0 auto}
+.pv-fab-label{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pv-open .pv-fab{opacity:0;pointer-events:none;transform:translateX(-8px)}
+/* Scrim — click anywhere outside the panel to dismiss; barely dims the canvas. */
+.pv-scrim{position:fixed;inset:0;z-index:35;background:rgba(15,17,21,.06);opacity:0;pointer-events:none;transition:opacity .2s}
+.pv-open .pv-scrim{opacity:1;pointer-events:auto}
+/* Slide-out navigator — the screen list, styled like the prototype tab's Screens rail. */
+.pv-side{position:fixed;top:0;left:0;bottom:0;z-index:40;width:256px;display:flex;flex-direction:column;background:#fff;border-right:1px solid #ececec;box-shadow:0 8px 40px -12px rgba(15,17,21,.18);transform:translateX(-100%);transition:transform .24s cubic-bezier(.22,1,.36,1)}
+.pv-open .pv-side{transform:translateX(0)}
+.pv-side-top{display:flex;align-items:center;gap:8px;padding:16px 14px 12px}
+.pv-side-top .pv-dot{width:7px;height:7px;border-radius:50%;background:#10b981;flex:0 0 auto}
+.pv-name{font-size:13.5px;font-weight:600;color:#1f2328;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pv-close{margin-left:auto;display:grid;place-items:center;width:26px;height:26px;border:0;border-radius:7px;background:transparent;color:#9a9da3;cursor:pointer;transition:background .12s,color .12s}
+.pv-close:hover{background:#f3f4f4;color:#1f2328}
+.pv-side-label{padding:6px 16px 8px;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:10.5px;font-weight:500;letter-spacing:.6px;text-transform:uppercase;color:#9a9da3}
+.pv-list{display:flex;flex-direction:column;gap:2px;padding:0 8px 14px;overflow-y:auto}
+.pv-screen{display:flex;align-items:center;gap:9px;width:100%;text-align:left;font:inherit;font-size:13px;font-weight:500;color:#5e6168;background:transparent;border:0;border-radius:7px;padding:8px 10px;cursor:pointer;transition:background .12s,color .12s}
+.pv-screen:hover{color:#1f2328;background:#f7f8f8}
+.pv-screen .pv-ico{display:grid;place-items:center;color:#9a9da3;flex:0 0 auto}
+.pv-screen-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pv-screen.is-active{color:#1f2328;background:#fff;box-shadow:inset 0 0 0 1px #e6e7e7}
+.pv-screen.is-active .pv-ico{color:#10b981}
 .pv-empty{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#5e6168;font-size:14px}
 `;
 
@@ -140,8 +161,17 @@ export function buildPrototypePreview(proto: Prototype, opts: { name?: string } 
   }
   const sheet = designSheet(proto);
 
+  // Inline SVGs (no lucide in the shell — that only loads inside each screen's iframe). Stroke
+  // uses currentColor so CSS drives the colour (faint by default, emerald on the active screen).
+  const ICON_PANEL = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>`;
+  const ICON_WINDOW = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 9h20"/></svg>`;
+  const ICON_X = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>`;
+
   const tabs = screens
-    .map((s) => `<button class="pv-tab" data-goto="${esc(s.id)}">${esc(s.title || s.id)}</button>`)
+    .map(
+      (s) =>
+        `<button class="pv-screen" data-goto="${esc(s.id)}"><span class="pv-ico">${ICON_WINDOW}</span><span class="pv-screen-label">${esc(s.title || s.id)}</span></button>`
+    )
     .join("");
 
   // The parent shell: render the active screen into one iframe (srcdoc rebuilt on nav), hold
@@ -173,24 +203,35 @@ export function buildPrototypePreview(proto: Prototype, opts: { name?: string } 
     var dev = document.getElementById('pv-device');
     var ifr = document.getElementById('pv');
     dev.className = 'pv-device ' + (dim.device ? 'pv-device--phone' : 'pv-device--flat');
-    var availW = window.innerWidth - 64, availH = window.innerHeight - 56 - 64;
-    var scale = Math.min(1, availW / dim.w);
-    var w = Math.round(dim.w * scale);
-    var h = dim.device ? Math.min(dim.h * scale, availH) : availH;
-    dev.style.width = w + 'px'; dev.style.height = Math.round(h) + 'px';
-    ifr.style.width = dim.w + 'px'; ifr.style.height = Math.round(h / scale) + 'px';
-    ifr.style.transform = 'scale(' + scale + ')'; ifr.style.transformOrigin = 'top left';
+    var availW = window.innerWidth, availH = window.innerHeight;
+    if(!dim.device){
+      // Flat (web/desktop): truly full-screen, no scaling — the iframe IS the viewport.
+      dev.style.width = availW + 'px'; dev.style.height = availH + 'px';
+      ifr.style.width = availW + 'px'; ifr.style.height = availH + 'px';
+      ifr.style.transform = 'none'; ifr.style.transformOrigin = 'top left';
+    } else {
+      // Phone/tablet: scale to fit while preserving the device aspect ratio.
+      var scale = Math.min(1, availW / dim.w, availH / dim.h);
+      var w = Math.round(dim.w * scale), h = Math.round(dim.h * scale);
+      dev.style.width = w + 'px'; dev.style.height = h + 'px';
+      ifr.style.width = dim.w + 'px'; ifr.style.height = dim.h + 'px';
+      ifr.style.transform = 'scale(' + scale + ')'; ifr.style.transformOrigin = 'top left';
+    }
   }
-  function markTabs(id){
-    document.querySelectorAll('.pv-tab').forEach(function(b){ b.classList.toggle('is-active', b.getAttribute('data-goto') === id); });
+  function markActive(id){
+    document.querySelectorAll('.pv-screen').forEach(function(b){ b.classList.toggle('is-active', b.getAttribute('data-goto') === id); });
+    var lab = document.getElementById('pv-fab-label');
+    if(lab) lab.textContent = (META[id] || {}).title || id;
   }
+  function openSide(){ document.body.classList.add('pv-open'); }
+  function closeSide(){ document.body.classList.remove('pv-open'); }
   function show(id){
     if(!SCREENS[id]) id = START;
     current = id;
     applyFrame(id);
     document.getElementById('pv').srcdoc = buildDoc(id);
     if(location.hash.slice(1) !== id) history.replaceState(null, '', '#' + id);
-    markTabs(id);
+    markActive(id);
   }
   window.addEventListener('message', function(e){
     var d = e.data; if(!d || d.source !== 'arta-frame') return;
@@ -201,6 +242,10 @@ export function buildPrototypePreview(proto: Prototype, opts: { name?: string } 
     var b = e.target.closest('[data-goto]'); if(!b) return;
     show(b.getAttribute('data-goto'));
   });
+  document.getElementById('pv-fab').addEventListener('click', openSide);
+  document.getElementById('pv-close').addEventListener('click', closeSide);
+  document.getElementById('pv-scrim').addEventListener('click', closeSide);
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeSide(); });
   window.addEventListener('resize', function(){ if(current) applyFrame(current); });
   window.addEventListener('hashchange', function(){ var id = location.hash.slice(1); if(id && SCREENS[id] && id !== current) show(id); });
   show(location.hash.slice(1) || START);
@@ -215,7 +260,13 @@ export function buildPrototypePreview(proto: Prototype, opts: { name?: string } 
 <style>${PREVIEW_CSS}</style>
 </head><body>
 <div class="pv-stage"><div class="pv-device" id="pv-device"><iframe id="pv" title="prototype"></iframe></div></div>
-<div class="pv-bar"><span class="pv-title"><span class="pv-dot"></span>${esc(name)}</span>${tabs}</div>
+<button class="pv-fab" id="pv-fab" title="Screens" aria-label="Screens">${ICON_PANEL}<span class="pv-fab-label" id="pv-fab-label"></span></button>
+<div class="pv-scrim" id="pv-scrim"></div>
+<aside class="pv-side" id="pv-side" aria-label="Screens">
+<div class="pv-side-top"><span class="pv-dot"></span><span class="pv-name">${esc(name)}</span><button class="pv-close" id="pv-close" title="Close" aria-label="Close">${ICON_X}</button></div>
+<div class="pv-side-label">Screens</div>
+<div class="pv-list">${tabs}</div>
+</aside>
 <script>${PARENT}</script>
 </body></html>`;
 }
