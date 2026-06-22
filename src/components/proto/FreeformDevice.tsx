@@ -353,26 +353,20 @@ export function FreeformDevice({
     const node = captureNodeRef?.current ?? doc.body;
     if (!node) return;
     capturingRef.current = true;
-    // The framed shot and the full shot SHARE this one iframe DOM, and the full shot
-    // temporarily MUTATES it (unclamping scroll regions) — so they run in sequence,
-    // framed first, never overlapping.
+    // NON-DESTRUCTIVE live capture: the framed shot only, and WITHOUT mutating the visible
+    // iframe. The old path neutralized backdrop-blur AND unclamped inner scroll regions /
+    // re-rooted fixed bars in place (then reverted) to also save a full-length client shot —
+    // but that apply→capture→revert ran on the LIVE iframe, so the screen visibly reflowed
+    // and FLICKERED on every navigation (every screen with an inner scroll region). The
+    // faithful full-length + frosted-correct shots now come from the headless-Chrome engine
+    // (arta_get_screenshot's default), rendered OFF-SCREEN — no flicker, better fidelity.
+    // captureFramedPng clones the node to render, so capturing it as-is touches nothing on
+    // screen. (captureFullPng / neutralizeBackdropBlur stay — the PDF export still uses them
+    // off-screen, where mutation is invisible.)
     const shoot = async () => {
-      try {
-        // Framed shot first (the dev's viewport), then the full-content shot. They SHARE
-        // this one iframe DOM and the full shot temporarily MUTATES it (unclamping scroll
-        // regions, re-rooting bars), so they must never overlap — both live in captureFullPng,
-        // the same helper the PDF export uses, so the two stay in sync.
-        // Framed shot: neutralize frosted glass (backdrop-blur) just for the capture, so a
-        // sticky header / bottom CTA doesn't smear; captureFullPng does the same internally.
-        const restoreBlur = neutralizeBackdropBlur(doc);
-        try { reportSnapshot(screenId, await captureFramedPng(node)); }
-        catch { /* keep prior framed shot */ }
-        finally { restoreBlur(); }
-        const full = await captureFullPng(doc);
-        if (full) reportSnapshot(screenId, full, true);
-      } finally {
-        capturingRef.current = false;
-      }
+      try { reportSnapshot(screenId, await captureFramedPng(node)); }
+      catch { /* keep prior framed shot */ }
+      finally { capturingRef.current = false; }
     };
     // Wait for web fonts before capturing — otherwise the snapshot can freeze a system
     // fallback (e.g. Fraunces → Georgia/Times). Both the iframe's fonts (the content) and
