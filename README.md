@@ -11,7 +11,8 @@ screen you watch in real time — full prototype, spec, data model, flow, archit
 and plan — instead of replying with a wall of text. Free, open-source, runs on your
 machine.
 
-![Claude Code plugin](https://img.shields.io/badge/Claude_Code-plugin-111111)
+[![version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FAssetsArt%2Farta%2Fmain%2F.claude-plugin%2Fplugin.json&query=%24.version&label=version&prefix=v&color=22c55e)](https://github.com/AssetsArt/arta/blob/main/.claude-plugin/plugin.json)
+&nbsp;![Claude Code plugin](https://img.shields.io/badge/Claude_Code-plugin-111111)
 &nbsp;[![License: MIT](https://img.shields.io/badge/License-MIT-22c55e)](LICENSE)
 
 <sub>by **Assets Art**</sub>
