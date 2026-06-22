@@ -305,6 +305,15 @@ function runPreviewSpecs() {
   spec("renders the parent shell (show + buildDoc)", html.includes("function show(") && html.includes("function buildDoc("));
   spec("renders a screen switcher for each screen", html.includes('data-goto="alpha"') && html.includes('data-goto="beta"'));
   spec("honours the start screen", html.includes('var START = "alpha"'));
+  spec("default preview shows the navigator (floating button + sidebar)", html.includes('class="pv-fab"') && html.includes('class="pv-side"'));
+
+  // The static export (chrome:false) is a client demo: SAME screens + data-to navigation,
+  // but the Arta navigator (floating button / sidebar) is gone — and so is its JS wiring,
+  // so the parent script can't throw on a missing #pv-fab.
+  const exp = buildPrototypePreview(proto, { name: "T", chrome: false });
+  spec("export drops the navigator chrome (no pv-fab / pv-side)", !exp.includes('class="pv-fab"') && !exp.includes('class="pv-side"'));
+  spec("export keeps the screens + data-to runtime", exp.includes("Alpha screen") && exp.includes("function show(") && exp.includes("arta-frame"));
+  spec("export omits navigator wiring (no getElementById('pv-fab'))", !exp.includes("getElementById('pv-fab')"));
 
   // A screen with inline </script> must not close the parent <script>. The body's </script>
   // is neutralised to <\/script> (harmless inside script data — only a literal </script ends

@@ -1099,5 +1099,46 @@ server.registerTool(
   }
 );
 
+server.registerTool(
+  "arta_export",
+  {
+    description:
+      "Pack the WHOLE clickable prototype into a static, deployable folder you can hand a client. Writes <out>/index.html (default <project>/dist) — one self-contained page, same faithful render as /preview, but WITHOUT the Arta navigator: no floating button, no sidebar. The viewer is navigated only by the prototype's OWN data-to clicks, so it looks like a finished demo, not the editor. Drop the folder onto any static host: Cloudflare Pages (`npx wrangler pages deploy <out>`), Netlify, GitHub Pages, or Vercel. Needs the viewer running (it does the assembling) — call arta_start_viewer first if it isn't. The .arta/ source is never touched.",
+    inputSchema: {
+      dir: zod
+        .string()
+        .optional()
+        .describe("Output folder for the static site. Relative paths resolve against the project root; default 'dist'."),
+      port: zod.number().int().optional().describe("Viewer port (default: the last one started, else 7317)."),
+    },
+  },
+  async ({ dir, port }) => {
+    const p = Number(port) || lastViewerPort;
+    const id = idForDir(path.resolve(ARTA_DIR));
+    try {
+      const r = await fetch(`http://localhost:${p}/__arta/export?project=${encodeURIComponent(id)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dir }),
+      });
+      const out = await r.json();
+      if (!out.ok) return err(out.error || "export failed");
+      return text({
+        ...out,
+        deploy: {
+          cloudflare: `npx wrangler pages deploy ${out.dir}`,
+          netlify: `npx netlify deploy --prod --dir ${out.dir}`,
+          local: `npx serve ${out.dir}`,
+        },
+        note: `Static demo written to ${out.dir} (index.html, ${out.screens} screen(s), no Arta navigator). It loads Tailwind + lucide from a CDN, so the deployed page needs internet. Re-run after design changes to refresh it.`,
+      });
+    } catch {
+      return err(
+        `Couldn't reach the viewer on port ${p} to assemble the export. Start it with arta_start_viewer (or pass the right port), then try again.`
+      );
+    }
+  }
+);
+
 const transport = new StdioServerTransport();
 await server.connect(transport);

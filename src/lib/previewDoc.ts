@@ -141,9 +141,14 @@ function safeData(value: unknown): string {
   return JSON.stringify(value).replace(/<\/(script)/gi, "<\\/$1");
 }
 
-export function buildPrototypePreview(proto: Prototype, opts: { name?: string } = {}): string {
+export function buildPrototypePreview(proto: Prototype, opts: { name?: string; chrome?: boolean } = {}): string {
   const screens = (proto.screens || []).filter((s): s is Screen => !!s && !!s.id);
   const name = opts.name || "Prototype";
+  // `chrome` (default true) is the /preview navigator: the floating button + slide-in
+  // sidebar that lets the dev jump between screens. A static export for a client demo
+  // sets chrome:false — only the device shows, navigated purely by the prototype's own
+  // data-to clicks, with no Arta affordances layered on top.
+  const chrome = opts.chrome !== false;
   if (!screens.length) {
     return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(name)} — preview</title><style>${PREVIEW_CSS}</style></head><body><div class="pv-empty">No screens to preview yet.</div></body></html>`;
   }
@@ -238,10 +243,10 @@ export function buildPrototypePreview(proto: Prototype, opts: { name?: string } 
     var b = e.target.closest('[data-goto]'); if(!b) return;
     show(b.getAttribute('data-goto'));
   });
-  document.getElementById('pv-fab').addEventListener('click', openSide);
+${chrome ? `  document.getElementById('pv-fab').addEventListener('click', openSide);
   document.getElementById('pv-close').addEventListener('click', closeSide);
   document.getElementById('pv-scrim').addEventListener('click', closeSide);
-  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeSide(); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeSide(); });` : ``}
   window.addEventListener('resize', function(){ if(current) applyFrame(current); });
   window.addEventListener('hashchange', function(){ var id = location.hash.slice(1); if(id && SCREENS[id] && id !== current) show(id); });
   show(location.hash.slice(1) || START);
@@ -256,13 +261,13 @@ export function buildPrototypePreview(proto: Prototype, opts: { name?: string } 
 <style>${PREVIEW_CSS}</style>
 </head><body>
 <div class="pv-stage"><div class="pv-device" id="pv-device"><iframe id="pv" title="prototype"></iframe></div></div>
-<button class="pv-fab" id="pv-fab" title="Screens" aria-label="Screens">${ICON_PANEL}</button>
+${chrome ? `<button class="pv-fab" id="pv-fab" title="Screens" aria-label="Screens">${ICON_PANEL}</button>
 <div class="pv-scrim" id="pv-scrim"></div>
 <aside class="pv-side" id="pv-side" aria-label="Screens">
 <div class="pv-side-top"><span class="pv-dot"></span><span class="pv-name">${esc(name)}</span><button class="pv-close" id="pv-close" title="Close" aria-label="Close">${ICON_X}</button></div>
 <div class="pv-side-label">Screens</div>
 <div class="pv-list">${tabs}</div>
-</aside>
+</aside>` : ``}
 <script>${PARENT}</script>
 </body></html>`;
 }

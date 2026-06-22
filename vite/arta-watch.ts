@@ -432,6 +432,39 @@ export function artaWatch(): Plugin {
           return;
         }
 
+        // Pack the whole clickable prototype into a static, deployable folder — the same
+        // self-contained page as /preview, but WITHOUT the Arta navigator (no floating
+        // button / sidebar): a client demo, navigated only by the prototype's own data-to
+        // clicks. Writes <out>/index.html (default <projectRoot>/dist) so it drops straight
+        // onto any static host (Cloudflare Pages, Netlify, GitHub Pages). The .arta/ source
+        // is never touched.
+        if (url === "/__arta/export" && req.method === "POST") {
+          try {
+            const dir = dirFor(req);
+            const state = assembleState(dir) as { prototype?: Prototype } | null;
+            const proto = state?.prototype;
+            if (!proto || !(proto.screens || []).length) return send(res, 400, { ok: false, error: "no prototype to export yet" });
+            const body = JSON.parse((await readBody(req)) || "{}");
+            const projectRoot = path.dirname(dir); // dir is the project's .arta — its parent is the project
+            const rel = typeof body.dir === "string" && body.dir.trim() ? body.dir.trim() : "dist";
+            const out = path.isAbsolute(rel) ? rel : path.join(projectRoot, rel);
+            fs.mkdirSync(out, { recursive: true });
+            const html = buildPrototypePreview(proto, { name: displayName(dir), chrome: false });
+            const indexFile = path.join(out, "index.html");
+            fs.writeFileSync(indexFile, html);
+            return send(res, 200, {
+              ok: true,
+              dir: out,
+              files: ["index.html"],
+              bytes: Buffer.byteLength(html),
+              screens: (proto.screens || []).length,
+              start: proto.start || (proto.screens || [])[0]?.id || null,
+            });
+          } catch (e) {
+            return send(res, 400, { ok: false, error: String(e) });
+          }
+        }
+
         // Capture a screen with a REAL headless Chrome (pixel-identical to the dev's browser),
         // writing <id>.png (+ <id>.full.png when full). The MCP calls this so the agent's
         // screenshot is a true browser render — not a DOM re-serialisation that drifts. Falls
