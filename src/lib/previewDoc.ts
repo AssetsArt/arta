@@ -114,23 +114,23 @@ body{background:#f7f8f8;color:#1f2328;font-family:'Geist','Noto Sans Thai',syste
 .pv-fab svg{filter:drop-shadow(0 1px 3px rgba(0,0,0,.35))}
 .pv-open .pv-fab{opacity:0;pointer-events:none;transform:translateY(6px)}
 /* Scrim — click anywhere outside the panel to dismiss; barely dims the canvas. */
-.pv-scrim{position:fixed;inset:0;z-index:35;background:rgba(15,17,21,.06);opacity:0;pointer-events:none;transition:opacity .2s}
+.pv-scrim{position:fixed;inset:0;z-index:35;background:rgba(15,17,21,.12);opacity:0;pointer-events:none;transition:opacity .2s}
 .pv-open .pv-scrim{opacity:1;pointer-events:auto}
 /* Slide-out navigator — the screen list, styled like the prototype tab's Screens rail. */
-.pv-side{position:fixed;top:0;left:0;bottom:0;z-index:40;width:256px;display:flex;flex-direction:column;background:#fff;border-right:1px solid #ececec;box-shadow:0 8px 40px -12px rgba(15,17,21,.18);transform:translateX(-100%);transition:transform .24s cubic-bezier(.22,1,.36,1)}
+.pv-side{position:fixed;top:0;left:0;bottom:0;z-index:40;width:256px;display:flex;flex-direction:column;background:rgba(238,240,242,.52);border-right:1px solid rgba(255,255,255,.32);box-shadow:2px 0 48px rgba(0,0,0,.18),inset -1px 0 0 rgba(255,255,255,.45);-webkit-backdrop-filter:blur(40px) saturate(180%);backdrop-filter:blur(40px) saturate(180%);transform:translateX(-100%);transition:transform .24s cubic-bezier(.22,1,.36,1)}
 .pv-open .pv-side{transform:translateX(0)}
-.pv-side-top{display:flex;align-items:center;gap:8px;padding:16px 14px 12px}
-.pv-side-top .pv-dot{width:7px;height:7px;border-radius:50%;background:#10b981;flex:0 0 auto}
+.pv-side-top{display:flex;align-items:center;gap:8px;padding:16px 14px 12px;border-bottom:1px solid rgba(0,0,0,.06)}
+.pv-side-top .pv-dot{width:7px;height:7px;border-radius:50%;background:#10b981;flex:0 0 auto;box-shadow:0 0 6px rgba(16,185,129,.5)}
 .pv-name{font-size:13.5px;font-weight:600;color:#1f2328;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pv-close{margin-left:auto;display:grid;place-items:center;width:26px;height:26px;border:0;border-radius:7px;background:transparent;color:#9a9da3;cursor:pointer;transition:background .12s,color .12s}
-.pv-close:hover{background:#f3f4f4;color:#1f2328}
-.pv-side-label{padding:6px 16px 8px;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:10.5px;font-weight:500;letter-spacing:.6px;text-transform:uppercase;color:#9a9da3}
+.pv-close{margin-left:auto;display:grid;place-items:center;width:26px;height:26px;border:0;border-radius:7px;background:transparent;color:#5e6168;cursor:pointer;transition:background .12s,color .12s}
+.pv-close:hover{background:rgba(0,0,0,.07);color:#1f2328}
+.pv-side-label{padding:6px 16px 8px;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:10.5px;font-weight:500;letter-spacing:.6px;text-transform:uppercase;color:rgba(30,35,40,.4)}
 .pv-list{display:flex;flex-direction:column;gap:2px;padding:0 8px 14px;overflow-y:auto}
-.pv-screen{display:flex;align-items:center;gap:9px;width:100%;text-align:left;font:inherit;font-size:13px;font-weight:500;color:#5e6168;background:transparent;border:0;border-radius:7px;padding:8px 10px;cursor:pointer;transition:background .12s,color .12s}
-.pv-screen:hover{color:#1f2328;background:#f7f8f8}
-.pv-screen .pv-ico{display:grid;place-items:center;color:#9a9da3;flex:0 0 auto}
+.pv-screen{display:flex;align-items:center;gap:9px;width:100%;text-align:left;font:inherit;font-size:13px;font-weight:500;color:#3a3f47;background:transparent;border:0;border-radius:8px;padding:8px 10px;cursor:pointer;transition:background .12s,color .12s}
+.pv-screen:hover{color:#1f2328;background:rgba(255,255,255,.38)}
+.pv-screen .pv-ico{display:grid;place-items:center;color:rgba(30,35,40,.35);flex:0 0 auto}
 .pv-screen-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pv-screen.is-active{color:#1f2328;background:#fff;box-shadow:inset 0 0 0 1px #e6e7e7}
+.pv-screen.is-active{color:#1f2328;background:rgba(255,255,255,.6);box-shadow:0 1px 4px rgba(0,0,0,.08),inset 0 0 0 1px rgba(255,255,255,.65)}
 .pv-screen.is-active .pv-ico{color:#10b981}
 .pv-empty{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#5e6168;font-size:14px}
 `;
