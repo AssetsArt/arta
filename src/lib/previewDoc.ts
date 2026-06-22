@@ -108,10 +108,11 @@ body{background:#f7f8f8;color:#1f2328;font-family:'Geist','Noto Sans Thai',syste
 .pv-device--phone{border-radius:44px;border:1px solid #ececec}
 .pv-device--flat{border-radius:0;border:0}
 #pv{display:block;border:0;width:100%;height:100%;background:#fff}
-/* Floating icon toggle — opens the navigator sidebar; hides itself while the panel is open. */
-.pv-fab{position:fixed;left:16px;top:16px;z-index:30;display:grid;place-items:center;width:36px;height:36px;border-radius:9px;background:rgba(255,255,255,.88);border:1px solid #ececec;box-shadow:0 1px 2px rgba(15,17,21,.04),0 8px 24px -8px rgba(15,17,21,.12);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);cursor:pointer;color:#5e6168;transition:background .12s,color .12s,opacity .18s,transform .18s}
-.pv-fab:hover{background:#fff;color:#1f2328}
-.pv-open .pv-fab{opacity:0;pointer-events:none;transform:translateX(-8px)}
+/* Floating icon toggle — liquid glass circle; hides itself while the panel is open. */
+.pv-fab{position:fixed;left:18px;bottom:18px;z-index:30;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.38);box-shadow:0 8px 32px rgba(0,0,0,.22),0 2px 8px rgba(0,0,0,.14),inset 0 1.5px 0 rgba(255,255,255,.7),inset 0 -1px 0 rgba(0,0,0,.1);-webkit-backdrop-filter:blur(28px) saturate(220%);backdrop-filter:blur(28px) saturate(220%);cursor:pointer;color:#fff;transition:background .15s,border-color .15s,opacity .2s,transform .22s cubic-bezier(.22,1,.36,1)}
+.pv-fab:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.52)}
+.pv-fab svg{filter:drop-shadow(0 1px 3px rgba(0,0,0,.35))}
+.pv-open .pv-fab{opacity:0;pointer-events:none;transform:translateY(6px)}
 /* Scrim — click anywhere outside the panel to dismiss; barely dims the canvas. */
 .pv-scrim{position:fixed;inset:0;z-index:35;background:rgba(15,17,21,.06);opacity:0;pointer-events:none;transition:opacity .2s}
 .pv-open .pv-scrim{opacity:1;pointer-events:auto}
