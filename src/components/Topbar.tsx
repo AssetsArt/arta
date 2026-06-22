@@ -207,7 +207,7 @@ function ProjectSwitcher({
                       onSelect?.(p.id);
                       setOpen(false);
                     }}
-                    className="flex flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px]"
+                    className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px]"
                     style={{ color: on ? c.text : c.dim }}
                   >
                     <span className="flex-1 truncate">{p.name}</span>

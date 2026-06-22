@@ -49,22 +49,31 @@ export function resolveActive(list: Project[], stored: string | null): string {
   return list[0]?.id ?? "";
 }
 
-// Read a one-shot ?project=<id> deep link, then strip it from the address bar so a
-// reload falls back to the persisted pick (the param is a handoff from the agent's
-// start-viewer URL, not durable state). Returns the id only — validation against the
-// real project list is the caller's job. Only the root app does this; /preview keeps
-// resolving its project from ?project on every request, so it must NOT be stripped there.
-function takeProjectParam(): string | null {
+// A one-shot ?project=<id> deep link is a handoff from the agent's start-viewer URL,
+// not durable state. Capture it ONCE at module load — not inside the effect — because
+// the viewer runs as a dev server under React StrictMode, which mounts and double-fires
+// effects; reading-and-stripping in the effect would clear the param on the first run
+// and leave the surviving run with nothing (the param would be lost to localStorage).
+// Stripping is deferred until the pick is actually applied (stripProjectParam below).
+const URL_PROJECT = (() => {
   try {
-    const url = new URL(window.location.href);
-    const id = url.searchParams.get("project");
-    if (id) {
-      url.searchParams.delete("project");
-      window.history.replaceState(null, "", url.pathname + url.search + url.hash);
-    }
-    return id;
+    return new URLSearchParams(window.location.search).get("project");
   } catch {
     return null;
+  }
+})();
+
+// Drop ?project from the address bar so a reload falls back to the persisted pick. Only
+// the root app does this; /preview keeps resolving its project from ?project on every
+// request, so it must NOT be stripped there.
+function stripProjectParam(): void {
+  try {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("project")) return;
+    url.searchParams.delete("project");
+    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+  } catch {
+    /* ignore */
   }
 }
 
@@ -184,8 +193,6 @@ export function useArta(): ArtaLive {
 
   useEffect(() => {
     let alive = true;
-    // Read (and strip) any ?project deep link before the list arrives — see takeProjectParam.
-    const urlPick = takeProjectParam();
     fetch("/__arta/projects")
       .then((r) => r.json())
       .then((res: { ok: boolean; projects?: Project[]; home?: string }) => {
@@ -194,7 +201,7 @@ export function useArta(): ArtaLive {
         setHome(res.home || "");
         // Precedence: a valid ?project deep link wins, else the persisted pick, else first.
         const stored = (() => { try { return localStorage.getItem(STORAGE_KEY); } catch { return null; } })();
-        const active = urlPick && list.some((p) => p.id === urlPick) ? urlPick : resolveActive(list, stored);
+        const active = URL_PROJECT && list.some((p) => p.id === URL_PROJECT) ? URL_PROJECT : resolveActive(list, stored);
         activeProjectId = active;
         setProjects(list);
         setActiveProject(active);
@@ -202,6 +209,8 @@ export function useArta(): ArtaLive {
           try { localStorage.setItem(STORAGE_KEY, active); } catch { /* private mode */ }
           loadState(active);
         }
+        // The deep link is consumed now — clear it so a reload uses the persisted pick.
+        if (URL_PROJECT) stripProjectParam();
       })
       .catch(() => alive && setError("dev server unreachable"));
 
