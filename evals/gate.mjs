@@ -106,8 +106,10 @@ function runFrameSpecs() {
   const rows = [];
   const spec = (name, ok, detail) => rows.push({ name, ok, detail });
   const src = fs.readFileSync(path.join(ROOT, "src/components/proto/FreeformDevice.tsx"), "utf8").replace(/\s+/g, "");
-  spec("frame establishes a full height chain (html,body height:100%)", /html,body\{[^}]*height:100%/.test(src), "html,body height:100%");
-  spec("body background defaults to the page colour, not white", src.includes("background:var(--color-bg,#fff)"), "body background:var(--color-bg,#fff)");
+  // BASE_CSS / the rich-screen kit / buildScreenDoc now live in the Node-safe shared module.
+  const doc = fs.readFileSync(path.join(ROOT, "src/lib/screenDoc.ts"), "utf8").replace(/\s+/g, "");
+  spec("frame establishes a full height chain (html,body height:100%)", /html,body\{[^}]*height:100%/.test(doc), "html,body height:100%");
+  spec("body background defaults to the page colour, not white", doc.includes("background:var(--color-bg,#fff)"), "body background:var(--color-bg,#fff)");
   // A stray <a href> in a srcdoc frame would load the viewer into itself (nested Arta);
   // the runtime must intercept href clicks and inject the screen list to recover them.
   spec("runtime intercepts raw <a href> navigation", src.includes("closest('a[href]')") && src.includes("functionwarnHref"), "a[href] interceptor + warnHref");
@@ -125,8 +127,10 @@ function runFrameSpecs() {
   spec("full snapshot re-roots viewport-anchored bars to full doc", src.includes('position:"relative"') && src.includes('position:"absolute"'), "fixed/absolute bar re-root");
   // The rich-screen kit must stay shipped in BASE_CSS: a horizontal rail (peek/snap, no
   // scrollbar) and a gradient cover (so an image slot is never a bare gray box).
-  spec("BASE_CSS ships the horizontal rail primitive (.hs-rail)", src.includes(".hs-rail{"), ".hs-rail");
-  spec("BASE_CSS ships a gradient cover, not a gray box (.hs-cover)", src.includes(".hs-cover{") && src.includes("linear-gradient"), ".hs-cover gradient");
+  spec("BASE_CSS ships the horizontal rail primitive (.hs-rail)", doc.includes(".hs-rail{"), ".hs-rail");
+  spec("BASE_CSS ships a gradient cover, not a gray box (.hs-cover)", doc.includes(".hs-cover{") && doc.includes("linear-gradient"), ".hs-cover gradient");
+  // The shared screen document is built ONE way (live iframe + PDF + headless all use it).
+  spec("buildScreenDoc assembles the standalone screen (shared render)", doc.includes("functionbuildScreenDoc"), "buildScreenDoc");
   // modern-screenshot can't render backdrop-filter (frosted glass), so a `bg-white/90
   // backdrop-blur` bar smears the content behind it. The capture neutralizes it (blur off +
   // opaque bg) so bars render solid. Lock the helper in for both the framed and full shots.
@@ -146,8 +150,27 @@ function runExportSpecs() {
   const tab = fs.readFileSync(path.join(ROOT, "src/components/tabs/PrototypeTab.tsx"), "utf8");
   spec("export reuses captureFullPng (shared with the live shot) with always", exp.includes("captureFullPng") && exp.includes("always: true"), "always:true");
   spec("export renders each screen offscreen at its device width", exp.includes("FRAME_W") && exp.includes("srcdoc"), "offscreen iframe");
-  spec("export builds a PDF and opens it for the dev to save", exp.includes("jsPDF") && exp.includes('output("bloburl")') && exp.includes("window.open"), "jsPDF → bloburl → new tab");
-  spec("Prototype tab wires the Export PDF button", tab.includes("exportPrototypePdf") && tab.includes("Export PDF"), "button + handler");
+  spec("export returns a PDF blob for the in-app modal (no auto-open)", exp.includes("jsPDF") && exp.includes('output("bloburl")') && !exp.includes("window.open"), "blob URL, not auto-opened");
+  spec("Prototype tab wires the Export PDF button + result modal", tab.includes("exportPrototypePdf") && tab.includes("Export PDF") && tab.includes("pdfResult") && tab.includes('target="_blank"'), "button + modal w/ Open");
+  return { ok: rows.every((r) => r.ok), rows };
+}
+
+// ── Headless-Chrome snapshot: the render IS the browser, not a re-serialisation ──
+// The agent's screenshot is a REAL headless-Chrome render — pixel-identical to the dev's
+// browser, ending the per-CSS-feature drift (fonts, backdrop-filter, …) a DOM→canvas
+// serializer needs patched case by case. The dev server renders + captures; the MCP triggers a
+// fresh capture before reading; modern-screenshot stays as the fallback when no Chrome exists.
+function runHeadlessSpecs() {
+  const rows = [];
+  const spec = (name, ok, detail) => rows.push({ name, ok, detail });
+  const hs = fs.readFileSync(path.join(ROOT, "vite/headless-snapshot.ts"), "utf8");
+  const plugin = fs.readFileSync(path.join(ROOT, "vite/arta-watch.ts"), "utf8");
+  const mcp = fs.readFileSync(path.join(ROOT, "mcp/server.mjs"), "utf8");
+  spec("headless reuses the dev's installed Chrome (no 300MB download)", hs.includes("findChrome") && hs.includes("puppeteer-core") && hs.includes("executablePath"), "findChrome + puppeteer-core");
+  spec("headless full shot unclamps inner scroll, then fullPage", hs.includes("UNCLAMP_IN_PAGE") && hs.includes("fullPage"), "unclamp + fullPage");
+  spec("dev server serves /__arta/render + /__arta/capture", plugin.includes('"/__arta/render"') && plugin.includes('"/__arta/capture"') && plugin.includes("snapshotWithChrome"), "render + capture routes");
+  spec("MCP triggers a fresh Chrome capture before reading the shot", mcp.includes("/__arta/capture") && mcp.includes("lastViewerPort"), "capture trigger");
+  spec("arta_get_screenshot lets the caller pick the engine (chrome | client)", mcp.includes('["chrome", "client"]') && mcp.includes('engine !== "client"'), "engine param");
   return { ok: rows.every((r) => r.ok), rows };
 }
 
@@ -181,6 +204,8 @@ function runGate(json) {
   if (!projectSpecs.ok) regressed = true;
   const exportSpecs = runExportSpecs();
   if (!exportSpecs.ok) regressed = true;
+  const headlessSpecs = runHeadlessSpecs();
+  if (!headlessSpecs.ok) regressed = true;
 
   for (const t of TH.targets) {
     const r = grade(t.brief, path.join(ROOT, t.dir));
@@ -220,7 +245,7 @@ function runGate(json) {
   }
 
   if (json) {
-    console.log(JSON.stringify({ mode: "gate", ok: !regressed, a5Skipped: [...a5Skipped], rows, specs: specs.rows, railSpecs: railSpecs.rows, frameSpecs: frameSpecs.rows, projectSpecs: projectSpecs.rows, exportSpecs: exportSpecs.rows }, null, 2));
+    console.log(JSON.stringify({ mode: "gate", ok: !regressed, a5Skipped: [...a5Skipped], rows, specs: specs.rows, railSpecs: railSpecs.rows, frameSpecs: frameSpecs.rows, projectSpecs: projectSpecs.rows, exportSpecs: exportSpecs.rows, headlessSpecs: headlessSpecs.rows }, null, 2));
     return !regressed;
   }
 
@@ -250,6 +275,9 @@ function runGate(json) {
 
   console.log("\n  RENDER-LAYER SPECS — export every full screenshot to one PDF\n");
   for (const s of exportSpecs.rows) console.log("  " + (s.ok ? GLYPH.pass : GLYPH.fail) + " " + pad(s.name, 58) + (s.detail ? "  " + s.detail : ""));
+
+  console.log("\n  RENDER-LAYER SPECS — headless-Chrome snapshot (render = the browser)\n");
+  for (const s of headlessSpecs.rows) console.log("  " + (s.ok ? GLYPH.pass : GLYPH.fail) + " " + pad(s.name, 58) + (s.detail ? "  " + s.detail : ""));
 
   console.log("\n  " + (regressed ? "GATE FAILED — a committed target or render-layer spec regressed." : "GATE PASSED — all committed targets hold the baseline.") + "\n");
   return !regressed;

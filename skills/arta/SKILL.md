@@ -70,14 +70,18 @@ Never describe a screen in prose when you could render it. Show, ask, adjust.
   every meaningful change and act on what you find. Notes may include an `element`
   (tag/text/selector) when the dev clicked a specific element to comment on it —
   use it to target the exact thing they mean.
-- `arta_get_screenshot` — get a PNG of how a screen actually renders (the same
-  pixels the dev sees). Use it to **check your own work visually**, not just from
-  the HTML — after building or changing a screen, look at it. Pass **`full: true`**
-  to capture the WHOLE screen at its content length (the entire scroll in one tall
-  image, not just the device viewport) — use it to review a long / scrolling screen
-  end to end. This works even when the screen scrolls inside an **inner region**
-  (the usual header + scroll-body + tabbar shell), not just document-level scroll;
-  `full` only falls back to the framed shot when **nothing** scrolls anywhere.
+- `arta_get_screenshot` — get a PNG of how a screen actually renders. Use it to
+  **check your own work visually**, not just from the HTML — after building or
+  changing a screen, look at it. By default it's a **real headless-Chrome render**
+  (pixel-identical to the browser, no font/effect drift) rendered **on demand**, so
+  you do NOT need the dev to have opened the screen first; it's the screen content at
+  its device width (no device bezel). Pass **`full: true`** to capture the WHOLE
+  screen at its content length (the entire scroll in one tall image, including a
+  screen that scrolls inside an **inner region** — header + scroll-body + tabbar).
+  Pass **`engine: "client"`** to instead get the viewer's own capture **with the
+  device bezel + status bar** (what the dev literally sees) — handy to check the
+  safe-area/notch fit, though it only exists for screens the dev has opened and can
+  drift on some CSS. (No Chrome on the machine → it auto-falls back to the client shot.)
 - `arta_get_view` also returns `errors`: console/runtime errors from the
   prototype. If something you wrote is broken, you'll see it here — fix it without
   waiting for the dev.

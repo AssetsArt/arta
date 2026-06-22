@@ -3,6 +3,7 @@ import { domToPng } from "modern-screenshot";
 import type { StoreState } from "../../lib/types";
 import { reportSnapshot } from "../../lib/useArta";
 import { FONT_LINK } from "../../lib/prototype";
+import { BASE_CSS, HEAD_LIBS } from "../../lib/screenDoc";
 
 export interface AnnotateTarget {
   tag: string;
@@ -170,48 +171,8 @@ const RUNTIME = `
 })();
 `;
 
-export const BASE_CSS = `
-*{box-sizing:border-box}
-/* Fill the device frame. A screen whose content is shorter than the viewport must
-   still paint to the bottom edge — otherwise the area below it shows through as a
-   dead WHITE band (the #1 recurring prototype defect). Two guarantees, neither
-   relying on the AI remembering: html/body at full height gives min-h-full / h-full
-   roots a definite parent to actually fill, and the body background defaults to the
-   design's page colour (var(--color-bg)) — which propagates to the whole canvas — so
-   any remaining gap is the screen's own bg, never raw white. The design system's own
-   `+"`body{background:…}`"+` (loaded after this) still wins when it sets one. */
-html,body{margin:0;padding:0;height:100%}
-body{min-height:100%;font-family:'Geist','Noto Sans Thai',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;color:#18181b;background:var(--color-bg,#fff);-webkit-font-smoothing:antialiased}
-img{max-width:100%;display:block}
-a{color:inherit;text-decoration:none}
-button{font-family:inherit;cursor:pointer}
-[data-to],[data-inc],[data-dec],[data-set]{cursor:pointer}
-body.arta-annotate *{cursor:crosshair !important}
-body.arta-annotate *:hover{outline:2px solid #38bdf8 !important;outline-offset:-1px}
-/* ---- Rich-screen kit — primitives the recurring content patterns (category/card
-   rails, image covers) need and that are fiddly in raw utilities. Opt-in via class;
-   compose Tailwind on top (a single utility wins the cascade, so gap-*/rounded-*/h-*
-   still override these defaults). ---- */
-/* Horizontal rail: scrolls sideways, snaps, hides its bar, lets the next item PEEK
-   past the edge (the "there's more" affordance). Children keep their own width. */
-.hs-rail{display:flex;gap:.75rem;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.hs-rail::-webkit-scrollbar{display:none}
-.hs-rail>*{flex:0 0 auto;scroll-snap-align:start}
-/* Cover placeholder — a brand-tinted gradient surface for an image slot, NEVER a flat
-   gray box (the loudest slop tell). Falls through the common brand token names, then a
-   hex; lay a real <img> over it when there is one. */
-.hs-cover{background-image:linear-gradient(135deg,color-mix(in oklab,var(--color-primary,var(--color-brand,#6366f1)) 26%,#fff),color-mix(in oklab,var(--color-accent,var(--color-primary,var(--color-brand,#ec4899))) 32%,#fff))}
-`;
-
-// Real Tailwind + lucide in every freeform screen, so the AI writes utility
-// classes and proper icons (<i data-lucide="name">) instead of emoji + inline CSS.
-// Loaded via CDN and deferred so the body parses first (no blocking on the fetch);
-// both run before DOMContentLoaded, so the runtime's icons() finds lucide ready.
-export const HEAD_LIBS =
-  `<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4" defer></script>` +
-  // The bare `lucide` spec on jsDelivr resolves to the CJS build (no global, throws
-  // "exports is not defined"); the UMD build is what exposes window.lucide.
-  `<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js" defer></script>`;
+// BASE_CSS + HEAD_LIBS live in ../../lib/screenDoc (Node-safe, shared with the PDF export and
+// the dev server's headless-Chrome snapshot, so every render path paints identically).
 
 // Snapshot the framed device — the SAME viewport the dev sees (bezel + chrome + content).
 export async function captureFramedPng(node: HTMLElement): Promise<string> {

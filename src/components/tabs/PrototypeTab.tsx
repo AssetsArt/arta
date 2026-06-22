@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AppWindow, Check, Copy, FileDown, Monitor, MessageSquarePlus, Smartphone, Tablet, X } from "lucide-react";
+import { AppWindow, Check, Copy, Download, ExternalLink, FileDown, Monitor, MessageSquarePlus, Smartphone, Tablet, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { FrameKind, Prototype, Spec, StoreState } from "../../lib/types";
 import { LIGHT, MONO, useTheme } from "../../lib/theme";
@@ -77,18 +77,21 @@ export function PrototypeTab({
     setTarget(null);
   }, [cur.id]);
 
-  // Export every freeform screen's full-length screenshot as one PDF (opens in a new tab
-  // for the dev to save). `exporting` doubles as the button label while it runs.
+  // Export every freeform screen's full-length screenshot as one PDF. When it's built we
+  // surface it in a modal (below) with an Open button — the dev opens it with a real click,
+  // so nothing is auto-opened (no popup-block) and the result is never silently dropped.
+  // `exporting` doubles as the button label while it runs.
   const [exporting, setExporting] = useState<string | null>(null);
+  const [pdfResult, setPdfResult] = useState<{ url: string; pages: number } | null>(null);
   const runExport = async () => {
     if (exporting) return;
     try {
       setExporting("Rendering…");
-      const n = await exportPrototypePdf(prototype, (p) =>
+      const res = await exportPrototypePdf(prototype, (p) =>
         setExporting(p.done < p.total ? `Rendering ${p.done + 1}/${p.total}…` : "Building PDF…")
       );
       setExporting(null);
-      if (!n) onError("PDF export: nothing captured.");
+      setPdfResult(res);
     } catch (e) {
       setExporting(null);
       onError(`PDF export failed — ${(e as Error).message}`);
@@ -303,6 +306,55 @@ export function PrototypeTab({
       </div>
 
       <SpecRail spec={spec} open={specOpen} onToggle={onToggleSpec} />
+        </div>
+      )}
+
+      {/* PDF export result — a modal the dev opens with a real click (no auto-opened tab). */}
+      {pdfResult && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-6"
+          style={{ background: "rgba(0,0,0,.55)" }}
+          onClick={() => setPdfResult(null)}
+        >
+          <div
+            className="w-[360px] max-w-full rounded-2xl p-6"
+            style={{ background: c.panel, border: `1px solid ${c.border2}`, boxShadow: "0 24px 64px rgba(0,0,0,.5)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="grid h-10 w-10 place-items-center rounded-xl" style={{ background: c.accentSoft }}>
+                <FileDown size={20} color={c.accent2} />
+              </div>
+              <div>
+                <div className="text-[15px] font-semibold" style={{ color: c.text }}>PDF พร้อมแล้ว</div>
+                <div className="text-[12px]" style={{ color: c.dim }}>
+                  {pdfResult.pages} หน้า · ทุกหน้าจอแบบเต็มความยาว
+                </div>
+              </div>
+              <button onClick={() => setPdfResult(null)} className="ml-auto" style={{ color: c.faint }} title="ปิด">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="mt-5 flex flex-col gap-2">
+              <a
+                href={pdfResult.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-[13px] font-semibold"
+                style={{ background: c.accent, color: "#fff" }}
+              >
+                <ExternalLink size={15} /> เปิด PDF
+              </a>
+              <a
+                href={pdfResult.url}
+                download="arta-prototype.pdf"
+                className="flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium"
+                style={{ background: c.panel2, color: c.text, border: `1px solid ${c.border2}` }}
+              >
+                <Download size={15} /> ดาวน์โหลด
+              </a>
+            </div>
+          </div>
         </div>
       )}
     </div>

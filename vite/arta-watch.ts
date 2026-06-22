@@ -2,6 +2,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { Plugin, ViteDevServer } from "vite";
+import type { Prototype, Screen } from "../src/lib/types";
+import { buildScreenDoc } from "../src/lib/screenDoc";
+import { snapshotWithChrome } from "./headless-snapshot";
 
 // ── Shared canvas layout (.arta/) ───────────────────────────────────────
 // state.json                       meta/spec/plan/dataModel/flow + prototype MANIFEST
@@ -209,6 +212,9 @@ export function artaWatch(): Plugin {
         ? path.resolve(process.env.ARTA_DIR)
         : path.resolve(srv.config.root, ARTA_DIR);
       homeId = idFor(homeDir);
+      // The port we listen on — the headless-Chrome snapshot navigates back to /__arta/render
+      // here. The launcher sets it and clears stale viewers, so it's reliable.
+      const viewerPort = srv.config.server.port || 7317;
 
       // Pre-create the home split-file dirs so chokidar watches files created later.
       fs.mkdirSync(path.join(homeDir, PROTO_DIR, COMP_DIR), { recursive: true });
@@ -359,6 +365,51 @@ export function artaWatch(): Plugin {
             // `.full.png` = the whole screen at content length; `.png` = the framed viewport.
             fs.writeFileSync(path.join(snapDir, id + (body.full ? ".full.png" : ".png")), Buffer.from(m[1], "base64"));
             return send(res, 200, { ok: true });
+          } catch (e) {
+            return send(res, 400, { ok: false, error: String(e) });
+          }
+        }
+
+        // Standalone HTML for ONE screen — what the headless-Chrome snapshot loads, and a handy
+        // "open the raw screen in a tab" URL. Same buildScreenDoc the live iframe + PDF use.
+        if (url === "/__arta/render" && req.method === "GET") {
+          const dir = dirFor(req);
+          const screenId = new URLSearchParams((req.url || "").split("?")[1] || "").get("screen") || "";
+          const state = assembleState(dir) as { prototype?: Prototype } | null;
+          const proto = state?.prototype;
+          const screen = proto?.screens?.find((s: Screen) => s.id === screenId);
+          if (!proto || !screen) {
+            res.statusCode = 404;
+            res.setHeader("Content-Type", "text/plain; charset=utf-8");
+            res.end("screen not found");
+            return;
+          }
+          res.setHeader("Content-Type", "text/html; charset=utf-8");
+          res.end(buildScreenDoc(proto, screen));
+          return;
+        }
+
+        // Capture a screen with a REAL headless Chrome (pixel-identical to the dev's browser),
+        // writing <id>.png (+ <id>.full.png when full). The MCP calls this so the agent's
+        // screenshot is a true browser render — not a DOM re-serialisation that drifts. Falls
+        // back gracefully (ok:false) when no Chrome is installed; the client shot then stands.
+        if (url === "/__arta/capture" && req.method === "POST") {
+          try {
+            const body = JSON.parse((await readBody(req)) || "{}");
+            const dir = dirFor(req);
+            const state = assembleState(dir) as { prototype?: Prototype } | null;
+            const proto = state?.prototype;
+            const screen = proto?.screens?.find((s: Screen) => s.id === body.screen);
+            if (!proto || !screen) return send(res, 404, { ok: false, error: "screen not found" });
+            const result = await snapshotWithChrome({
+              baseUrl: `http://localhost:${viewerPort}`,
+              project: idFor(dir),
+              screen: String(body.screen),
+              frame: screen.frame || proto.frame || "web",
+              snapDir: path.join(dir, "snapshots"),
+              full: !!body.full,
+            });
+            return send(res, 200, result);
           } catch (e) {
             return send(res, 400, { ok: false, error: String(e) });
           }
