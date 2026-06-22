@@ -291,6 +291,29 @@ export function artaWatch(): Plugin {
           return send(res, 200, { ok: true, home: homeId, projects: projects.map((p) => ({ id: p.id, name: p.name })) });
         }
 
+        // Drop a project from the switcher: removes its entry from the shared registry.
+        // This unregisters only — it never touches the project's .arta/ on disk, so the
+        // canvas stays intact and the project reappears here if its MCP writes again.
+        // The home project (the one this viewer was launched for) is always re-added by
+        // loadProjects(), so deleting it is refused.
+        if (url === "/__arta/projects" && req.method === "DELETE") {
+          const id = new URLSearchParams((req.url || "").split("?")[1] || "").get("project");
+          if (!id) return send(res, 400, { ok: false, error: "missing ?project" });
+          if (id === homeId) return send(res, 409, { ok: false, error: "the launched project stays pinned" });
+          const reg = readJson(REGISTRY_FILE);
+          if (Array.isArray(reg)) {
+            const next = reg.filter((e) => e && idFor(String(e.dir)) !== id);
+            try {
+              fs.writeFileSync(REGISTRY_FILE, JSON.stringify(next, null, 2));
+            } catch (e) {
+              return send(res, 500, { ok: false, error: String(e) });
+            }
+          }
+          refreshProjects();
+          pushProjects();
+          return send(res, 200, { ok: true, projects: projects.map((p) => ({ id: p.id, name: p.name })) });
+        }
+
         // Initial state load for the viewer — fully assembled from the split files.
         if (url === "/__arta/state" && req.method === "GET") {
           const dir = dirFor(req);

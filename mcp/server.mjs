@@ -1018,13 +1018,17 @@ server.registerTool(
     const p = Number(port) || 7317;
     lastViewerPort = p;
     registerProject(); // make this project show up in the viewer's project switcher
+    // Hand the dev a project-scoped URL so the viewer opens straight onto THIS project's
+    // canvas even when it already hosts several. The viewer reads ?project, selects it,
+    // then strips the param from the address bar (see useArta).
+    const url = `http://localhost:${p}/?project=${idForDir(path.resolve(ARTA_DIR))}`;
     if (await portInUse(p))
       return text({
         ok: true,
         alreadyRunning: true,
-        url: `http://localhost:${p}`,
+        url,
         project: readJson(STATE_FILE)?.meta?.name || path.basename(path.resolve(PROJECT_DIR)),
-        note: `A viewer is already running on this port — reuse it. It can host several projects: if it's showing a different one, pick this project from the switcher in the top bar. (Serving an old build after an update? use arta_restart_viewer.)`,
+        note: `A viewer is already running on this port — reuse it. Open ${url} to land on this project (it hosts several; the ?project link picks this one). (Serving an old build after an update? use arta_restart_viewer.)`,
       });
     // Port is free → we're spawning THE viewer. First clear any strays left by older
     // versions / bumped ports so they don't pile up (one viewer hosts every project).
@@ -1037,10 +1041,10 @@ server.registerTool(
     return text({
       ok: true,
       started: true,
-      url: `http://localhost:${p}`,
+      url,
       watching: path.join(PROJECT_DIR, ".arta"),
       from: PLUGIN_ROOT,
-      note: `Viewer starting from the installed plugin. First run installs its deps (a few seconds) — open ${`http://localhost:${p}`} in a moment. Logs: ${r.logFile}`,
+      note: `Viewer starting from the installed plugin. First run installs its deps (a few seconds) — open ${url} in a moment. Logs: ${r.logFile}`,
     });
   }
 );
@@ -1081,15 +1085,16 @@ server.registerTool(
       );
     const r = spawnViewer(p);
     if (!r.ok) return err(`Launcher not found at ${r.launcher}.`);
+    const url = `http://localhost:${p}/?project=${idForDir(path.resolve(ARTA_DIR))}`;
     return text({
       ok: true,
       restarted: true,
       wasRunning,
       stoppedPids: killed,
-      url: `http://localhost:${p}`,
+      url,
       watching: path.join(PROJECT_DIR, ".arta"),
       from: PLUGIN_ROOT,
-      note: `Stopped ${killed.length} stale Arta process(es) and relaunched from the installed plugin — now matching the installed version. Reload ${`http://localhost:${p}`} in a moment (hard-refresh if your browser cached the old assets). Logs: ${r.logFile}`,
+      note: `Stopped ${killed.length} stale Arta process(es) and relaunched from the installed plugin — now matching the installed version. Reload ${url} in a moment (hard-refresh if your browser cached the old assets). Logs: ${r.logFile}`,
     });
   }
 );

@@ -28,6 +28,10 @@ interface ArtaLive {
   /** The project currently shown — persisted in localStorage, falls back to the first. */
   activeProject: string;
   selectProject: (id: string) => void;
+  /** The project this viewer was launched for — always present, can't be removed. */
+  home: string;
+  /** Drop a project from the switcher (unregister only; the .arta/ files are untouched). */
+  deleteProject: (id: string) => void;
 }
 
 const STORAGE_KEY = "arta-project";
@@ -45,6 +49,25 @@ export function resolveActive(list: Project[], stored: string | null): string {
   return list[0]?.id ?? "";
 }
 
+// Read a one-shot ?project=<id> deep link, then strip it from the address bar so a
+// reload falls back to the persisted pick (the param is a handoff from the agent's
+// start-viewer URL, not durable state). Returns the id only — validation against the
+// real project list is the caller's job. Only the root app does this; /preview keeps
+// resolving its project from ?project on every request, so it must NOT be stripped there.
+function takeProjectParam(): string | null {
+  try {
+    const url = new URL(window.location.href);
+    const id = url.searchParams.get("project");
+    if (id) {
+      url.searchParams.delete("project");
+      window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    }
+    return id;
+  } catch {
+    return null;
+  }
+}
+
 // The client half of the live loop: fetch the project list + the active project's
 // state, then listen for the events the Vite plugin fires whenever a watched .arta/
 // changes on disk (i.e. whenever the AI writes to it). Events are tagged with a
@@ -58,6 +81,7 @@ export function useArta(): ArtaLive {
   const [changes, setChanges] = useState<ChangeEntry[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProject, setActiveProject] = useState<string>("");
+  const [home, setHome] = useState<string>("");
   const flashTimer = useRef<number | undefined>(undefined);
 
   const flash = useCallback(() => {
@@ -116,6 +140,25 @@ export function useArta(): ArtaLive {
     [loadState]
   );
 
+  // Drop a project from the switcher. Unregisters server-side (the .arta/ files stay);
+  // the home project can't be removed. If the active one is dropped, fall back to the
+  // first that remains so the canvas never goes blank.
+  const deleteProject = useCallback(
+    (id: string) => {
+      if (id === home) return;
+      setProjects((prev) => {
+        const next = prev.filter((p) => p.id !== id);
+        if (id === activeProjectId) {
+          const fallback = resolveActive(next, null);
+          if (fallback) selectProject(fallback);
+        }
+        return next;
+      });
+      fetch(`/__arta/projects?project=${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => {});
+    },
+    [home, selectProject]
+  );
+
   const applyActive = useCallback(
     (list: Project[]) => {
       setProjects(list);
@@ -141,16 +184,24 @@ export function useArta(): ArtaLive {
 
   useEffect(() => {
     let alive = true;
+    // Read (and strip) any ?project deep link before the list arrives — see takeProjectParam.
+    const urlPick = takeProjectParam();
     fetch("/__arta/projects")
       .then((r) => r.json())
-      .then((res: { ok: boolean; projects?: Project[] }) => {
+      .then((res: { ok: boolean; projects?: Project[]; home?: string }) => {
         if (!alive) return;
         const list = res.projects || [];
-        const active = resolveActive(list, (() => { try { return localStorage.getItem(STORAGE_KEY); } catch { return null; } })());
+        setHome(res.home || "");
+        // Precedence: a valid ?project deep link wins, else the persisted pick, else first.
+        const stored = (() => { try { return localStorage.getItem(STORAGE_KEY); } catch { return null; } })();
+        const active = urlPick && list.some((p) => p.id === urlPick) ? urlPick : resolveActive(list, stored);
         activeProjectId = active;
         setProjects(list);
         setActiveProject(active);
-        if (active) loadState(active);
+        if (active) {
+          try { localStorage.setItem(STORAGE_KEY, active); } catch { /* private mode */ }
+          loadState(active);
+        }
       })
       .catch(() => alive && setError("dev server unreachable"));
 
@@ -197,7 +248,7 @@ export function useArta(): ArtaLive {
     [flash]
   );
 
-  return { data, error, updatedAt, flashing, changes, applyLocal, projects, activeProject, selectProject };
+  return { data, error, updatedAt, flashing, changes, applyLocal, projects, activeProject, selectProject, home, deleteProject };
 }
 
 // Fire-and-forget reporters so the MCP server can see what the dev is doing. Each is

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Moon, Sun, SlidersHorizontal, ChevronDown, Check, ExternalLink } from "lucide-react";
+import { Moon, Sun, SlidersHorizontal, ChevronDown, Check, ExternalLink, Trash2 } from "lucide-react";
 import type { Meta, Phase } from "../lib/types";
 import type { Project } from "../lib/useArta";
 import { previewHref } from "../lib/useArta";
@@ -22,6 +22,8 @@ export function Topbar({
   projects = [],
   activeProject = "",
   onSelectProject,
+  home = "",
+  onDeleteProject,
 }: {
   meta: Meta;
   tab: Phase;
@@ -29,6 +31,8 @@ export function Topbar({
   projects?: Project[];
   activeProject?: string;
   onSelectProject?: (id: string) => void;
+  home?: string;
+  onDeleteProject?: (id: string) => void;
 }) {
   const { c, mode, toggleMode } = useTheme();
   const openPreview = () => window.open(previewHref(), "_blank", "noopener");
@@ -56,6 +60,8 @@ export function Topbar({
             activeProject={activeProject}
             fallbackName={meta.name}
             onSelect={onSelectProject}
+            home={home}
+            onDelete={onDeleteProject}
           />
         ) : (
           <span className="ml-1 text-[13px] font-medium" style={{ color: c.dim }}>
@@ -148,11 +154,15 @@ function ProjectSwitcher({
   activeProject,
   fallbackName,
   onSelect,
+  home,
+  onDelete,
 }: {
   projects: Project[];
   activeProject: string;
   fallbackName: string;
   onSelect?: (id: string) => void;
+  home?: string;
+  onDelete?: (id: string) => void;
 }) {
   const { c } = useTheme();
   const [open, setOpen] = useState(false);
@@ -183,19 +193,41 @@ function ProjectSwitcher({
             </div>
             {projects.map((p) => {
               const on = p.id === activeProject;
+              // The launched project is pinned (the viewer always re-adds it), so it has
+              // no delete affordance; every other project shows a trash button on hover.
+              const removable = !!onDelete && p.id !== home;
               return (
-                <button
+                <div
                   key={p.id}
-                  onClick={() => {
-                    onSelect?.(p.id);
-                    setOpen(false);
-                  }}
-                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] transition-colors"
-                  style={{ color: on ? c.text : c.dim, background: on ? c.panel2 : "transparent" }}
+                  className="group flex w-full items-center gap-1 rounded-lg pr-1 transition-colors"
+                  style={{ background: on ? c.panel2 : "transparent" }}
                 >
-                  <span className="flex-1 truncate">{p.name}</span>
-                  {on && <Check size={13} style={{ color: c.accent }} />}
-                </button>
+                  <button
+                    onClick={() => {
+                      onSelect?.(p.id);
+                      setOpen(false);
+                    }}
+                    className="flex flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px]"
+                    style={{ color: on ? c.text : c.dim }}
+                  >
+                    <span className="flex-1 truncate">{p.name}</span>
+                    {on && <Check size={13} style={{ color: c.accent }} />}
+                  </button>
+                  {removable && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete?.(p.id);
+                      }}
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md opacity-0 transition-opacity hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-60"
+                      style={{ color: c.faint }}
+                      title={`Remove "${p.name}" from the switcher`}
+                      aria-label={`Remove ${p.name}`}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                </div>
               );
             })}
           </div>

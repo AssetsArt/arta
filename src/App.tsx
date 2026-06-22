@@ -35,7 +35,7 @@ export default function App() {
 
 function AppInner() {
   const { c } = useTheme();
-  const { data, error, updatedAt, flashing, changes, applyLocal, projects, activeProject, selectProject } = useArta();
+  const { data, error, updatedAt, flashing, changes, applyLocal, projects, activeProject, selectProject, home, deleteProject } = useArta();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -120,6 +120,8 @@ function AppInner() {
         projects={projects}
         activeProject={activeProject}
         onSelectProject={selectProject}
+        home={home}
+        onDeleteProject={deleteProject}
       />
 
       <div className={"relative flex min-h-0 flex-1" + (flashing ? " hs-flash" : "")}>
