@@ -148,7 +148,6 @@ function BrowserWindow({
           transformOrigin: "top left",
           background: LIGHT.bg,
           border: `1px solid ${c.border}`,
-          boxShadow: "0 24px 64px rgba(0,0,0,.5)",
         }}
       >
         {chromeBar}

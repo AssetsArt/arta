@@ -18,9 +18,9 @@ machine.
 
 </div>
 
-[![Arta — the Helix prototype in a device frame](docs/arta-hero.png)](docs/arta-hero.png)
+[![Arta — the Helix prototype in a device frame](docs/arta-hero-light.png)](docs/arta-hero-light.png)
 
-<div align="center"><sub><em>The Arta viewer with its seeded demo — <strong>Helix</strong>, a landing site for a "unified runtime for AI agents." The dark chrome is Arta; the prototype lives inside the device frame.</em></sub></div>
+<div align="center"><sub><em>The Arta viewer with its seeded demo — <strong>Helix</strong>, a landing site for a "unified runtime for AI agents." The light chrome is Arta; the prototype lives inside the device frame.</em></sub></div>
 
 ## Quick start
 
@@ -108,9 +108,9 @@ AI-generated.
 
 | Data model — entities as an ER diagram | Flow (API) — routes, middleware & screen→API edges |
 |---|---|
-| [![Arta — data model](docs/arta-data-model.png)](docs/arta-data-model.png) | [![Arta — API flow](docs/arta-api-flow.png)](docs/arta-api-flow.png) |
+| [![Arta — data model](docs/arta-data-model-light.png)](docs/arta-data-model-light.png) | [![Arta — API flow](docs/arta-api-flow-light.png)](docs/arta-api-flow-light.png) |
 | **Architecture — C4 system diagram + ADRs** | **Plan — a Kanban of milestones & tasks** |
-| [![Arta — architecture](docs/arta-architecture.png)](docs/arta-architecture.png) | [![Arta — plan](docs/arta-plan.png)](docs/arta-plan.png) |
+| [![Arta — architecture](docs/arta-architecture-light.png)](docs/arta-architecture-light.png) | [![Arta — plan](docs/arta-plan-light.png)](docs/arta-plan-light.png) |
 
 One canvas, five views. The prototype is real HTML (the demo is a terminal-native
 design system — near-black, monospace-forward, one phosphor-green accent, a live CLI

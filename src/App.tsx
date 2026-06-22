@@ -6,7 +6,6 @@ import { useArta, reportRuntime } from "./lib/useArta";
 import { nowLabel } from "./lib/utils";
 import { useTheme } from "./lib/theme";
 import { Topbar } from "./components/Topbar";
-import { TabBar } from "./components/TabBar";
 import { StatusBar } from "./components/StatusBar";
 import { StateDrawer } from "./components/StateDrawer";
 import { ErrorBoundary } from "./components/ui/ErrorBoundary";
@@ -114,8 +113,14 @@ function AppInner() {
       className="absolute inset-0 flex flex-col overflow-hidden text-[14px]"
       style={{ background: c.bg, color: c.text }}
     >
-      <Topbar meta={data.meta} projects={projects} activeProject={activeProject} onSelectProject={selectProject} />
-      <TabBar tab={tab} setTab={setTab} />
+      <Topbar
+        meta={data.meta}
+        tab={tab}
+        setTab={setTab}
+        projects={projects}
+        activeProject={activeProject}
+        onSelectProject={selectProject}
+      />
 
       <div className={"relative flex min-h-0 flex-1" + (flashing ? " hs-flash" : "")}>
         <ErrorBoundary resetKey={updatedAt} onError={onError}>

@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { AppWindow, Check, Copy, Download, ExternalLink, FileDown, Monitor, MessageSquarePlus, Smartphone, Tablet, X } from "lucide-react";
+import { AppWindow, Check, Copy, Download, ExternalLink, FileDown, Maximize, Minus, Monitor, MessageSquarePlus, Palette, Plus, Smartphone, Tablet, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { FrameKind, Prototype, Spec, StoreState } from "../../lib/types";
 import { LIGHT, MONO, useTheme } from "../../lib/theme";
-import { alpha, cn } from "../../lib/utils";
+import { cn } from "../../lib/utils";
 import { designSheet, resolveScreenHtml } from "../../lib/prototype";
 import { exportPrototypePdf } from "../../lib/exportPdf";
 import { buildPrototypePreview } from "../../lib/previewDoc";
-import { previewHref, sendFeedback } from "../../lib/useArta";
+import { sendFeedback } from "../../lib/useArta";
 import { ComponentRenderer } from "../proto/ComponentRenderer";
 import { DeviceFrame } from "../proto/DeviceFrame";
 import { FreeformDevice } from "../proto/FreeformDevice";
@@ -99,10 +99,6 @@ export function PrototypeTab({
     }
   };
 
-  // Open the live, chrome-less preview (the whole prototype, clickable, no editor UI) in a
-  // new tab — the shareable /preview URL, scoped to the active project.
-  const openPreview = () => window.open(previewHref(), "_blank", "noopener");
-
   // Export the prototype as ONE self-contained, interactive HTML file (all screens +
   // data-to navigation + mock store) the dev can open anywhere or hand off. Built client-side
   // from the in-memory prototype — same builder the /preview route serves.
@@ -123,34 +119,30 @@ export function PrototypeTab({
     }
   };
 
+  // Canvas zoom: the device scales in place (100% = fit). No panning — it stays put on the canvas.
+  // The user zoom is an OUTER transform composed on top of DeviceFrame's own shrink-to-fit, which
+  // measures clientWidth (layout, not transformed) — so the two never feed back into each other.
+  const [zoom, setZoom] = useState(1);
+  const resetView = () => setZoom(1);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => resetView(), [cur.id, frame, view]);
+  const stageRef = useRef<HTMLDivElement>(null);
+  // Native wheel listener (passive:false) so cmd/ctrl+wheel can zoom without scrolling the page.
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el || view !== "preview") return;
+    const onWheel = (e: WheelEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      setZoom((z) => Math.min(3, Math.max(0.25, z - e.deltaY * 0.0015)));
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [view]);
+
   return (
     <div className="flex h-full min-w-0 flex-1 flex-col">
-      {/* sub-view header: Preview | Design system */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 14px", minHeight: 46, borderBottom: `1px solid ${c.border}`, background: c.panel, flexShrink: 0 }}>
-        <Monitor size={15} color={c.accent} />
-        <span style={{ fontFamily: MONO, fontSize: 13, color: c.text }}>Prototype</span>
-        <div style={{ display: "flex", gap: 2, background: c.panel2, border: `1px solid ${c.borderSoft}`, borderRadius: 8, padding: 2 }}>
-          {(
-            [
-              ["preview", "Preview"],
-              ["design", "Design system"],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              onClick={() => setView(id)}
-              style={{ fontFamily: MONO, fontSize: 11.5, padding: "5px 11px", borderRadius: 6, border: "none", cursor: "pointer", background: view === id ? c.card : "transparent", color: view === id ? c.text : c.dim }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {view === "design" ? (
-        <DesignSystemView prototype={prototype} />
-      ) : (
-        <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1">
           <div
             className="flex w-[216px] shrink-0 flex-col border-r"
             style={{ borderColor: c.border, background: c.panel }}
@@ -187,55 +179,15 @@ export function PrototypeTab({
 
         {freeform && (
           <div className="shrink-0 border-t px-3 py-3" style={{ borderColor: c.border }}>
-            <div
-              className="mb-2 text-[10px] font-medium uppercase tracking-[0.6px]"
-              style={{ fontFamily: MONO, color: c.faint }}
-            >
-              Device frame
+            <div className="mb-2 px-1 text-[10px] font-medium uppercase tracking-[0.6px]" style={{ fontFamily: MONO, color: c.faint }}>
+              Export
             </div>
             <div className="grid grid-cols-2 gap-1.5">
-              {FRAMES.map(({ key, label, Icon }) => {
-                const active = frame === key;
-                return (
-                  <button
-                    key={key}
-                    onClick={() => setFrameOverride(key)}
-                    className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] font-medium transition-colors"
-                    style={{
-                      color: active ? c.text : c.dim,
-                      background: active ? c.panel2 : "transparent",
-                      border: `1px solid ${active ? alpha(c.accent, 0.4) : c.border}`,
-                    }}
-                  >
-                    <Icon size={13} color={active ? c.accent : c.faint} />
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {freeform && (
-          <div className="shrink-0 border-t px-3 py-3" style={{ borderColor: c.border }}>
-            <button
-              onClick={openPreview}
-              className="flex w-full items-center justify-center gap-2 rounded-md px-2 py-2 text-[12px] font-semibold transition-colors"
-              style={{ color: c.text, background: c.panel2, border: `1px solid ${c.accent}` }}
-              title="Open the whole prototype as a clickable, chrome-less page (the shareable /preview URL)"
-            >
-              <ExternalLink size={14} color={c.accent} />
-              Open preview
-            </button>
-            <p className="mt-1.5 text-[10.5px] leading-snug" style={{ fontFamily: MONO, color: c.faint }}>
-              Clickable prototype, no editor — opens the shareable <span style={{ color: c.dim }}>/preview</span> page.
-            </p>
-            <div className="mt-2.5 grid grid-cols-2 gap-2">
               <button
                 onClick={runExport}
                 disabled={!!exporting}
-                className="flex items-center justify-center gap-1.5 rounded-md px-2 py-2 text-[11.5px] font-semibold transition-colors disabled:cursor-default disabled:opacity-60"
-                style={{ color: c.text, background: c.panel2, border: `1px solid ${c.border2}` }}
+                className="flex items-center justify-center gap-1.5 rounded-lg py-2 text-[12px] font-medium transition-colors disabled:cursor-default disabled:opacity-60"
+                style={{ color: c.dim, border: `1px solid ${c.border2}`, background: c.panel }}
                 title="Capture every screen's full-length screenshot into one PDF"
               >
                 <FileDown size={13} color={c.accent} />
@@ -243,100 +195,169 @@ export function PrototypeTab({
               </button>
               <button
                 onClick={exportHtml}
-                className="flex items-center justify-center gap-1.5 rounded-md px-2 py-2 text-[11.5px] font-semibold transition-colors"
-                style={{ color: c.text, background: c.panel2, border: `1px solid ${c.border2}` }}
+                className="flex items-center justify-center gap-1.5 rounded-lg py-2 text-[12px] font-medium transition-colors"
+                style={{ color: c.dim, border: `1px solid ${c.border2}`, background: c.panel }}
                 title="Export the prototype as one self-contained, interactive HTML file — opens anywhere"
               >
                 <Download size={13} color={c.accent} />
                 HTML
               </button>
             </div>
-            <p className="mt-1.5 text-[10.5px] leading-snug" style={{ fontFamily: MONO, color: c.faint }}>
-              Export: <span style={{ color: c.dim }}>PDF</span> (all screens to save) · <span style={{ color: c.dim }}>HTML</span> (one interactive file to share).
-            </p>
           </div>
         )}
       </div>
 
-      {/* Canvas */}
+      {/* Canvas — a zoom workspace; the device scales in place (no panning) */}
       <div
-        className={cn(
-          "relative flex min-w-0 flex-1 overflow-auto",
-          isMobile ? "items-center justify-center p-6" : freeform ? "items-stretch justify-center p-6" : "items-start justify-center px-6 py-10"
-        )}
+        ref={stageRef}
+        className="relative flex min-w-0 flex-1 overflow-hidden"
         style={{
           background: c.bg,
-          backgroundImage: grid ? `radial-gradient(${c.gridDot} 1px, transparent 1px)` : "none",
+          backgroundImage: grid && view === "preview" ? `radial-gradient(${c.gridDot} 1px, transparent 1px)` : "none",
           backgroundSize: "22px 22px",
         }}
       >
-        {freeform && (
-          <button
-            onClick={() => {
-              setAnnotate((a) => !a);
-              setTarget(null);
-            }}
-            className="absolute right-4 top-4 z-10 flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors"
-            style={{
-              color: annotate ? c.accent2 : c.dim,
-              background: annotate ? c.accentSoft : c.panel,
-              border: `1px solid ${annotate ? c.accent : c.border2}`,
-            }}
-            title="Click an element to comment on it"
-          >
-            <MessageSquarePlus size={13} />
-            {annotate ? "Click an element…" : "Comment"}
-          </button>
+        {/* floating: Preview | Design system */}
+        <div
+          data-toolbar
+          className="absolute left-3 top-3 z-20 flex items-center gap-0.5 rounded-xl p-1 backdrop-blur"
+          style={{ background: `${c.panel}e6`, border: `1px solid ${c.border}`, boxShadow: c.shadow }}
+        >
+          {([["preview", "Preview", Monitor], ["design", "Design system", Palette]] as const).map(([id, label, Icon]) => {
+            const on = view === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setView(id)}
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium transition-colors"
+                style={{ color: on ? c.accent2 : c.dim, background: on ? c.accentSoft : "transparent" }}
+              >
+                <Icon size={14} /> {label}
+              </button>
+            );
+          })}
+        </div>
+
+        {view === "preview" && (
+          <>
+            {/* floating: device selector · comment · zoom */}
+            <div
+              data-toolbar
+              className="absolute left-1/2 top-3 z-20 flex -translate-x-1/2 items-center gap-0.5 rounded-xl px-1.5 py-1 backdrop-blur"
+              style={{ background: `${c.panel}e6`, border: `1px solid ${c.border}`, boxShadow: c.shadow }}
+            >
+              {freeform &&
+                FRAMES.map(({ key, label, Icon }) => {
+                  const active = frame === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setFrameOverride(key)}
+                      className="grid h-8 w-8 place-items-center rounded-lg transition-colors"
+                      style={{ color: active ? c.accent2 : c.dim, background: active ? c.accentSoft : "transparent" }}
+                      title={label}
+                    >
+                      <Icon size={16} />
+                    </button>
+                  );
+                })}
+              {freeform && <span className="mx-0.5 h-5 w-px" style={{ background: c.border }} />}
+              {freeform && (
+                <button
+                  onClick={() => {
+                    setAnnotate((a) => !a);
+                    setTarget(null);
+                  }}
+                  className="grid h-8 w-8 place-items-center rounded-lg transition-colors"
+                  style={{ color: annotate ? c.accent2 : c.dim, background: annotate ? c.accentSoft : "transparent" }}
+                  title={annotate ? "Click an element…" : "Comment on an element"}
+                >
+                  <MessageSquarePlus size={16} />
+                </button>
+              )}
+              <span className="mx-0.5 h-5 w-px" style={{ background: c.border }} />
+              <button onClick={() => setZoom((z) => Math.max(0.25, +(z - 0.1).toFixed(2)))} className="grid h-8 w-8 place-items-center rounded-lg transition-colors" style={{ color: c.dim }} title="Zoom out">
+                <Minus size={16} />
+              </button>
+              <button onClick={resetView} className="min-w-[52px] rounded-md px-1 py-1 text-center text-[12px] font-medium tabular-nums transition-colors" style={{ color: c.text }} title="Reset view">
+                {Math.round(zoom * 100)}%
+              </button>
+              <button onClick={() => setZoom((z) => Math.min(3, +(z + 0.1).toFixed(2)))} className="grid h-8 w-8 place-items-center rounded-lg transition-colors" style={{ color: c.dim }} title="Zoom in">
+                <Plus size={16} />
+              </button>
+              <span className="mx-0.5 h-5 w-px" style={{ background: c.border }} />
+              <button onClick={resetView} className="grid h-8 w-8 place-items-center rounded-lg transition-colors" style={{ color: c.dim }} title="Reset view">
+                <Maximize size={16} />
+              </button>
+            </div>
+          </>
         )}
 
-        {freeform ? (
-          <DeviceFrame
-            frame={frame}
-            url={cur.url || `shop.demo/${cur.id || ""}`}
-            title={cur.title}
-            safeArea={cur.safeArea ?? prototype.safeArea}
-            chrome={chrome}
-            rootRef={frameNodeRef}
-          >
-            <FreeformDevice
-              screenId={cur.id}
-              screenIds={screens.map((s) => s.id)}
-              title={cur.title}
-              html={resolveScreenHtml(prototype, cur)}
-              css={cur.css}
-              designSystem={designSheet(prototype)}
-              store={store}
-              storeVersion={storeVersion}
-              captureNodeRef={frameNodeRef}
-              annotate={annotate}
-              go={go}
-              onStore={onStore}
-              onError={onError}
-              onAnnotate={(t) => {
-                setTarget(t);
-                setAnnotate(false);
-              }}
-            />
-          </DeviceFrame>
+        {view === "design" ? (
+          <div className="absolute inset-0 overflow-auto pt-[52px]">
+            <DesignSystemView prototype={prototype} />
+          </div>
         ) : (
           <div
-            className="flex min-h-[560px] w-[480px] flex-col overflow-hidden rounded-[14px]"
-            style={{ background: LIGHT.bg, border: `1px solid ${c.border}`, boxShadow: "0 24px 64px rgba(0,0,0,.5)" }}
+            className={cn("absolute inset-0 flex px-6 pb-6 pt-[68px]", isMobile ? "items-center justify-center" : freeform ? "items-stretch justify-center" : "items-start justify-center")}
+            style={{
+              transform: `scale(${zoom})`,
+              transformOrigin: "center",
+              transition: "transform .12s ease-out",
+            }}
           >
-            <div
-              className="flex items-center gap-2 border-b px-[15px] py-[11px]"
-              style={{ borderColor: LIGHT.border, background: LIGHT.muted }}
-            >
-              <AppWindow size={15} color={LIGHT.mutedFg} />
-              <span className="text-[13px] font-medium" style={{ color: LIGHT.fg }}>
-                {cur.title}
-              </span>
-            </div>
-            <div className="flex flex-1 flex-col gap-4 px-[22px] pb-7 pt-6">
-              {(cur.components || []).map((comp, i) => (
-                <ComponentRenderer key={i} comp={comp} screen={cur.id} go={go} />
-              ))}
-            </div>
+            {freeform ? (
+              <div className="contents">
+                <DeviceFrame
+                  frame={frame}
+                  url={cur.url || `shop.demo/${cur.id || ""}`}
+                  title={cur.title}
+                  safeArea={cur.safeArea ?? prototype.safeArea}
+                  chrome={chrome}
+                  rootRef={frameNodeRef}
+                >
+                  <FreeformDevice
+                    screenId={cur.id}
+                    screenIds={screens.map((s) => s.id)}
+                    title={cur.title}
+                    html={resolveScreenHtml(prototype, cur)}
+                    css={cur.css}
+                    designSystem={designSheet(prototype)}
+                    store={store}
+                    storeVersion={storeVersion}
+                    captureNodeRef={frameNodeRef}
+                    annotate={annotate}
+                    go={go}
+                    onStore={onStore}
+                    onError={onError}
+                    onAnnotate={(t) => {
+                      setTarget(t);
+                      setAnnotate(false);
+                    }}
+                  />
+                </DeviceFrame>
+              </div>
+            ) : (
+              <div
+                className="flex min-h-[560px] w-[480px] flex-col overflow-hidden rounded-[14px]"
+                style={{ background: LIGHT.bg, border: `1px solid ${c.border}`, boxShadow: "0 24px 64px rgba(0,0,0,.5)" }}
+              >
+                <div
+                  className="flex items-center gap-2 border-b px-[15px] py-[11px]"
+                  style={{ borderColor: LIGHT.border, background: LIGHT.muted }}
+                >
+                  <AppWindow size={15} color={LIGHT.mutedFg} />
+                  <span className="text-[13px] font-medium" style={{ color: LIGHT.fg }}>
+                    {cur.title}
+                  </span>
+                </div>
+                <div className="flex flex-1 flex-col gap-4 px-[22px] pb-7 pt-6">
+                  {(cur.components || []).map((comp, i) => (
+                    <ComponentRenderer key={i} comp={comp} screen={cur.id} go={go} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -353,9 +374,8 @@ export function PrototypeTab({
         )}
       </div>
 
-      <SpecRail spec={spec} open={specOpen} onToggle={onToggleSpec} />
-        </div>
-      )}
+        <SpecRail spec={spec} open={specOpen} onToggle={onToggleSpec} />
+      </div>
 
       {/* PDF export result — a modal the dev opens with a real click (no auto-opened tab). */}
       {pdfResult && (

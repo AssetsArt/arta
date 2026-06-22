@@ -1,26 +1,42 @@
 import { useState } from "react";
-import { Moon, Sun, SlidersHorizontal, ChevronDown, Check } from "lucide-react";
-import type { Meta } from "../lib/types";
+import { Moon, Sun, SlidersHorizontal, ChevronDown, Check, ExternalLink } from "lucide-react";
+import type { Meta, Phase } from "../lib/types";
 import type { Project } from "../lib/useArta";
+import { previewHref } from "../lib/useArta";
 import { MONO, useTheme, ACCENT_PRESETS } from "../lib/theme";
+
+// One bar instead of two: logo · project | tabs | read-only · LIVE · settings · theme · open preview.
+// The tab strip used to live in TabBar; the light/airy redesign folds it inline as pills here.
+const TABS: { key: Phase; label: string }[] = [
+  { key: "prototype", label: "Prototype + Spec" },
+  { key: "data", label: "Data model" },
+  { key: "flow", label: "Flow (API)" },
+  { key: "architecture", label: "Architecture" },
+  { key: "plan", label: "Plan" },
+];
 
 export function Topbar({
   meta,
+  tab,
+  setTab,
   projects = [],
   activeProject = "",
   onSelectProject,
 }: {
   meta: Meta;
+  tab: Phase;
+  setTab: (t: Phase) => void;
   projects?: Project[];
   activeProject?: string;
   onSelectProject?: (id: string) => void;
 }) {
   const { c, mode, toggleMode } = useTheme();
+  const openPreview = () => window.open(previewHref(), "_blank", "noopener");
 
   return (
     <div
-      className="flex h-12 shrink-0 items-center gap-[14px] px-[14px]"
-      style={{ borderBottom: `1px solid ${c.border}`, background: c.bg }}
+      className="flex h-14 shrink-0 items-center gap-4 px-[14px]"
+      style={{ borderBottom: `1px solid ${c.border}`, background: c.panel }}
     >
       <div className="flex items-center gap-[9px] whitespace-nowrap">
         <ArtaMark size={22} frame={c.text} dot={c.accent} />
@@ -28,13 +44,12 @@ export function Topbar({
           Arta
         </span>
         <span
-          className="text-[10px] leading-none"
-          style={{ fontFamily: MONO, color: c.faint }}
+          className="rounded-md px-1.5 py-0.5 text-[10.5px] leading-none"
+          style={{ fontFamily: MONO, color: c.faint, background: c.panel2 }}
           title="Arta plugin version"
         >
           v{__ARTA_VERSION__}
         </span>
-        <span style={{ color: c.borderStrong }}>/</span>
         {projects.length > 1 ? (
           <ProjectSwitcher
             projects={projects}
@@ -43,40 +58,70 @@ export function Topbar({
             onSelect={onSelectProject}
           />
         ) : (
-          <span className="text-[14px] font-medium" style={{ color: c.dim }}>
+          <span className="ml-1 text-[13px] font-medium" style={{ color: c.dim }}>
             {meta.name}
           </span>
         )}
       </div>
 
+      <nav className="ml-1 flex items-center gap-1">
+        {TABS.map(({ key, label }) => {
+          const active = tab === key;
+          return (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className={
+                "rounded-lg px-3 py-1.5 text-[13px] transition-colors" + (active ? "" : " hover:opacity-80")
+              }
+              style={{
+                fontWeight: active ? 600 : 500,
+                color: active ? c.accent2 : c.dim,
+                background: active ? c.accentSoft : "transparent",
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </nav>
+
       <div className="flex-1" />
 
       <div className="flex items-center gap-2">
-        <Settings />
-        <button
-          onClick={toggleMode}
-          className="flex h-7 items-center gap-1.5 rounded-[7px] px-[9px] text-[12px]"
-          style={{ border: `1px solid ${c.border2}`, background: c.panel, color: c.dim }}
-          title="Toggle theme"
-        >
-          {mode === "dark" ? <Moon size={13} /> : <Sun size={13} />}
-          <span>{mode === "dark" ? "Dark" : "Light"}</span>
-        </button>
+        <span className="flex items-center gap-1.5 text-[11px]" style={{ fontFamily: MONO, color: c.faint }}>
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: c.faint }} />
+          read-only
+        </span>
         <div
-          className="flex h-7 items-center gap-[7px] rounded-[7px] pl-2 pr-2.5"
-          style={{ border: `1px solid ${c.border2}`, background: c.panel }}
+          className="flex h-7 items-center gap-[7px] rounded-full pl-2 pr-2.5"
+          style={{ border: `1px solid ${c.accentSoft}`, background: c.accentSoft }}
         >
           <span
             className="h-[7px] w-[7px] rounded-full"
             style={{ background: c.green, animation: "livePulse 2.2s ease-out infinite" }}
           />
-          <span className="text-[11px] font-semibold tracking-[0.4px]" style={{ color: c.text }}>
+          <span className="text-[11px] font-semibold tracking-[0.4px]" style={{ color: c.accent2 }}>
             LIVE
           </span>
-          <span className="text-[11px]" style={{ fontFamily: MONO, color: c.faint }}>
-            agent
-          </span>
         </div>
+        <Settings />
+        <button
+          onClick={toggleMode}
+          className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
+          style={{ color: c.dim }}
+          title="Toggle theme"
+        >
+          {mode === "dark" ? <Moon size={15} /> : <Sun size={15} />}
+        </button>
+        <button
+          onClick={openPreview}
+          className="flex h-8 items-center gap-1.5 rounded-lg px-3 text-[13px] font-medium transition-colors"
+          style={{ background: c.invBg, color: c.invFg }}
+          title="Open the clickable prototype preview"
+        >
+          <ExternalLink size={13} /> Open preview
+        </button>
       </div>
     </div>
   );
@@ -125,9 +170,9 @@ function ProjectSwitcher({
       </button>
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div
-            className="absolute left-0 z-20 mt-2 max-h-[60vh] w-60 overflow-auto rounded-xl p-1.5"
+            className="absolute left-0 z-50 mt-2 max-h-[60vh] w-60 overflow-auto rounded-xl p-1.5"
             style={{ background: c.panel, border: `1px solid ${c.border2}`, boxShadow: c.shadow }}
           >
             <div
@@ -175,9 +220,9 @@ function Settings() {
       </button>
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div
-            className="absolute right-0 z-20 mt-2 w-56 rounded-xl p-3.5"
+            className="absolute right-0 z-50 mt-2 w-56 rounded-xl p-3.5"
             style={{ background: c.panel, border: `1px solid ${c.border2}`, boxShadow: c.shadow }}
           >
             <div

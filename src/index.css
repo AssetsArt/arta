@@ -87,6 +87,10 @@ body {
   background: transparent;
 }
 
+button {
+  cursor: pointer;
+}
+
 /* ── animations ──────────────────────────────────────────────────────────── */
 @keyframes hs-pulse {
   0%,

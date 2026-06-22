@@ -194,9 +194,12 @@ function runExportSpecs() {
   spec("export renders each screen offscreen at its device width", exp.includes("FRAME_W") && exp.includes("srcdoc"), "offscreen iframe");
   spec("export returns a PDF blob for the in-app modal (no auto-open)", exp.includes("jsPDF") && exp.includes('output("bloburl")') && !exp.includes("window.open"), "blob URL, not auto-opened");
   spec("Prototype tab wires the Export PDF button + result modal", tab.includes("exportPrototypePdf") && tab.includes("runExport") && tab.includes("pdfResult") && tab.includes('target="_blank"'), "button + modal w/ Open");
-  // The prototype preview surfaces: an "Open preview" button (live /preview, via previewHref)
-  // and an "Export prototype HTML" download (client-side buildPrototypePreview). Lock the wiring.
-  spec("Prototype tab wires Open preview + Export HTML", tab.includes("openPreview") && tab.includes("previewHref") && tab.includes("buildPrototypePreview") && tab.includes("exportHtml"), "preview buttons");
+  // The prototype preview surfaces: an "Open preview" button (live /preview, via previewHref) — the
+  // light/airy redesign moved this into the top bar — and an "Export prototype HTML" download
+  // (client-side buildPrototypePreview) still in the prototype tab. Lock both halves of the wiring.
+  const bar = fs.readFileSync(path.join(ROOT, "src/components/Topbar.tsx"), "utf8");
+  spec("Top bar wires Open preview (live /preview)", bar.includes("openPreview") && bar.includes("previewHref"), "topbar preview");
+  spec("Prototype tab wires Export HTML (self-contained prototype)", tab.includes("buildPrototypePreview") && tab.includes("exportHtml"), "export html");
   return { ok: rows.every((r) => r.ok), rows };
 }
 

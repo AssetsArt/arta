@@ -105,35 +105,38 @@ const DARK = (accent: string): DarkTokens => ({
   gridDot: "rgba(255,255,255,.035)",
 });
 
+// Light/airy "Linear/Vercel/Figma" redesign — white surfaces on a soft #f7f8f8
+// page, hairline #ececec borders, generous whitespace, emerald accent. This is
+// the default the viewer ships in; dark stays available behind the theme toggle.
 const LIGHTC = (accent: string): DarkTokens => ({
-  bg: "#ffffff",
+  bg: "#f7f8f8",
   panel: "#ffffff",
-  card: "#fafafa",
-  panel2: "#f4f4f4",
+  card: "#ffffff",
+  panel2: "#f3f4f4",
   bgElev: "#ffffff",
-  bgElev2: "#fafafa",
-  bgHover: "#f4f4f4",
-  border: "#ebebeb",
+  bgElev2: "#ffffff",
+  bgHover: "#f2f3f3",
+  border: "#ececec",
   borderSoft: "#f0f0f0",
-  border2: "#e2e2e2",
-  borderStrong: "#d4d4d4",
-  text: "#171717",
-  dim: "#5f5f5f",
-  faint: "#969696",
+  border2: "#e6e7e7",
+  borderStrong: "#cdd0d2",
+  text: "#1f2328",
+  dim: "#5e6168",
+  faint: "#9a9da3",
   accent,
-  accent2: "#0060d8",
-  accentSoft: "rgba(0,112,243,.08)",
-  invBg: "#171717",
+  accent2: "#0b6b3f",
+  accentSoft: "rgba(16,185,129,.10)",
+  invBg: "#0f1115",
   invFg: "#ffffff",
-  green: "#1a8a3a",
-  amber: "#c77b00",
-  red: "#d93934",
+  green: "#10b981",
+  amber: "#d97706",
+  red: "#dc2626",
   yellow: "#c77b00",
   blue: "#0070f3",
-  purple: "#8a4cc0",
+  purple: "#7c3aed",
   teal: "#0d9488",
-  shadow: "0 1px 2px rgba(0,0,0,.06),0 8px 24px rgba(0,0,0,.08)",
-  gridDot: "rgba(0,0,0,.04)",
+  shadow: "0 1px 2px rgba(15,17,21,.04),0 8px 24px -8px rgba(15,17,21,.10)",
+  gridDot: "rgba(15,17,21,.05)",
 });
 
 export function tokens(mode: Mode, accent: string): DarkTokens {
@@ -145,7 +148,7 @@ export function darkTokens(accent: string): DarkTokens {
   return DARK(accent);
 }
 
-export const ACCENT_PRESETS = ["#0070f3", "#7c5cff", "#34d399", "#fb923c", "#f472b6"];
+export const ACCENT_PRESETS = ["#10b981", "#0070f3", "#7c3aed", "#f59e0b", "#ec4899"];
 export const MONO = "var(--font-mono)";
 export const SANS = "var(--font-sans)";
 
@@ -164,8 +167,8 @@ interface ThemeCtx {
 const Ctx = createContext<ThemeCtx | null>(null);
 
 const readMode = (): Mode => {
-  if (typeof localStorage === "undefined") return "dark";
-  return localStorage.getItem("hs-mode") === "light" ? "light" : "dark";
+  if (typeof localStorage === "undefined") return "light";
+  return localStorage.getItem("hs-mode") === "dark" ? "dark" : "light";
 };
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
