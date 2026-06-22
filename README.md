@@ -44,6 +44,24 @@ Update anytime with `/arta update`, or just say *"design this in Arta"*.
 
 > No plugin? Run the viewer straight from any project: `bunx github:AssetsArt/arta`.
 
+## Update
+
+To pull the latest version — in Claude Code:
+
+```text
+/plugin marketplace update arta
+/reload-plugins
+/arta:arta restart
+```
+
+`/plugin marketplace update arta` bumps the plugin, `/reload-plugins` loads the new
+skill / commands / MCP into the running session, and `/arta:arta restart` re-runs the
+viewer from the new build (an already-open viewer keeps serving the old assets until
+it's restarted). Then **hard-refresh** the browser tab (Cmd/Ctrl+Shift+R) so it drops
+any cached assets. `/arta:arta update` wraps the first two steps and the restart in one.
+
+> Stubborn cache? `rm -rf ~/.claude/plugins/cache/arta` → `/plugin install arta@arta` → restart Claude Code.
+
 ## Commands
 
 Everything you can type, in one place.
