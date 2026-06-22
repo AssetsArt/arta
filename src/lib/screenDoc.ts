@@ -57,12 +57,27 @@ body.arta-annotate *:hover{outline:2px solid #38bdf8 !important;outline-offset:-
    gray box (the loudest slop tell). Falls through the common brand token names, then a
    hex; lay a real <img> over it when there is one. */
 .hs-cover{background-image:linear-gradient(135deg,color-mix(in oklab,var(--color-primary,var(--color-brand,#6366f1)) 26%,#fff),color-mix(in oklab,var(--color-accent,var(--color-primary,var(--color-brand,#ec4899))) 32%,#fff))}
+/* Image skeleton — what a FAILED/missing <img> degrades to (see the fallback in
+   HEAD_LIBS). Self-contained (works on a replaced <img>, which can't take ::after): a
+   brand-tinted base = the "color", a sweeping highlight = the "skeleton". So a 404'd
+   photo reads as an intentional loading tile, never a broken glyph or a bare solid box.
+   Reduced-motion drops the sweep. (Enforced so the AI can reach for a real image freely.) */
+.hs-img-skeleton{background-color:color-mix(in oklab,var(--color-primary,var(--color-brand,#6366f1)) 14%,#eef2f7);background-image:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.55) 50%,transparent 100%);background-size:200% 100%;background-repeat:no-repeat;animation:hs-shimmer 1.5s ease-in-out infinite}
+@keyframes hs-shimmer{0%{background-position:150% 0}100%{background-position:-150% 0}}
+@media (prefers-reduced-motion:reduce){.hs-img-skeleton{animation:none}}
 `;
 
 // Real Tailwind + lucide in every freeform screen, so the AI writes utility classes and
 // proper icons (<i data-lucide="name">) instead of emoji + inline CSS. Loaded via CDN and
 // deferred so the body parses first; both run before DOMContentLoaded.
 export const HEAD_LIBS =
+  // Image safety net (runs FIRST, NOT deferred, so the capture-phase listener is armed
+  // before the body's <img>s start loading): any image that fails to load — a guessed
+  // Unsplash id that 404s, a dead CDN URL — is swapped to a transparent pixel + the
+  // .hs-img-skeleton tile instead of the browser's broken-image glyph. Platform-enforced
+  // in EVERY render (live editor, /preview, static export, PDF, headless), so a real <img>
+  // can never sink a screen: the worst case degrades to an intentional skeleton+colour box.
+  `<script>(function(){document.addEventListener('error',function(e){var el=e.target;if(!el||el.tagName!=='IMG'||el.getAttribute('data-hs-fallback'))return;el.setAttribute('data-hs-fallback','1');el.removeAttribute('srcset');el.src='data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22/%3E';el.classList.add('hs-img-skeleton');},true);})();</script>` +
   `<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4" defer></script>` +
   // The bare `lucide` spec on jsDelivr resolves to the CJS build (no global, throws
   // "exports is not defined"); the UMD build is what exposes window.lucide.

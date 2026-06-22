@@ -528,25 +528,24 @@ Use them; do not hand-roll what they give you, and **never use emoji as icons.**
     coloured `border-left` bar** — that's the banned side-stripe, and an active nav / sidebar /
     list row is exactly where the reflex sneaks in. Tint the row's background (optionally a
     1px full border or a subtle inset highlight via `box-shadow: inset`), never a left accent stripe.
-- **Real images, not empty gray boxes.** A flat gray placeholder rectangle where a photo
-  or product shot belongs is one of the loudest "an AI made this" tells — it makes every
-  other decision read as unfinished. Screens have network, so use REAL imagery: an
-  `<img>` from a stable source like `https://picsum.photos/seed/<word>/600/400` (the seed
-  keeps it consistent across reloads), with width/height + `object-cover` so layout stays
-  stable. But picsum returns a RANDOM photo — fine where any evocative image works
-  (editorial thumbnails, hero textures), wrong where the subject must match: a random
-  landscape standing in for a coffee bag is its own tell. For a specific subject, prefer a
-  source you can trust to resolve — `picsum.photos/seed/<word>/W/H` always returns an image,
-  so reach for it even on heroes and feature shots when the exact subject can flex. **Do NOT
-  hand-write an Unsplash URL (`images.unsplash.com/photo-<id>`) from memory — a guessed id
-  404s, and a broken-image glyph is an even LOUDER "unfinished" tell than a gray box** (it
-  sinks the whole screen). Use an Unsplash/CDN URL only when you're certain it resolves;
-  otherwise use picsum or an intentional branded treatment, and always set width/height + a
-  token-tinted background so a failed load degrades to something deliberate, never a broken
-  glyph. When a real image genuinely isn't right (avatars, logos, an icon slot), make the
-  placeholder *intentional* — a branded gradient or token-tinted fill with a centered lucide
-  glyph or monogram — never a bare gray box. Avatars: initials on a tinted disc read far
-  better than a gray circle.
+- **Images: decide deliberately — a REAL image, or an intentional skeleton+colour. Never a
+  bare solid fill.** A flat coloured/gray rectangle dropped where a photo belongs is one of
+  the loudest "an AI made this" tells; it makes every other decision read as unfinished.
+  Make an explicit call per image slot:
+  - **Real image** — use it whenever a photo genuinely helps. `<img>` from a source you can
+    trust to RESOLVE: `https://picsum.photos/seed/<word>/W/H` always returns one (the seed
+    keeps it stable across reloads); reach for it even on heroes/feature shots when the exact
+    subject can flex. Always set width/height (or an `aspect-[…]` wrapper) + `object-cover` so
+    layout stays put. **Do NOT hand-write an Unsplash URL (`images.unsplash.com/photo-<id>`)
+    from memory** — a guessed id 404s. (The platform now catches a failed `<img>` and swaps
+    it to a skeleton tile, so a dead URL won't show a broken glyph — but a screen full of
+    skeletons because you guessed every id is still a fail. Use a source you trust.)
+  - **Skeleton + colour** — when a real image isn't right (avatars, logos, an icon slot, or
+    the subject must match and you have no trustworthy URL), make the placeholder *intentional*:
+    `class="hs-cover"` (a brand-tinted gradient surface) or `class="hs-img-skeleton"` (a tinted
+    loading tile), optionally with a centred lucide glyph or a monogram. Avatars: initials on a
+    tinted disc beat a gray circle every time.
+  Either way the box is sized and on-brand — never a lone `bg-[#…]` block standing in for a photo.
 - **Write Tailwind utility classes — NOT inline `style="…"`.** The viewer injects
   `@tailwindcss/browser@4` (compiled live), so utilities are the default way to style
   *everything*: layout, spacing, colour, typography, radius, shadow, hover/focus

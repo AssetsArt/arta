@@ -140,6 +140,8 @@ const REGEX_GATES = [
   { id: "overshoot-easing", severity: "warn", re: /cubic-bezier\(\s*[\d.]+\s*,\s*1\.[5-9]/gi, message: "overshoot easing on a UI transition" },
   // placeholder names / startup clichés.
   { id: "placeholder-name", severity: "warn", re: /\bJane Doe\b|\bJohn Smith\b|\bAcme\b|\bLorem ipsum\b/gi, message: "placeholder name / cliché — use real or plausible copy" },
+  // hand-written Unsplash ids commonly 404 → broken-image glyph; steer to a source that resolves.
+  { id: "guessed-unsplash", severity: "warn", re: /images\.unsplash\.com\/photo-/gi, message: "hand-written Unsplash id may 404 → broken image; use picsum.photos/seed/<word>/W/H, or verify the URL resolves" },
 ];
 
 function findUniformHoverScale(doc, push) {
@@ -200,6 +202,7 @@ const TITLES = {
   "transition-all": "transition: all",
   "overshoot-easing": "Overshoot easing on UI state",
   "placeholder-name": "Placeholder name / cliché",
+  "guessed-unsplash": "Hand-written Unsplash URL (may 404)",
   "uniform-hover-scale": "Uniform hover-scale",
   "emoji-icon": "Emoji used as an icon",
   "italic-heading": "Italic heading",
