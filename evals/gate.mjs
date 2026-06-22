@@ -251,6 +251,7 @@ function runSlopDetectorSpecs() {
   spec("flags italic heading (warn)", has('<h2 class="italic">Title</h2>', "italic-heading"));
   spec("flags placeholder name (warn)", has("<p>Jane Doe, CEO</p>", "placeholder-name"));
   spec("flags hand-written Unsplash url (warn)", has('<img src="https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?w=700">', "guessed-unsplash"));
+  spec("flags brand lucide icon that renders blank (warn)", has('<i data-lucide="instagram"></i>', "brand-lucide-icon"));
 
   // Discrimination: clean markup is silent, AND emits nothing in the serious set.
   const clean = '<section class="p-6"><h1 class="font-bold text-2xl">Welcome</h1><p class="text-zinc-700">A real, readable sentence.</p><button class="rounded-lg bg-blue-600 text-white px-4 py-2">Continue</button></section>';
@@ -307,6 +308,7 @@ function runPreviewSpecs() {
   spec("renders a screen switcher for each screen", html.includes('data-goto="alpha"') && html.includes('data-goto="beta"'));
   spec("honours the start screen", html.includes('var START = "alpha"'));
   spec("ships the image safety net (failed <img> → skeleton)", html.includes("data-hs-fallback") && html.includes("hs-img-skeleton"));
+  spec("ships the icon safety net (blank lucide name → fallback glyph)", html.includes("?'globe':'circle'"));
   spec("default preview shows the navigator (floating button + sidebar)", html.includes('class="pv-fab"') && html.includes('class="pv-side"'));
 
   // The static export (chrome:false) is a client demo: SAME screens + data-to navigation,

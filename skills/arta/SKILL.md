@@ -573,7 +573,9 @@ Use them; do not hand-roll what they give you, and **never use emoji as icons.**
     links use a **text label**, an in-set glyph (`link`, `at-sign`, `mail`, `rss`,
     `globe`, `message-circle`), or an inline `<svg>` brand mark — never a `data-lucide`
     brand name. Same for "logos" rows: real wordmarks (styled text) read better than blank
-    icon slots.
+    icon slots. (The platform now backstops any unresolved name — brand or typo — by swapping
+    it to a safe glyph so a slot never renders empty; but a row of fallback circles is still a
+    tell, so pick a real glyph or an inline brand `<svg>` deliberately.)
   **Emoji are not icons — use lucide.**
 - Both load from a CDN, so the prototype needs network; offline, classes go
   unstyled and icons stay blank.

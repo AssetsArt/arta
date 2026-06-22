@@ -78,6 +78,13 @@ export const HEAD_LIBS =
   // in EVERY render (live editor, /preview, static export, PDF, headless), so a real <img>
   // can never sink a screen: the worst case degrades to an intentional skeleton+colour box.
   `<script>(function(){document.addEventListener('error',function(e){var el=e.target;if(!el||el.tagName!=='IMG'||el.getAttribute('data-hs-fallback'))return;el.setAttribute('data-hs-fallback','1');el.removeAttribute('srcset');el.src='data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22/%3E';el.classList.add('hs-img-skeleton');},true);})();</script>` +
+  // Icon safety net: after lucide renders, ANY <i data-lucide="…"> whose name it couldn't
+  // resolve is left untouched (a blank gap) — the classic footer "social row of empty
+  // circles" (brand icons like facebook/instagram were dropped from lucide core), or a typo
+  // / hallucinated name. Sweep the leftovers and substitute a safe in-set glyph (a brand name
+  // → globe, anything else → circle) so a slot never renders empty. Runs on load + a retry so
+  // it fires after the runtimes' own createIcons; idempotent (resolved icons are already SVGs).
+  `<script>(function(){var B={facebook:1,instagram:1,twitter:1,x:1,linkedin:1,youtube:1,github:1,gitlab:1,discord:1,slack:1,tiktok:1,dribbble:1,figma:1,twitch:1,whatsapp:1,telegram:1,pinterest:1,snapchat:1,reddit:1,medium:1,behance:1,threads:1};function fix(){if(!(window.lucide&&window.lucide.createIcons))return;try{window.lucide.createIcons();}catch(_){}var left=document.querySelectorAll('[data-lucide]');if(!left.length)return;left.forEach(function(el){var n=(el.getAttribute('data-lucide')||'').toLowerCase();el.setAttribute('data-lucide',B[n]?'globe':'circle');});try{window.lucide.createIcons();}catch(_){}}window.addEventListener('load',function(){fix();setTimeout(fix,350);});})();</script>` +
   `<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4" defer></script>` +
   // The bare `lucide` spec on jsDelivr resolves to the CJS build (no global, throws
   // "exports is not defined"); the UMD build is what exposes window.lucide.

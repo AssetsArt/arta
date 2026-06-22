@@ -142,6 +142,8 @@ const REGEX_GATES = [
   { id: "placeholder-name", severity: "warn", re: /\bJane Doe\b|\bJohn Smith\b|\bAcme\b|\bLorem ipsum\b/gi, message: "placeholder name / cliché — use real or plausible copy" },
   // hand-written Unsplash ids commonly 404 → broken-image glyph; steer to a source that resolves.
   { id: "guessed-unsplash", severity: "warn", re: /images\.unsplash\.com\/photo-/gi, message: "hand-written Unsplash id may 404 → broken image; use picsum.photos/seed/<word>/W/H, or verify the URL resolves" },
+  // brand / social icons were dropped from lucide core → render blank (a row of empty footer circles).
+  { id: "brand-lucide-icon", severity: "warn", re: /data-lucide\s*=\s*["'](?:facebook|instagram|twitter|x|linkedin|youtube|github|gitlab|discord|slack|tiktok|dribbble|figma|twitch|whatsapp|telegram|pinterest|snapchat|reddit|medium|behance|threads)["']/gi, message: "brand icon dropped from lucide core → renders blank; use an inline <svg>, a text label, or an in-set glyph (globe/link/at-sign)" },
 ];
 
 function findUniformHoverScale(doc, push) {
@@ -203,6 +205,7 @@ const TITLES = {
   "overshoot-easing": "Overshoot easing on UI state",
   "placeholder-name": "Placeholder name / cliché",
   "guessed-unsplash": "Hand-written Unsplash URL (may 404)",
+  "brand-lucide-icon": "Brand icon not in lucide core (blank)",
   "uniform-hover-scale": "Uniform hover-scale",
   "emoji-icon": "Emoji used as an icon",
   "italic-heading": "Italic heading",
