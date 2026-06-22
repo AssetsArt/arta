@@ -18,9 +18,10 @@ import { fileURLToPath } from "node:url";
 import { renderToString } from "react-dom/server";
 import { createElement as h } from "react";
 import { grade } from "./grade.mjs";
-import { compileTokens } from "../src/lib/prototype.ts";
+import { compileTokens, tokensFromCss } from "../src/lib/prototype.ts";
 import { ThemeProvider } from "../src/lib/theme.tsx";
 import { SpecRail } from "../src/components/tabs/SpecRail.tsx";
+import { DesignSystemView } from "../src/components/tabs/DesignSystemView.tsx";
 import { resolveActive } from "../src/lib/useArta.ts";
 import { detectSlop } from "../mcp/slop-detect.mjs";
 
@@ -91,6 +92,38 @@ function runSpecRailSpecs() {
   spec("object user renders its need", html.includes("call the next ticket"));
   spec("string user still renders", html.includes("Walk-in customer"));
   spec("no raw [object Object] leaks into markup", html.length > 0 && !html.includes("[object Object]"));
+  return { ok: rows.every((r) => r.ok), rows };
+}
+
+// ── Render-layer spec: the Design-system tab reflects a CSS-authored system ──
+// The tab reads structured `prototype.tokens`, but the AI often authors the system as raw
+// CSS (arta_set_design_system) with a `:root` block and never calls arta_set_design_tokens
+// — which left the tab showing "No design system yet" despite a real system on every screen
+// (a real defect a dev hit). The fix recovers tokens from the CSS `:root` vars and, failing
+// that, shows the stylesheet itself. Lock both: a CSS-only system is never a blank tab.
+function runDesignSystemSpecs() {
+  const rows = [];
+  const spec = (name, ok, detail) => rows.push({ name, ok, detail });
+  const render = (proto) => renderToString(h(ThemeProvider, null, h(DesignSystemView, { prototype: proto })));
+
+  // tokensFromCss recovers tokens from a :root block (the inverse of compileTokens).
+  const parsed = tokensFromCss(":root{--color-bg:#fbfaf8;--color-accent:#b3321a;--font-display:'Fraunces',serif;--radius-md:10px}");
+  spec("tokensFromCss recovers colours from :root", (parsed.colors || []).some((x) => x.value === "#b3321a"), (parsed.colors || []).map((x) => x.name).join(","));
+  spec("tokensFromCss recovers fonts + radii from :root", (parsed.fonts || []).length === 1 && (parsed.radii || []).length === 1);
+  spec("tokensFromCss ignores non-:root rules", tokensFromCss(".card{color:red}").colors === undefined);
+
+  // CSS-authored system (no structured tokens) → tab shows the colours, not the empty state.
+  const cssOnly = render({ designSystem: ":root{--color-accent:#b3321a;--color-bg:#fbfaf8}", screens: [] });
+  spec("CSS-only system renders its tokens (not the empty state)", cssOnly.includes("#b3321a") && !cssOnly.includes("No design system yet"));
+
+  // CSS with no :root vars (class rules only) → the stylesheet itself is shown, not blank.
+  const classOnly = render({ designSystem: ".btn{background:#111;color:#fff}", screens: [] });
+  spec("class-only system falls back to showing the stylesheet", classOnly.includes("Stylesheet") && !classOnly.includes("No design system yet"));
+
+  // Genuinely nothing → the empty state is correct.
+  const nothing = render({ screens: [] });
+  spec("truly-empty prototype still shows the empty state", nothing.includes("No design system yet"));
+
   return { ok: rows.every((r) => r.ok), rows };
 }
 
@@ -275,6 +308,8 @@ function runGate(json) {
   if (!slopSpecs.ok) regressed = true;
   const cookbookSpecs = runCookbookSpecs();
   if (!cookbookSpecs.ok) regressed = true;
+  const designSystemSpecs = runDesignSystemSpecs();
+  if (!designSystemSpecs.ok) regressed = true;
 
   for (const t of TH.targets) {
     const r = grade(t.brief, path.join(ROOT, t.dir));
@@ -314,7 +349,7 @@ function runGate(json) {
   }
 
   if (json) {
-    console.log(JSON.stringify({ mode: "gate", ok: !regressed, a5Skipped: [...a5Skipped], rows, specs: specs.rows, railSpecs: railSpecs.rows, frameSpecs: frameSpecs.rows, projectSpecs: projectSpecs.rows, exportSpecs: exportSpecs.rows, headlessSpecs: headlessSpecs.rows, slopSpecs: slopSpecs.rows, cookbookSpecs: cookbookSpecs.rows }, null, 2));
+    console.log(JSON.stringify({ mode: "gate", ok: !regressed, a5Skipped: [...a5Skipped], rows, specs: specs.rows, railSpecs: railSpecs.rows, frameSpecs: frameSpecs.rows, projectSpecs: projectSpecs.rows, exportSpecs: exportSpecs.rows, headlessSpecs: headlessSpecs.rows, slopSpecs: slopSpecs.rows, cookbookSpecs: cookbookSpecs.rows, designSystemSpecs: designSystemSpecs.rows }, null, 2));
     return !regressed;
   }
 
@@ -353,6 +388,9 @@ function runGate(json) {
 
   console.log("\n  COOKBOOK SPECS — component-cookbook.md practises what it preaches\n");
   for (const s of cookbookSpecs.rows) console.log("  " + (s.ok ? GLYPH.pass : GLYPH.fail) + " " + pad(s.name, 58) + (s.detail ? "  " + s.detail : ""));
+
+  console.log("\n  DESIGN-SYSTEM TAB SPECS — reflects a CSS-authored system (no blank tab)\n");
+  for (const s of designSystemSpecs.rows) console.log("  " + (s.ok ? GLYPH.pass : GLYPH.fail) + " " + pad(s.name, 58) + (s.detail ? "  " + s.detail : ""));
 
   console.log("\n  " + (regressed ? "GATE FAILED — a committed target or render-layer spec regressed." : "GATE PASSED — all committed targets hold the baseline.") + "\n");
   return !regressed;

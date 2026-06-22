@@ -627,7 +627,7 @@ server.registerTool(
   "arta_set_screen",
   {
     description:
-      "Create or replace one screen: writes only .arta/prototype/screens/<id>.html and upserts the screen's entry in the manifest (title/url/frame/safeArea). Other screens and the rest of the design are untouched. This is how you edit a screen cheaply. For an ios/android/ipad screen the content is full-screen and the status bar + notch overlay it by default — so PAD the top/bottom (≈48/28px on ios) so the header and bottom bar clear them, and set `safeArea` to the top-edge colour so the clock auto-contrasts. Pass `chrome:false` to drop the status bar entirely (true edge-to-edge: splash/login/media). STYLE WITH TAILWIND UTILITY CLASSES (injected live) — not inline style=; use lucide icons (<i data-lucide=\"…\">), never emoji.",
+      "Create or replace one screen: writes only .arta/prototype/screens/<id>.html and upserts the screen's entry in the manifest (title/url/frame/safeArea). Other screens and the rest of the design are untouched. This is how you edit a screen cheaply. For an ios/android/ipad screen the content is full-screen and the status bar + notch overlay it by default — so PAD the top/bottom (≈48/28px on ios) so the header and bottom bar clear them, and set `safeArea` to the top-edge colour so the clock auto-contrasts. Pass `chrome:false` to drop the status bar entirely (true edge-to-edge: splash/login/media). STYLE WITH TAILWIND UTILITY CLASSES (injected live) — not inline style=; use lucide icons (<i data-lucide=\"…\">), never emoji. TO NAVIGATE BETWEEN SCREENS put data-to=\"screenId\" on any clickable element (button/card/row/nav link) — that's the ONLY routing; do NOT use <a href>, onclick, or a router.",
     inputSchema: {
       id: zod.string(),
       html: zod

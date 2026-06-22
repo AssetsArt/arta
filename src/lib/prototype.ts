@@ -117,3 +117,30 @@ export function compileTokens(tokens?: DesignTokens): string {
 export function designSheet(proto: Prototype): string {
   return [compileTokens(proto.tokens), proto.designSystem || ""].filter(Boolean).join("\n");
 }
+
+// Recover displayable tokens from the `:root` custom properties in a stylesheet — the
+// inverse of compileTokens. The Design-system tab reads structured `prototype.tokens`, but
+// the AI often sets up the system as raw CSS (arta_set_design_system) with a `:root` block
+// and never calls arta_set_design_tokens — which left the tab blank even though a real
+// design system existed. Parsing the authored CSS's `:root` vars back into tokens makes the
+// tab reflect the system whichever way it was authored. Reads ONLY `:root` blocks, so
+// per-component custom properties don't leak in.
+export function tokensFromCss(css?: string): DesignTokens {
+  const out: DesignTokens = {};
+  if (!css || !css.trim()) return out;
+  const body = [...css.matchAll(/:root\s*\{([^}]*)\}/g)].map((m) => m[1]).join(";");
+  const seen = new Set<string>();
+  for (const m of body.matchAll(/--([\w-]+)\s*:\s*([^;]+)/g)) {
+    const name = m[1].trim();
+    const value = m[2].trim();
+    if (!value || seen.has(name)) continue;
+    seen.add(name);
+    if (name.startsWith("color-")) (out.colors ||= []).push({ name: name.slice(6), value });
+    else if (name.startsWith("font-")) (out.fonts ||= []).push({ name: name.slice(5), value });
+    else if (name.startsWith("radius-")) (out.radii ||= []).push({ name: name.slice(7), value });
+    else if (name.startsWith("shadow-")) (out.shadows ||= []).push({ name: name.slice(7), value });
+    else if (name.startsWith("space-") || name.startsWith("spacing-")) (out.spacing ||= []).push({ name: name.replace(/^spac(?:e|ing)-/, ""), value });
+    else if (name.startsWith("text-")) (out.typography ||= []).push({ name: name.slice(5), size: value });
+  }
+  return out;
+}

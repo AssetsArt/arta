@@ -1,7 +1,7 @@
 import { Palette } from "lucide-react";
 import type { Prototype } from "../../lib/types";
 import { MONO, useTheme, type DarkTokens } from "../../lib/theme";
-import { designSheet, expandFragment, FONT_LINK } from "../../lib/prototype";
+import { designSheet, expandFragment, tokensFromCss, FONT_LINK } from "../../lib/prototype";
 
 // A lightweight, render-only preview of one component fragment — same Tailwind +
 // lucide + token sheet as the real screens, but none of the store/snapshot wiring.
@@ -41,17 +41,28 @@ export function DesignSystemView({ prototype }: { prototype: Prototype }) {
   const t = prototype.tokens || {};
   const components = prototype.components || {};
   const sheet = designSheet(prototype);
+  // The tab reads structured tokens, but the AI often authors the system as raw CSS
+  // (arta_set_design_system) with a `:root` block and never sets structured tokens — which
+  // used to leave this tab blank despite a real design system. Fall back to the tokens
+  // recovered from that CSS per-category, so the tab reflects the system either way.
+  const derived = tokensFromCss(prototype.designSystem);
+  const pick = <T,>(structured: T[] | undefined, fallback: T[] | undefined): T[] =>
+    structured && structured.length ? structured : fallback || [];
 
-  const colors = t.colors || [];
-  const typography = t.typography || [];
-  const spacing = t.spacing || [];
-  const radii = t.radii || [];
-  const shadows = t.shadows || [];
-  const fonts = t.fonts || [];
+  const colors = pick(t.colors, derived.colors);
+  const typography = pick(t.typography, derived.typography);
+  const spacing = pick(t.spacing, derived.spacing);
+  const radii = pick(t.radii, derived.radii);
+  const shadows = pick(t.shadows, derived.shadows);
+  const fonts = pick(t.fonts, derived.fonts);
   const compEntries = Object.entries(components);
 
-  const empty =
+  const noTokens =
     !colors.length && !typography.length && !spacing.length && !radii.length && !shadows.length && !fonts.length && !compEntries.length;
+  // A design system authored as CSS that has no parseable `:root` vars (e.g. only class
+  // rules) still has *something* to show — the stylesheet itself. Only truly-nothing is empty.
+  const css = (prototype.designSystem || "").trim();
+  const empty = noTokens && !css;
 
   if (empty) {
     return (
@@ -59,7 +70,7 @@ export function DesignSystemView({ prototype }: { prototype: Prototype }) {
         <div className="flex flex-col items-center gap-2.5 text-center" style={{ color: c.faint, fontFamily: MONO }}>
           <Palette size={28} />
           <div className="max-w-[320px] text-[13px] leading-relaxed">
-            No design system yet — colours, type, spacing and components appear here as the AI defines `prototype.tokens` and `prototype.components`.
+            No design system yet — colours, type, spacing and components appear here as the AI defines a design system (`arta_set_design_tokens` / `arta_set_design_system`).
           </div>
         </div>
       </div>
@@ -190,6 +201,37 @@ export function DesignSystemView({ prototype }: { prototype: Prototype }) {
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {noTokens && css && (
+          <section>
+            <SectionHead title="Stylesheet" c={c} />
+            <p style={{ fontSize: 12, color: c.dim, marginBottom: 12, lineHeight: 1.5, maxWidth: 560 }}>
+              This design system is authored as CSS without structured tokens or a{" "}
+              <span style={{ fontFamily: MONO }}>:root</span> variable block. Define tokens
+              with <span style={{ fontFamily: MONO }}>arta_set_design_tokens</span> (or a{" "}
+              <span style={{ fontFamily: MONO }}>:root</span> block) to see colours, type and
+              spacing rendered here.
+            </p>
+            <pre
+              style={{
+                margin: 0,
+                padding: "14px 16px",
+                background: c.panel,
+                border: `1px solid ${c.border}`,
+                borderRadius: 10,
+                overflowX: "auto",
+                fontFamily: MONO,
+                fontSize: 12,
+                lineHeight: 1.6,
+                color: c.text,
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+              }}
+            >
+              {css}
+            </pre>
           </section>
         )}
       </div>

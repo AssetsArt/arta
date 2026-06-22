@@ -426,13 +426,23 @@ isolated browser frame, so use full HTML/CSS — your own classes, `body`,
 fonts, grid, the lot. A tiny runtime wires interactivity through plain
 attributes — **these are the only "wires" you get**:
 
-- `data-to="screenId"` — click navigates to that screen (the only routing).
+- `data-to="screenId"` — **how you change / navigate between screens.** Put it on ANY
+  clickable element (a button, a card, a list row, a nav link) and a click goes to that
+  screen id. This is the ONLY routing — to "go to another screen" / "change the page",
+  `data-to` is the whole answer. Do **NOT** reach for `<a href>` (the runtime intercepts it
+  back to the screen list), `onclick`, a router, `postMessage`, or any `navigate`/`goto`
+  call — they don't exist here.
 - `data-inc="cart"` / `data-dec="cart"` — bump a numeric store key by ±1
   (comma-separate multiple keys).
 - `data-set="key=value;other=2"` — set store keys on click (numbers auto-parse).
 - `data-bind="cart"` — element's text shows the live store value.
 - `data-show="cart"` or `data-show="step==2"` — show the element only when truthy
   / equal; hidden otherwise.
+
+**This list is the COMPLETE interactivity contract — there is no other navigation or state
+API.** You never need to read the Arta viewer / runtime source (or grep the plugin) to find
+how routing works: it's `data-to`, full stop. Anything a screen does on click is one of the
+six attributes above.
 
 The store is a flat object of mock values (declare defaults in `prototype.store`).
 It persists across screen navigation, so a cart count set on the home screen is
