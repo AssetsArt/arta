@@ -19582,6 +19582,208 @@ class StdioServerTransport {
   }
 }
 
+// mcp/slop-detect.mjs
+function lineAt(doc2, idx) {
+  let n = 1;
+  for (let i = 0;i < idx && i < doc2.length; i++)
+    if (doc2[i] === `
+`)
+      n++;
+  return n;
+}
+function snippetAt(doc2, idx, span = 90) {
+  const start = Math.max(0, idx - 10);
+  return doc2.slice(start, idx + span).replace(/\s+/g, " ").trim().slice(0, 120);
+}
+function classAttrs(doc2) {
+  const out = [];
+  const re = /\bclass(?:Name)?\s*=\s*"([^"]*)"|\bclass(?:Name)?\s*=\s*'([^']*)'/g;
+  let m;
+  while (m = re.exec(doc2))
+    out.push({ value: m[1] ?? m[2] ?? "", index: m.index });
+  return out;
+}
+function findGradientText(doc2, push) {
+  const reCss = /(?:-webkit-)?background-clip\s*:\s*text/gi;
+  let m;
+  while (m = reCss.exec(doc2)) {
+    const around = doc2.slice(Math.max(0, m.index - 200), m.index + 200);
+    if (/(?:color|-webkit-text-fill-color)\s*:\s*transparent/i.test(around))
+      push("gradient-text", "error", m.index, "background-clip:text + transparent fill");
+  }
+  for (const c of classAttrs(doc2)) {
+    if (/\bbg-clip-text\b/.test(c.value) && /\btext-transparent\b/.test(c.value))
+      push("gradient-text", "error", c.index, "bg-clip-text + text-transparent (gradient headline)");
+  }
+}
+function findSideStripe(doc2, push) {
+  let m;
+  const reTw = /\bborder-[lr]-(?:4|8)\b/g;
+  while (m = reTw.exec(doc2))
+    push("side-tab", "error", m.index, m[0] + " (side-stripe border)");
+  const reCss = /border-(?:left|right)\s*:\s*(?:[4-9]|\d\d)px\s+solid/gi;
+  while (m = reCss.exec(doc2))
+    push("side-tab", "error", m.index, snippetAt(doc2, m.index, 40));
+}
+function findStripes(doc2, push) {
+  let m;
+  const re = /repeating-(?:linear|radial)-gradient/gi;
+  while (m = re.exec(doc2))
+    push("repeating-stripes-gradient", "error", m.index, snippetAt(doc2, m.index, 50));
+}
+function findTracking(doc2, push) {
+  let m;
+  const reCss = /letter-spacing\s*:\s*-(?:0?\.0[5-9]\d*|0?\.[1-9]\d*|[1-9][\d.]*)\s*em/gi;
+  while (m = reCss.exec(doc2))
+    push("extreme-negative-tracking", "error", m.index, snippetAt(doc2, m.index, 40));
+  const reTw = /\btracking-tighter\b/g;
+  while (m = reTw.exec(doc2))
+    push("extreme-negative-tracking", "error", m.index, "tracking-tighter (≤ -0.05em)");
+}
+function isCardClass(v) {
+  if (/\bcard\b|[-_]card\b/.test(v))
+    return true;
+  const rounded = /\brounded-(?:lg|xl|2xl|3xl|\[)/.test(v) || /\brounded\b/.test(v);
+  const elevated = /\bshadow(?:-(?:sm|md|lg|xl|2xl))?\b/.test(v) || /\bborder\b/.test(v);
+  return rounded && elevated;
+}
+function findNestedCards(doc2, push) {
+  const re = /<\/?(?:div|section|article|li|a|aside)\b[^>]*>/gi;
+  const stack = [];
+  let m;
+  while (m = re.exec(doc2)) {
+    const tag = m[0];
+    if (tag[1] === "/") {
+      stack.pop();
+      continue;
+    }
+    const selfClose = /\/>\s*$/.test(tag);
+    const cls = (tag.match(/\bclass(?:Name)?\s*=\s*"([^"]*)"|\bclass(?:Name)?\s*=\s*'([^']*)'/) || [])[1] || "";
+    const card = isCardClass(cls);
+    if (card && stack.some((s) => s.card))
+      push("nested-cards", "error", m.index, "card inside card: " + snippetAt(doc2, m.index, 50));
+    if (!selfClose)
+      stack.push({ card });
+  }
+}
+function findThinBorderWideShadow(doc2, push) {
+  const re = /style\s*=\s*"([^"]*)"/gi;
+  let m;
+  while (m = re.exec(doc2)) {
+    const s = m[1];
+    if (/border\s*:\s*1px\s+solid/i.test(s) && /box-shadow\s*:[^;"]*\b(?:1[6-9]|[2-9]\d)px/i.test(s))
+      push("gpt-thin-border-wide-shadow", "error", m.index, "1px border + wide soft shadow (ghost card)");
+  }
+}
+var AI_EMOJI = /[✨\u{1F680}⚡\u{1F525}\u{1F3AF}✅\u{1F389}\u{1F4A1}\u{1F44B}\u{1F4AA}\u{1F680}]/u;
+var REGEX_GATES = [
+  { id: "transition-all", severity: "warn", re: /transition\s*:\s*all|\btransition-all\b/gi, message: "transition:all — name the properties you animate" },
+  { id: "overshoot-easing", severity: "warn", re: /cubic-bezier\(\s*[\d.]+\s*,\s*1\.[5-9]/gi, message: "overshoot easing on a UI transition" },
+  { id: "placeholder-name", severity: "warn", re: /\bJane Doe\b|\bJohn Smith\b|\bAcme\b|\bLorem ipsum\b/gi, message: "placeholder name / cliché — use real or plausible copy" }
+];
+function findUniformHoverScale(doc2, push) {
+  const hits = [];
+  const re = /\bhover:scale-1(?:0[5-9]|1\d|2\d)\b/g;
+  let m;
+  while (m = re.exec(doc2))
+    hits.push(m.index);
+  if (hits.length >= 2)
+    for (const i of hits)
+      push("uniform-hover-scale", "warn", i, "uniform hover-scale across elements");
+}
+function findEmojiIcon(doc2, push) {
+  const re = new RegExp(AI_EMOJI.source, "gu");
+  let m;
+  while (m = re.exec(doc2))
+    push("emoji-icon", "warn", m.index, "emoji as icon — use a lucide glyph (" + doc2.slice(m.index, m.index + 2).trim() + ")");
+}
+function findItalicHeading(doc2, push) {
+  const re = /<h[1-6]\b[^>]*\bclass(?:Name)?\s*=\s*["'][^"']*\bitalic\b/gi;
+  let m;
+  while (m = re.exec(doc2))
+    push("italic-heading", "warn", m.index, "italic heading — headers are roman; emphasise with weight/colour");
+  const re2 = /<h[1-6]\b[^>]*style\s*=\s*"[^"]*font-style\s*:\s*italic/gi;
+  while (m = re2.exec(doc2))
+    push("italic-heading", "warn", m.index, "italic heading (inline font-style:italic)");
+}
+function findMixedIconLibs(doc2, push) {
+  const libs = [];
+  if (/\bdata-lucide\b/.test(doc2))
+    libs.push("lucide");
+  if (/\bclass(?:Name)?="[^"]*\bfa[srlbd]?-/.test(doc2) || /\bfa-(?:solid|regular|brands)\b/.test(doc2))
+    libs.push("fontawesome");
+  if (/material-icons|material-symbols/.test(doc2))
+    libs.push("material");
+  if (/\bheroicon|hero-icon/.test(doc2))
+    libs.push("heroicons");
+  if (libs.length >= 2)
+    push("mixed-icon-libs", "warn", doc2.search(/\bdata-lucide\b|material-icons|fa-(?:solid|regular|brands)/), "two icon libraries on one screen: " + libs.join(" + "));
+}
+function findOverRounded(doc2, push) {
+  let m;
+  const re = /\brounded-(?:\[(?:[3-9]\d|[1-9]\d\d)px\]|\[(?:[2-9](?:\.\d+)?rem)\])/g;
+  while (m = re.exec(doc2))
+    push("over-rounded", "info", m.index, m[0] + " — cards top out ~16px");
+  const reTw = /\brounded-3xl\b/g;
+  while (m = reTw.exec(doc2)) {
+    const around = doc2.slice(Math.max(0, m.index - 120), m.index + 120);
+    if (/\b(?:shadow|border)\b/.test(around))
+      push("over-rounded", "info", m.index, "rounded-3xl card (24px) — cards top out ~16px");
+  }
+}
+var CUSTOM_GATES = [
+  findGradientText,
+  findSideStripe,
+  findStripes,
+  findTracking,
+  findNestedCards,
+  findThinBorderWideShadow,
+  findUniformHoverScale,
+  findEmojiIcon,
+  findItalicHeading,
+  findMixedIconLibs,
+  findOverRounded
+];
+var TITLES = {
+  "gradient-text": "Gradient text headline",
+  "side-tab": "Coloured side-stripe border",
+  "repeating-stripes-gradient": "Stripe-gradient background",
+  "extreme-negative-tracking": "Cramped letter-spacing",
+  "nested-cards": "Card nested inside a card",
+  "gpt-thin-border-wide-shadow": "1px border + wide soft shadow",
+  "transition-all": "transition: all",
+  "overshoot-easing": "Overshoot easing on UI state",
+  "placeholder-name": "Placeholder name / cliché",
+  "uniform-hover-scale": "Uniform hover-scale",
+  "emoji-icon": "Emoji used as an icon",
+  "italic-heading": "Italic heading",
+  "mixed-icon-libs": "Mixed icon libraries",
+  "over-rounded": "Over-rounded card"
+};
+function detectSlop(doc2, opts = {}) {
+  const file = opts.file || "";
+  const text = typeof doc2 === "string" ? doc2 : "";
+  const findings = [];
+  const seen = new Set;
+  const push = (id, severity, index, message) => {
+    const line = lineAt(text, index);
+    const key = id + "@" + line + "@" + (message || "");
+    if (seen.has(key))
+      return;
+    seen.add(key);
+    findings.push({ antipattern: id, severity, file, line, snippet: snippetAt(text, index), message: TITLES[id] ? TITLES[id] + " — " + message : message });
+  };
+  for (const g of CUSTOM_GATES)
+    g(text, push);
+  for (const g of REGEX_GATES) {
+    let m;
+    g.re.lastIndex = 0;
+    while (m = g.re.exec(text))
+      push(g.id, g.severity, m.index, g.message);
+  }
+  return findings;
+}
+
 // mcp/server.mjs
 function envPath(name) {
   const v = process.env[name];
@@ -20169,39 +20371,60 @@ server.registerTool("arta_set_design_tokens", {
   return text({ ok: true, tokens: next });
 });
 server.registerTool("arta_design_review", {
-  description: "Run impeccable's deterministic design-quality detectors over the prototype's screen HTML and return the findings — an anti-slop craft eye for the loop (gradient text, side-stripe borders, glassmorphism-by-default, identical card grids, low-contrast text, tiny uppercase eyebrows, over-rounded cards, etc.). Like arta_get_screenshot sees the pixels and the error feed sees runtime, this catches design issues before the dev does. Needs impeccable available — the first run fetches it via `npx` (a few seconds); offline / unavailable returns a note, NOT an error. Pass a screen id to scan one screen, or omit to scan all.",
+  description: "Run Arta's own deterministic anti-slop detector over the prototype's screens and return the design tells the AI most reliably emits — gradient-text headlines, coloured side-stripe borders, stripe-gradient backgrounds, cramped letter-spacing, cards nested in cards, transition:all, uniform hover-scale, emoji-as-icon, italic headings, placeholder names, mixed icon libraries, over-rounded cards. Offline and instant — no `npx`, no network, no install. Like arta_get_screenshot sees the pixels and the error feed sees runtime, this is the craft eye that catches slop before the dev does. Findings are ranked error → warn → info (error = a serious tell to fix). Pass a screen id to scan one, or omit to scan all. For a deeper one-off pass you can also run `/impeccable audit` in Claude Code.",
   inputSchema: {
     screen: exports_external.string().optional().describe("Screen id to scan; omit to scan every prototype screen.")
   }
 }, async ({ screen }) => {
-  const target = screen ? screenFile(screen) : SCREEN_DIR;
-  if (!fs.existsSync(target))
-    return err(screen ? `No screen "${screen}".` : "No prototype screens yet.");
-  let res;
-  try {
-    res = spawnSync("npx", ["--yes", "impeccable", "detect", "--json", target], {
-      cwd: PROJECT_DIR,
-      encoding: "utf8",
-      timeout: 180000,
-      maxBuffer: 16 * 1024 * 1024
-    });
-  } catch (e) {
-    res = { error: e };
+  const state = readJson(STATE_FILE) || {};
+  const proto = state.prototype || {};
+  const manifest = Array.isArray(proto.screens) ? proto.screens : [];
+  const designCss = readRaw(CSS_FILE) ?? (typeof proto.designSystem === "string" ? proto.designSystem : "") ?? "";
+  let ids;
+  if (screen) {
+    ids = [screen];
+  } else {
+    ids = manifest.map((s) => s && s.id).filter(Boolean);
+    try {
+      for (const f of fs.readdirSync(SCREEN_DIR))
+        if (f.endsWith(".html")) {
+          const id = f.replace(/\.html$/, "");
+          if (!ids.includes(id))
+            ids.push(id);
+        }
+    } catch {}
   }
-  const out = (res.stdout || "").trim();
-  const errOut = (res.stderr || "").trim();
-  if (res.error || !out && res.status !== 0) {
-    return text({
-      ok: false,
-      available: false,
-      note: "Couldn't run impeccable detect (not installed / offline / npx unavailable). Install it with `npx impeccable install`, or run `/impeccable audit` in Claude Code. Detail: " + (res.error && res.error.message || errOut || `exit ${res.status}`)
-    });
+  if (!ids.length)
+    return text({ ok: true, engine: "arta-slop-detect", scanned: [], total: 0, findings: [], note: "No prototype screens yet." });
+  const RANK = { error: 0, warn: 1, info: 2 };
+  const all = [];
+  const byScreen = {};
+  for (const id of ids) {
+    const sc = manifest.find((s) => s && s.id === id);
+    const body = readRaw(screenFile(id)) ?? (sc && typeof sc.html === "string" ? sc.html : "") ?? "";
+    if (!body && !sc) {
+      byScreen[id] = { error: "no such screen" };
+      continue;
+    }
+    const doc2 = `<style>${designCss}
+${typeof sc?.css === "string" ? sc.css : ""}</style>
+${body}`;
+    const found = detectSlop(doc2, { file: id }).map((f) => ({ screen: id, ...f }));
+    byScreen[id] = { error: found.filter((f) => f.severity === "error").length, warn: found.filter((f) => f.severity === "warn").length, info: found.filter((f) => f.severity === "info").length };
+    all.push(...found);
   }
-  let findings = out || errOut || "(no findings)";
-  try {
-    findings = JSON.parse(out);
-  } catch {}
-  return text({ ok: true, target, findings });
+  all.sort((a, b) => RANK[a.severity] - RANK[b.severity] || String(a.screen).localeCompare(String(b.screen)));
+  const bySeverity = { error: all.filter((f) => f.severity === "error").length, warn: all.filter((f) => f.severity === "warn").length, info: all.filter((f) => f.severity === "info").length };
+  return text({
+    ok: true,
+    engine: "arta-slop-detect",
+    scanned: ids,
+    total: all.length,
+    bySeverity,
+    byScreen,
+    findings: all.map((f) => ({ screen: f.screen, severity: f.severity, antipattern: f.antipattern, line: f.line, issue: f.message, snippet: f.snippet })),
+    note: all.length ? "Fix the `error` findings first (serious tells). `warn`/`info` are softer — judge in context. Deeper manual pass: `/impeccable audit`." : "Clean — no anti-slop tells detected. (Deeper manual pass available via `/impeccable audit`.)"
+  });
 });
 server.registerTool("arta_set_frame", {
   description: 'Set the device frame, safe-area colour, and/or chrome mode — for one screen (pass `screen`) or the prototype default. On ios/android/ipad the content is ALWAYS full-screen (edge-to-edge). `chrome` (default true) overlays the status bar (REAL time) + notch + home indicator ON TOP of the content, so the screen must pad its own top/bottom to clear them (≈48/28px on ios). `safeArea` is the screen\'s top-edge colour so the overlaid clock/icons auto-contrast (pass `safeArea: ""` to clear). `chrome:false` drops the status bar entirely for true edge-to-edge (splash / login / media). Provide at least one of `frame` / `safeArea` / `chrome`.',
