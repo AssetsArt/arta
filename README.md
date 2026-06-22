@@ -57,8 +57,9 @@ Everything you can type, in one place.
 | `/arta <what to build>` | Brainstorm the idea, then design it in Arta |
 | `/arta update` | Update the plugin to the latest **and re-run the viewer** on the new build |
 | `/arta restart` | Re-run the viewer from the installed plugin (pick up a new build, no manual cache-clearing) |
+| `/arta open` | Just bring the canvas up — no designing. Look at the prototype, or switch between projects one viewer hosts (`arta_start_viewer`) |
 | `/arta feedback` | Drain the comments the dev left in the viewer and act on them (`arta_get_feedback`) |
-| `/arta review [screen]` | Design-quality pass — run impeccable's anti-slop detectors on the prototype and fix what they flag (`arta_design_review`) |
+| `/arta review [screen]` | Design-quality pass — Arta's own offline anti-slop detector flags the tells (error → warn → info) and you fix them (`arta_design_review`) |
 | *"design this in Arta"* | Natural-language trigger — same as `/arta` |
 
 `/arta update` wraps `/plugin marketplace update arta` then
@@ -85,6 +86,7 @@ start the viewer yourself — `/arta` does it via the `arta_start_viewer` tool, 
 | `bun run dev` | Viewer on `:7317`, watching this repo's `.arta/` |
 | `bun run build` | Typecheck + build viewer + bundle the MCP |
 | `bun run build:mcp` | Re-bundle the MCP after editing `mcp/server.mjs` |
+| `bun run eval:gate` | Run the deterministic regression gate (committed targets + render-layer / slop-detector / cookbook specs) |
 | `node scripts/validate-plugin.mjs` | Check the plugin layout (the CI gate) |
 | `bun link` | Expose a global `arta` command, runnable from any project |
 
@@ -238,7 +240,7 @@ on the current project's `.arta/`:
 - `arta_start_viewer` — launch the viewer from the installed plugin (idempotent; no stale cache)
 - `arta_restart_viewer` — re-run the viewer from the installed plugin so it serves the latest build (what `/arta update` / `/arta restart` use; no manual cache-clearing)
 - `arta_get_screenshot` — a PNG of how a screen actually renders (the pixels you see)
-- `arta_design_review` — run [impeccable](https://github.com/pbakaus/impeccable)'s deterministic anti-slop detectors over a screen's HTML and return craft findings (low contrast, side-stripe borders, gradient text, identical card grids, …). Opt-in — returns a note if impeccable isn't available
+- `arta_design_review` — run Arta's own deterministic anti-slop detector over a screen's HTML and return craft findings ranked error → warn → info (gradient text, side-stripe borders, stripe backgrounds, cramped tracking, nested cards, transition:all, emoji-as-icon, italic headings, over-rounded cards, …). Offline and instant — no `npx`, no network
 - `arta_get_view` — your active tab, prototype screen, store, and any prototype errors
 - `arta_get_feedback` — notes you left, including the element you clicked to comment on
 

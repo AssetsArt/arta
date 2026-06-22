@@ -18,10 +18,26 @@ export const BASE_CSS = `
    any remaining gap is the screen's own bg, never raw white. The design system's own
    `+"`body{background:…}`"+` (loaded after this) still wins when it sets one. */
 html,body{margin:0;padding:0;height:100%}
+/* Kill horizontal scroll on every screen (the AI's long-word headings + image grids
+   are the usual culprits). "clip" — never "hidden" — because clip does NOT create a
+   scroll container, so it preserves position:sticky/fixed bars and the full-capture
+   unclamp. This is an enforced floor: a screen can't accidentally ship a sideways
+   scrollbar regardless of what the AI wrote. (hallmark slop-test gate 34.) */
+html,body{overflow-x:clip}
 body{min-height:100%;font-family:'Geist','Noto Sans Thai',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;color:#18181b;background:var(--color-bg,#fff);-webkit-font-smoothing:antialiased}
+/* Long compound words ("AI-generated", uppercase brand names) overflow the viewport
+   because their only break point is the hyphen — let the engine break inside the word
+   as a last resort so a display heading never punches past the edge. (gate 51.) */
+h1,h2,h3{overflow-wrap:anywhere}
 img{max-width:100%;display:block}
 a{color:inherit;text-decoration:none}
 button{font-family:inherit;cursor:pointer}
+/* Keyboard-focus ring fallback: every interactive element shows a visible ring even
+   when the AI forgot one. Low specificity + appears INSTANTLY (no transition) so a
+   keyboard user always gets an indicator; an explicit focus utility still overrides
+   it (a single utility wins the cascade). Brand-tinted, falls through to a safe hue.
+   (gate 26 — :focus-visible present on every control.) */
+:focus-visible{outline:2px solid var(--color-primary,var(--color-brand,#6366f1));outline-offset:2px}
 [data-to],[data-inc],[data-dec],[data-set]{cursor:pointer}
 body.arta-annotate *{cursor:crosshair !important}
 body.arta-annotate *:hover{outline:2px solid #38bdf8 !important;outline-offset:-1px}

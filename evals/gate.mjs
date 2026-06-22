@@ -9,9 +9,9 @@
 //   bun evals/gate.mjs --suite <built-dir>   # grade an LLM-built brief tree (loop arm):
 //                                            #   <built-dir>/<briefId>/.arta per brief
 //
-// A5 (impeccable detect) is enforced only when the detector exists on this machine;
-// on a CI runner without ~/.claude/skills/impeccable it is reported as skipped (–),
-// never a failure — so A1-A4 are the deterministic CI floor.
+// A5 (design review) runs Arta's OWN in-process slop detector (mcp/slop-detect.mjs) — no
+// `npx`, no network, no install — so it's a real deterministic CI floor alongside A1-A4,
+// not skipped. (The legacy a5Skipped path stays as a defensive no-op.)
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,6 +22,7 @@ import { compileTokens } from "../src/lib/prototype.ts";
 import { ThemeProvider } from "../src/lib/theme.tsx";
 import { SpecRail } from "../src/components/tabs/SpecRail.tsx";
 import { resolveActive } from "../src/lib/useArta.ts";
+import { detectSlop } from "../mcp/slop-detect.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CHECKS = ["A1a_tokens_defined", "A1b_tokens_used", "A2_shared", "A3_interactivity", "A4_render", "A5_design"];
@@ -129,6 +130,13 @@ function runFrameSpecs() {
   // scrollbar) and a gradient cover (so an image slot is never a bare gray box).
   spec("BASE_CSS ships the horizontal rail primitive (.hs-rail)", doc.includes(".hs-rail{"), ".hs-rail");
   spec("BASE_CSS ships a gradient cover, not a gray box (.hs-cover)", doc.includes(".hs-cover{") && doc.includes("linear-gradient"), ".hs-cover gradient");
+  // hallmark-derived enforced floors: a screen can't ship a sideways scrollbar (gate 34,
+  // `clip` not `hidden` so sticky/fixed survive), a display heading can't overflow on a
+  // long compound word (gate 51), and every control has an instant keyboard-focus ring
+  // even when the AI forgot one (gate 26). Locked here — a revert silently re-opens them.
+  spec("BASE_CSS clips horizontal overflow (no sideways scroll)", doc.includes("html,body{overflow-x:clip}"), "overflow-x:clip");
+  spec("BASE_CSS lets long heading words wrap (no viewport overflow)", doc.includes("h1,h2,h3{overflow-wrap:anywhere}"), "overflow-wrap:anywhere");
+  spec("BASE_CSS gives every control a focus-visible ring fallback", doc.includes(":focus-visible{outline"), ":focus-visible ring");
   // The shared screen document is built ONE way (live iframe + PDF + headless all use it).
   spec("buildScreenDoc assembles the standalone screen (shared render)", doc.includes("functionbuildScreenDoc"), "buildScreenDoc");
   // modern-screenshot can't render backdrop-filter (frosted glass), so a `bg-white/90
@@ -174,6 +182,63 @@ function runHeadlessSpecs() {
   return { ok: rows.every((r) => r.ok), rows };
 }
 
+// ── Slop detector: the offline anti-slop engine behind A5 + arta_design_review ──
+// mcp/slop-detect.mjs is now BOTH the live craft eye (arta_design_review) and the
+// A5 grader — replacing the external `npx impeccable`, so A5 is a real CI floor
+// instead of skipped when impeccable isn't installed. These specs lock the
+// detector's discrimination: the serious-tier gates fire on the canonical tells and
+// the warn gates surface the softer ones, while a clean snippet stays silent AND
+// emits nothing in the serious set (a false positive there would red the demo).
+function runSlopDetectorSpecs() {
+  const rows = [];
+  const spec = (name, ok, detail) => rows.push({ name, ok, detail });
+  const SERIOUS = new Set(BRIEFS.serious_antipatterns);
+  const ids = (doc) => detectSlop(doc).map((f) => f.antipattern);
+  const has = (doc, id) => ids(doc).includes(id);
+
+  // Serious-tier gates (id ∈ serious set → these GATE A5).
+  spec("flags gradient-text (Tailwind bg-clip-text + text-transparent)", has('<h1 class="bg-clip-text text-transparent bg-gradient-to-r">Hi</h1>', "gradient-text"));
+  spec("flags gradient-text (CSS background-clip:text + transparent)", has('<h1 style="background-clip:text;color:transparent">Hi</h1>', "gradient-text"));
+  spec("flags side-stripe border (border-l-4)", has('<div class="border-l-4 border-blue-500 p-4">x</div>', "side-tab"));
+  spec("flags stripe-gradient background (repeating-linear-gradient)", has('<style>.bg{background:repeating-linear-gradient(45deg,#000,#000 2px,#fff 2px)}</style>', "repeating-stripes-gradient"));
+  spec("flags cramped tracking (tracking-tighter)", has('<h1 class="tracking-tighter">x</h1>', "extreme-negative-tracking"));
+  spec("flags cramped tracking (letter-spacing:-0.06em)", has('<style>h1{letter-spacing:-0.06em}</style>', "extreme-negative-tracking"));
+  spec("flags nested cards (card inside card)", has('<div class="rounded-xl shadow-lg p-4"><div class="rounded-xl shadow p-2">y</div></div>', "nested-cards"));
+
+  // Warn-tier gates (NOT in serious set → enrich the review, never gate A5).
+  spec("flags transition:all (warn)", has('<div class="transition-all">x</div>', "transition-all"));
+  spec("flags emoji-as-icon (warn)", has("<button>🚀 Launch</button>", "emoji-icon"));
+  spec("flags italic heading (warn)", has('<h2 class="italic">Title</h2>', "italic-heading"));
+  spec("flags placeholder name (warn)", has("<p>Jane Doe, CEO</p>", "placeholder-name"));
+
+  // Discrimination: clean markup is silent, AND emits nothing in the serious set.
+  const clean = '<section class="p-6"><h1 class="font-bold text-2xl">Welcome</h1><p class="text-zinc-700">A real, readable sentence.</p><button class="rounded-lg bg-blue-600 text-white px-4 py-2">Continue</button></section>';
+  spec("clean markup yields zero findings", detectSlop(clean).length === 0, `${detectSlop(clean).length} findings`);
+  spec("clean markup emits nothing in the serious set (no false A5 fail)", detectSlop(clean).every((f) => !SERIOUS.has(f.antipattern)));
+  // A single card and sibling cards are fine — only NESTING is the smell.
+  spec("single card is not flagged as nested", !has('<div class="rounded-xl shadow-lg p-4">one card</div>', "nested-cards"));
+  spec("sibling cards are not flagged as nested", !has('<div class="grid"><div class="rounded-xl shadow p-4">a</div><div class="rounded-xl shadow p-4">b</div></div>', "nested-cards"));
+
+  return { ok: rows.every((r) => r.ok), rows };
+}
+
+// ── Cookbook integrity: the reference must practise what it preaches ─────────
+// skills/arta/component-cookbook.md hands the agent ready-to-paste app components. If a
+// snippet itself carried a slop tell (a gradient headline, a side-stripe active state, a
+// nested card), the skill would be *teaching* slop. Extract every ```html block and assert
+// the detector finds ZERO error-level tells — a guard that the cookbook can't drift.
+function runCookbookSpecs() {
+  const rows = [];
+  const spec = (name, ok, detail) => rows.push({ name, ok, detail });
+  const md = fs.readFileSync(path.join(ROOT, "skills/arta/component-cookbook.md"), "utf8");
+  const blocks = [...md.matchAll(/```html\n([\s\S]*?)```/g)].map((m) => m[1]);
+  spec("cookbook ships html component snippets", blocks.length >= 10, `${blocks.length} snippets`);
+  const findings = blocks.flatMap((b, i) => detectSlop(b, { file: "snippet#" + (i + 1) }));
+  const errors = findings.filter((f) => f.severity === "error");
+  spec("every cookbook snippet is slop-free (0 error findings)", errors.length === 0, errors.length ? errors.map((f) => f.file + ":" + f.antipattern).join(", ") : "clean");
+  return { ok: rows.every((r) => r.ok), rows };
+}
+
 // ── Multi-project spec: which canvas the one viewer shows ────────────────────
 // One viewer (one port) can host several projects; the active one is remembered in
 // localStorage. The agreed rule: use the stored project if it still exists, else fall
@@ -206,6 +271,10 @@ function runGate(json) {
   if (!exportSpecs.ok) regressed = true;
   const headlessSpecs = runHeadlessSpecs();
   if (!headlessSpecs.ok) regressed = true;
+  const slopSpecs = runSlopDetectorSpecs();
+  if (!slopSpecs.ok) regressed = true;
+  const cookbookSpecs = runCookbookSpecs();
+  if (!cookbookSpecs.ok) regressed = true;
 
   for (const t of TH.targets) {
     const r = grade(t.brief, path.join(ROOT, t.dir));
@@ -245,7 +314,7 @@ function runGate(json) {
   }
 
   if (json) {
-    console.log(JSON.stringify({ mode: "gate", ok: !regressed, a5Skipped: [...a5Skipped], rows, specs: specs.rows, railSpecs: railSpecs.rows, frameSpecs: frameSpecs.rows, projectSpecs: projectSpecs.rows, exportSpecs: exportSpecs.rows, headlessSpecs: headlessSpecs.rows }, null, 2));
+    console.log(JSON.stringify({ mode: "gate", ok: !regressed, a5Skipped: [...a5Skipped], rows, specs: specs.rows, railSpecs: railSpecs.rows, frameSpecs: frameSpecs.rows, projectSpecs: projectSpecs.rows, exportSpecs: exportSpecs.rows, headlessSpecs: headlessSpecs.rows, slopSpecs: slopSpecs.rows, cookbookSpecs: cookbookSpecs.rows }, null, 2));
     return !regressed;
   }
 
@@ -278,6 +347,12 @@ function runGate(json) {
 
   console.log("\n  RENDER-LAYER SPECS — headless-Chrome snapshot (render = the browser)\n");
   for (const s of headlessSpecs.rows) console.log("  " + (s.ok ? GLYPH.pass : GLYPH.fail) + " " + pad(s.name, 58) + (s.detail ? "  " + s.detail : ""));
+
+  console.log("\n  SLOP-DETECTOR SPECS — Arta's own anti-slop engine (A5 + design review)\n");
+  for (const s of slopSpecs.rows) console.log("  " + (s.ok ? GLYPH.pass : GLYPH.fail) + " " + pad(s.name, 58) + (s.detail ? "  " + s.detail : ""));
+
+  console.log("\n  COOKBOOK SPECS — component-cookbook.md practises what it preaches\n");
+  for (const s of cookbookSpecs.rows) console.log("  " + (s.ok ? GLYPH.pass : GLYPH.fail) + " " + pad(s.name, 58) + (s.detail ? "  " + s.detail : ""));
 
   console.log("\n  " + (regressed ? "GATE FAILED — a committed target or render-layer spec regressed." : "GATE PASSED — all committed targets hold the baseline.") + "\n");
   return !regressed;

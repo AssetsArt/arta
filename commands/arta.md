@@ -88,16 +88,17 @@ Run a design-quality pass on the prototype — catch AI-slop before the dev does
 
 1. Call the `arta_design_review` MCP tool. If a screen id follows (e.g.
    `/arta review checkout`), pass it to scan just that screen; otherwise scan all.
-2. It runs impeccable's deterministic detectors and returns findings (each with an
-   antipattern, severity, and snippet — side-stripe borders, gradient text,
-   gray-on-color, low contrast, identical card grids, over-rounded cards, …).
+2. It runs Arta's **own** offline detector (no `npx`, no network) and returns findings
+   ranked **error → warn → info** (each with an antipattern, severity, line, and snippet —
+   gradient text, side-stripe borders, stripe backgrounds, cramped tracking, nested cards,
+   transition:all, emoji-as-icon, italic headings, over-rounded cards, …).
    - **No findings** → say it's clean and stop.
-   - **Findings** → group them by screen/severity, then fix the clear ones in
-     `.arta/` (Tailwind classes + design-system tokens, not inline styles),
-     re-running `arta_design_review` to confirm they cleared. Flag any that are
-     deliberate so the dev can decide.
-   - **Tool unavailable** (impeccable not installed / offline) → relay its note;
-     suggest `npx impeccable install` or `/impeccable audit` as a fallback.
+   - **Findings** → group them by screen/severity, fix the **error**s first (then judge the
+     warn/info ones in context) in `.arta/` (Tailwind classes + design-system tokens, not
+     inline styles), re-running `arta_design_review` to confirm they cleared. Flag any that
+     are deliberate so the dev can decide.
+   - For a deeper one-off pass, `/impeccable audit` in Claude Code complements it (not
+     required — the built-in detector always runs).
 
 ## Otherwise — design "$ARGUMENTS" in Arta
 

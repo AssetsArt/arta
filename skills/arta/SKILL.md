@@ -85,11 +85,11 @@ Never describe a screen in prose when you could render it. Show, ask, adjust.
 - `arta_get_view` also returns `errors`: console/runtime errors from the
   prototype. If something you wrote is broken, you'll see it here — fix it without
   waiting for the dev.
-- `arta_design_review` — run impeccable's deterministic anti-slop detectors over
-  a screen's HTML and get craft findings (low contrast, side-stripe borders, gradient
-  text, identical card grids, over-rounded cards, eyebrow overuse…). A design-quality
-  eye to pair with the screenshot; fix what it flags. Opt-in — returns a note if
-  impeccable isn't available.
+- `arta_design_review` — run Arta's **own** deterministic anti-slop detector over a
+  screen's HTML and get craft findings ranked **error → warn → info** (gradient text,
+  side-stripe borders, stripe backgrounds, cramped tracking, nested cards, transition:all,
+  emoji-as-icon, italic headings, over-rounded cards…). Offline and instant — no `npx`, no
+  network. A design-quality eye to pair with the screenshot; fix the **error**s first.
 
 Granular prototype edits — **touch one piece, not the whole design** (this is how
 you keep big prototypes cheap to edit):
@@ -244,6 +244,18 @@ the dev react at each step.
 > handing over a blank placeholder screen, a header copy-pasted onto five screens, or a
 > screen with a dead white band — all of which one look would have caught.
 
+**Pre-emit self-critique — score before you look.** Before the per-screen checks, rate the
+build you just made **1–5 on six axes**, and let **anything < 3 trigger a revision pass**
+*before* you hand back (two passes is normal; a third means the direction is wrong, not the
+pixels — rethink it). This catches "competent but generic" that the detector can't:
+
+- **Philosophy** — is there a clear *why*, a position the design takes, or is it just a layout?
+- **Hierarchy** — can you tell primary / secondary / tertiary in 2 seconds, or is it one flat band?
+- **Execution** — are the details (contrast, accent footprint, spacing rhythm, focus rings, alignment) in spec, or sloppy even if the bones are right?
+- **Specificity** — does it look like *this* product, or like a page that could be anyone's?
+- **Restraint** — has everything that isn't earning its place been cut (decoration, redundant chrome, padding-for-padding)?
+- **Variety** — does this screen share a structural fingerprint with another screen in the app? Score by *structural* distance, not colour. (See "Vary the screen shape" below.)
+
 Do this for every screen you touched:
 
 1. **Look at the pixels** — `arta_get_screenshot` for each screen, and actually read
@@ -265,13 +277,19 @@ Do this for every screen you touched:
      device-fit question, not for fine content/contrast.
 
    In one line: **content → `chrome` (default); device-fit → `client`.**
-2. **Run the craft check** — `arta_design_review` on the screen(s); fix every finding
-   (gradient text, side-stripe borders, low contrast, identical card grids, blank icons…).
-   It's a static reader, so it has blind spots: it can't resolve a Tailwind colour utility
-   (`text-white`) on a `background:linear-gradient`, so it flags **false low-contrast**, and
-   it can't read padding utilities on a classed element (`.card px-4`), so it flags **false
-   cramped-padding**. When a finding looks wrong, confirm against the **screenshot** (step 1)
-   before chasing it — fix what the pixels show, not what the static reader guesses.
+2. **Run the craft check** — `arta_design_review` on the screen(s). It's Arta's **own**
+   offline anti-slop detector (no `npx`, no network — instant), so "no detector on this
+   machine" is never an excuse to skip it. Findings come ranked **error → warn → info**:
+   - **error** = a serious tell — **fix every one** (gradient-text headline, coloured
+     side-stripe border, stripe-gradient background, cramped letter-spacing, card nested in
+     a card, 1px-border + wide-shadow ghost card).
+   - **warn / info** = softer (transition:all, uniform hover-scale, emoji-as-icon, italic
+     heading, placeholder name, mixed icon libraries, over-rounded card) — judge in context.
+
+   It's a static reader (class- and CSS-aware, but it doesn't render), so when a finding
+   looks wrong, confirm against the **screenshot** (step 1) before chasing it — fix what the
+   pixels show, not what a static read guesses. For a deeper one-off pass, `/impeccable
+   audit` is available too.
 3. **Run this checklist — fix anything that fails, then re-check:**
    - **No stray or empty screens.** Every screen in the manifest has real content. The
      viewer seeds a `home` placeholder ("Ask Claude Code to design here"); once the real
@@ -433,6 +451,10 @@ Use them; do not hand-roll what they give you, and **never use emoji as icons.**
   foundation with `arta_set_design_tokens` + `arta_set_design_system`. This is the
   single biggest lever on whether the output looks *designed* or looks like "an AI made
   a webpage." Starting from generic grays + a blue accent is the #1 tell.
+  - **`design-systems.md` is the *dress*; [`component-cookbook.md`](component-cookbook.md)
+    is the *shape & parts*.** Once the system is set, build each screen from the cookbook's
+    app archetypes (navs, page headers, data tables, forms, empty states, …) — token-driven
+    and slop-free — instead of re-deriving chrome that drifts into the generic look.
 - **Then build every screen from those tokens.** The tokens show as a style guide in the
   Prototype → **Design system** sub-view and compile to CSS custom properties injected
   into every screen. Style screens from the tokens (`var(--color-brand)`,
@@ -548,6 +570,50 @@ element instead. (Run `arta_design_review` to catch them automatically.)
   section markers** as default scaffolding.
 - **Low-contrast text** — body must hit ≥4.5:1; never grey text on a coloured fill.
 - **Over-rounded cards** (radius ≥ 24px) — cards top out ~12–16px (pills are fine).
+
+*(The slop list above + the screen-shape variety below draw on **Hallmark** — MIT,
+github.com/Nutlope/hallmark — and the impeccable design skill. `arta_design_review`
+encodes the deterministic subset as gates.)*
+
+**Vary the screen shape — structural variety, not just colour.** The biggest reason a
+multi-screen build reads "templated" isn't the palette — it's that **every screen has the
+same shape** (hero → 3 cards → CTA, or six identical vertical card-lists). Match each
+screen's **shape to its job**, and make consecutive screens differ *structurally*, not just
+in content. A small menu of app/marketplace shapes to pick from (name the shape before you
+build the screen — it's the Variety axis of the self-critique):
+
+- **Dashboard / bento** — modular tiles of *varying* size (a metric, a chart, a list, a
+  callout), rhythm from size variation — not a uniform card grid.
+- **Master–detail / split** — list or nav rail on one side, the selected item's detail on
+  the other (inbox, settings, admin).
+- **Feed / timeline** — a vertical stream of *heterogeneous* items (not all the same card).
+- **Index / browse** — a filterable grid or list of entities; the catalog *is* the page
+  (marketplace, course list, search results).
+- **Detail / profile** — one entity's hero + supporting sections (product, course, person).
+- **Workbench / canvas** — a primary work surface with supporting panels (editor, builder).
+- **Stepped flow / wizard** — sequential steps with a progress spine (checkout, onboarding).
+- **Focused / empty state** — one centered purpose, content vertically centered, no dead
+  band (login, confirmation, zero-data).
+- **Table / data-dense** — a real table or spec sheet when the data is the point (don't
+  fake it as cards).
+- **Marketing / landing** — only when it genuinely *is* one; then vary the **hero** itself
+  (a single bold statement, a stat-led number, a split diptych, a product mockup) rather
+  than defaulting to centered-everything.
+
+**Reach-for component archetypes (default away from the AI-fingerprint chrome).** For
+ready-to-adapt, slop-free building blocks — side rail, top bar, ⌘K, page header, stat tile,
+data table, browse card, 8-state form field, segmented control, empty state, status badge,
+inline alert, stepper — **read [`component-cookbook.md`](component-cookbook.md)** (next to
+this file) and assemble the screen from its parts. Two pieces are where the generic look
+creeps in — pick deliberately, and don't repeat the same one on every screen:
+
+- **Navigation** — a **side rail** (icon+label) is the app default; a **bottom tab bar** for
+  mobile; a **top bar** (wordmark · sections · one action) for marketing/content; **⌘K /
+  command palette** or a **floating pill** when it fits. Avoid the reflex "wordmark-left +
+  4 links centered + button-right + 1px hairline + white bg" bar on *every* screen.
+- **Footer** — app screens usually need **none** (or a slim status strip). For marketing,
+  avoid the default "4 columns of links + social-icon row + tiny copyright"; a single
+  statement line, a newsletter-first close, or an index-style link list reads less templated.
 
 **Pick the device frame** with `prototype.frame` (or per-screen `frame`):
 `web` (browser, default), `desktop` (native app window), `ios` or `android`

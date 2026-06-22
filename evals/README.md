@@ -31,7 +31,7 @@ regressions and drives quality up. Same grader underneath both.
   | A2 | shared layout | layout+components factored, `{{slot}}` resolves, no duplicated bodies |
   | A3 | interactivity | `data-to` targets valid, every screen reachable, binds resolve |
   | A4 | renders clean | every screen expands, non-empty, tag-balanced, ≥ `minScreens` |
-  | A5 | design review | `impeccable detect` finds 0 serious anti-slop findings |
+  | A5 | design review | Arta's own slop detector (`mcp/slop-detect.mjs`) finds 0 serious anti-slop findings |
 
 - `gate.mjs` — the **one command**. Grades committed artifacts vs `thresholds.json`,
   prints a per-target × per-assertion table + verdict, exits non-zero on regression.
@@ -57,10 +57,12 @@ bun evals/gate.mjs --suite <built-dir> # Layer B: grade <dir>/<briefId>/.arta fo
 
 ### A5 and CI
 
-`impeccable detect` lives at `~/.claude/skills/impeccable` and is **not** on a CI runner,
-so the gate reports A5 as *skipped* (`–`) there and enforces **A1-A4** as the deterministic
-CI floor. A5 is enforced locally (and in `--suite`) where the detector exists. Point a
-different detector with `IMPECCABLE_DETECT=/path/to/detect.mjs`.
+A5 runs Arta's **own** slop detector (`mcp/slop-detect.mjs`) **in-process** — no `npx`, no
+network, no install — so it's a real deterministic CI floor alongside A1–A4 (not skipped),
+and it's the same engine the live `arta_design_review` tool uses. It ports the deterministic
+subset of Hallmark's slop test (MIT) + impeccable's serious antipattern vocabulary; the
+serious set that gates A5 lives in `briefs.json` (`serious_antipatterns`). For a deeper
+manual pass, `/impeccable audit` in Claude Code is still available as a complement.
 
 ## Wiring into CI
 

@@ -30,6 +30,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 // The SDK depends on zod; import it directly for tool input schemas.
 import { z as zod } from "zod";
+// Arta's own offline anti-slop detector (no npx / network) — powers arta_design_review.
+import { detectSlop } from "./slop-detect.mjs";
 
 // Some launchers pass ${CLAUDE_*} through to `env` UNEXPANDED (a literal
 // "${VAR}") — or don't pass it at all. Read an env path but reject that case so
@@ -817,43 +819,57 @@ server.registerTool(
   "arta_design_review",
   {
     description:
-      "Run impeccable's deterministic design-quality detectors over the prototype's screen HTML and return the findings — an anti-slop craft eye for the loop (gradient text, side-stripe borders, glassmorphism-by-default, identical card grids, low-contrast text, tiny uppercase eyebrows, over-rounded cards, etc.). Like arta_get_screenshot sees the pixels and the error feed sees runtime, this catches design issues before the dev does. Needs impeccable available — the first run fetches it via `npx` (a few seconds); offline / unavailable returns a note, NOT an error. Pass a screen id to scan one screen, or omit to scan all.",
+      "Run Arta's own deterministic anti-slop detector over the prototype's screens and return the design tells the AI most reliably emits — gradient-text headlines, coloured side-stripe borders, stripe-gradient backgrounds, cramped letter-spacing, cards nested in cards, transition:all, uniform hover-scale, emoji-as-icon, italic headings, placeholder names, mixed icon libraries, over-rounded cards. Offline and instant — no `npx`, no network, no install. Like arta_get_screenshot sees the pixels and the error feed sees runtime, this is the craft eye that catches slop before the dev does. Findings are ranked error → warn → info (error = a serious tell to fix). Pass a screen id to scan one, or omit to scan all. For a deeper one-off pass you can also run `/impeccable audit` in Claude Code.",
     inputSchema: {
       screen: zod.string().optional().describe("Screen id to scan; omit to scan every prototype screen."),
     },
   },
   async ({ screen }) => {
-    const target = screen ? screenFile(screen) : SCREEN_DIR;
-    if (!fs.existsSync(target)) return err(screen ? `No screen "${screen}".` : "No prototype screens yet.");
-    let res;
-    try {
-      res = spawnSync("npx", ["--yes", "impeccable", "detect", "--json", target], {
-        cwd: PROJECT_DIR,
-        encoding: "utf8",
-        timeout: 180000,
-        maxBuffer: 16 * 1024 * 1024,
-      });
-    } catch (e) {
-      res = { error: e };
+    const state = readJson(STATE_FILE) || {};
+    const proto = state.prototype || {};
+    const manifest = Array.isArray(proto.screens) ? proto.screens : [];
+    // The design-system CSS is shared by every screen — scan it alongside each body so
+    // CSS-level tells (gradient-text, stripes, cramped tracking) are in scope too.
+    const designCss = readRaw(CSS_FILE) ?? (typeof proto.designSystem === "string" ? proto.designSystem : "") ?? "";
+    // Resolve the screen ids to scan: one (if asked) or every manifest screen + any
+    // stray body files on disk.
+    let ids;
+    if (screen) {
+      ids = [screen];
+    } else {
+      ids = manifest.map((s) => s && s.id).filter(Boolean);
+      try {
+        for (const f of fs.readdirSync(SCREEN_DIR)) if (f.endsWith(".html")) { const id = f.replace(/\.html$/, ""); if (!ids.includes(id)) ids.push(id); }
+      } catch { /* no screens dir yet */ }
     }
-    const out = (res.stdout || "").trim();
-    const errOut = (res.stderr || "").trim();
-    // A linter exits non-zero when it FINDS issues — that's a successful run, not a
-    // failure. Only treat "errored, or produced nothing on a non-zero exit" as unavailable.
-    if (res.error || (!out && res.status !== 0)) {
-      return text({
-        ok: false,
-        available: false,
-        note: "Couldn't run impeccable detect (not installed / offline / npx unavailable). Install it with `npx impeccable install`, or run `/impeccable audit` in Claude Code. Detail: " + ((res.error && res.error.message) || errOut || `exit ${res.status}`),
-      });
+    if (!ids.length) return text({ ok: true, engine: "arta-slop-detect", scanned: [], total: 0, findings: [], note: "No prototype screens yet." });
+
+    const RANK = { error: 0, warn: 1, info: 2 };
+    const all = [];
+    const byScreen = {};
+    for (const id of ids) {
+      const sc = manifest.find((s) => s && s.id === id);
+      const body = readRaw(screenFile(id)) ?? (sc && typeof sc.html === "string" ? sc.html : "") ?? "";
+      if (!body && !sc) { byScreen[id] = { error: "no such screen" }; continue; }
+      const doc = `<style>${designCss}\n${typeof sc?.css === "string" ? sc.css : ""}</style>\n${body}`;
+      const found = detectSlop(doc, { file: id }).map((f) => ({ screen: id, ...f }));
+      byScreen[id] = { error: found.filter((f) => f.severity === "error").length, warn: found.filter((f) => f.severity === "warn").length, info: found.filter((f) => f.severity === "info").length };
+      all.push(...found);
     }
-    let findings = out || errOut || "(no findings)";
-    try {
-      findings = JSON.parse(out);
-    } catch {
-      /* not JSON — return as text */
-    }
-    return text({ ok: true, target, findings });
+    all.sort((a, b) => (RANK[a.severity] - RANK[b.severity]) || String(a.screen).localeCompare(String(b.screen)));
+    const bySeverity = { error: all.filter((f) => f.severity === "error").length, warn: all.filter((f) => f.severity === "warn").length, info: all.filter((f) => f.severity === "info").length };
+    return text({
+      ok: true,
+      engine: "arta-slop-detect",
+      scanned: ids,
+      total: all.length,
+      bySeverity,
+      byScreen,
+      findings: all.map((f) => ({ screen: f.screen, severity: f.severity, antipattern: f.antipattern, line: f.line, issue: f.message, snippet: f.snippet })),
+      note: all.length
+        ? "Fix the `error` findings first (serious tells). `warn`/`info` are softer — judge in context. Deeper manual pass: `/impeccable audit`."
+        : "Clean — no anti-slop tells detected. (Deeper manual pass available via `/impeccable audit`.)",
+    });
   }
 );
 

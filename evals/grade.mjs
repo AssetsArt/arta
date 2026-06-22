@@ -7,23 +7,19 @@
 //   A2 shared-layout  — layout + components factored, no duplicated screen markup
 //   A3 interactivity  — data-to targets valid + all screens reachable + binds resolve
 //   A4 renders-clean  — every screen fully expands, non-empty, roughly tag-balanced
-//   A5 design-review  — impeccable detect finds zero SERIOUS anti-slop findings
+//   A5 design-review  — Arta's own slop detector finds zero SERIOUS anti-slop findings
 //
 // No LLM: every check is computed from the artifacts. Output is JSON on stdout.
 //   bun evals/grade.mjs --brief checkout --dir /path/to/.arta [--json]
 import fs from "node:fs";
 import path from "node:path";
-import os from "node:os";
-import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { resolveScreenHtml, designSheet, compileTokens, expandFragment } from "../src/lib/prototype.ts";
+import { detectSlop } from "../mcp/slop-detect.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const BRIEFS = JSON.parse(fs.readFileSync(path.join(ROOT, "evals/briefs.json"), "utf8"));
 const SERIOUS = new Set(BRIEFS.serious_antipatterns);
-const DETECT =
-  process.env.IMPECCABLE_DETECT ||
-  path.join(os.homedir(), ".claude/skills/impeccable/scripts/detect.mjs");
 
 const sanitize = (s) => String(s).replace(/[^a-z0-9_-]/gi, "");
 // Rough luminance of a hex/rgb colour → is it dark? (for the safe-area heuristic)
@@ -257,23 +253,19 @@ export function grade(briefId, dir) {
     maxSim: metrics.shared.maxSim,
   };
 
-  // ── A5 design-review (impeccable detect) ─────────────────────────────────────
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "arta-grade-"));
+  // ── A5 design-review (Arta's own slop detector — offline, no npx) ─────────────
+  // Run our self-contained detector over each screen's assembled doc (tokens CSS +
+  // design sheet + body) — the same surface the live render shows — so CSS-level and
+  // class-level tells are both in scope. `serious` is decided by id ∈ SERIOUS, so the
+  // gate only fires on the precise serious-tier gates; warn/info ids enrich the live
+  // review without gating. Always available (in-process) → A5 is a real CI floor.
   const tokenCss = compileTokens(proto.tokens);
+  let findings = [];
   for (const s of screens) {
-    const doc =
-      `<!doctype html><html><head><meta charset="utf-8">` +
-      `<style>${tokenCss}\n${sheet}</style></head><body>${resolved[s.id] || ""}</body></html>`;
-    fs.writeFileSync(path.join(tmp, sanitize(s.id) + ".html"), doc);
+    const doc = `<style>${tokenCss}\n${sheet}</style>\n${resolved[s.id] || ""}`;
+    findings.push(...detectSlop(doc, { file: s.id }));
   }
-  let findings = [], detectOk = true, detectNote = null;
-  try {
-    const res = spawnSync("node", [DETECT, "--json", tmp], { encoding: "utf8", timeout: 120000, maxBuffer: 16 * 1024 * 1024 });
-    const out = (res.stdout || "").trim();
-    if (out) findings = JSON.parse(out);
-    else { detectOk = false; detectNote = (res.stderr || `exit ${res.status}`).slice(0, 200); }
-  } catch (e) { detectOk = false; detectNote = String(e.message || e).slice(0, 200); }
-  fs.rmSync(tmp, { recursive: true, force: true });
+  const detectOk = true, detectNote = null;
   const byId = {};
   for (const f of findings) byId[f.antipattern] = (byId[f.antipattern] || 0) + 1;
   const serious = findings.filter((f) => SERIOUS.has(f.antipattern));
