@@ -28,7 +28,10 @@ Never describe a screen in prose when you could render it. Show, ask, adjust.
   plugin** (so it always matches the plugin version — no stale `npx`/`bunx` cache),
   pointed at this project's `.arta/`. It's idempotent (re-running just returns the
   URL) and installs the viewer's deps on first run. Tell the dev the URL it returns
-  (default `http://localhost:7317`).
+  (default `http://localhost:7317/?project=<id>`) — the `?project` deep-link opens the
+  viewer straight onto **this** project even when one viewer hosts several; the viewer
+  consumes it and tidies the address bar. The dev can drop a project from the switcher
+  there too (the launched project stays pinned).
 - `arta_restart_viewer` — stop the running viewer and relaunch it from the
   installed plugin, so it serves the **latest** build. Use this after the plugin
   updates (the `/arta update` / `/arta restart` flow calls it): an already-open viewer
@@ -115,6 +118,16 @@ you keep big prototypes cheap to edit):
   `safeArea` is the screen's top-edge colour, used so the clock/icons auto-contrast.
   `chrome:false` drops the status bar/notch/home-indicator entirely for true
   edge-to-edge (splash / login / media). There is no on/off toggle — it's saved state.
+- `arta_export` — pack the WHOLE clickable prototype into a static, deployable folder
+  for a **client demo**. Writes `<project>/dist/index.html` (override with `dir`): one
+  self-contained page, the same faithful render as the live `/preview`, but **without
+  the Arta navigator** — no floating button, no sidebar. It's navigated only by the
+  prototype's own `data-to` clicks, so it reads as a finished site, not the editor.
+  Returns ready-to-run deploy commands (Cloudflare Pages `npx wrangler pages deploy`,
+  Netlify, local serve). Needs the viewer running (it does the assembling), so call
+  `arta_start_viewer` first if it isn't up. The `.arta/` source is never touched. The
+  page loads Tailwind + lucide from a CDN, so the deployed demo needs internet; re-run
+  after design changes to refresh it.
 
 ## Storage layout (.arta/)
 

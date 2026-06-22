@@ -239,6 +239,7 @@ on the current project's `.arta/`:
 - `arta_get_plan` / `arta_set_plan` / `arta_set_task` — the `plan` Kanban board (custom statuses = columns, milestones = swimlanes, tasks = cards w/ priority); `set_task` moves a card between columns
 - `arta_start_viewer` — launch the viewer from the installed plugin (idempotent; no stale cache)
 - `arta_restart_viewer` — re-run the viewer from the installed plugin so it serves the latest build (what `/arta:arta update` / `/arta:arta restart` use; no manual cache-clearing)
+- `arta_export` — pack the whole clickable prototype into a static, deployable folder (`<project>/dist/index.html`) for a **client demo** — the same faithful render as the live `/preview`, but **without the Arta navigator** (no floating button / sidebar), navigated only by the prototype's own `data-to` clicks. Returns ready-to-run deploy commands (Cloudflare Pages `npx wrangler pages deploy`, Netlify, local serve). Drops onto any static host; the `.arta/` source is untouched
 - `arta_get_screenshot` — a PNG of how a screen actually renders (the pixels you see)
 - `arta_design_review` — run Arta's own deterministic anti-slop detector over a screen's HTML and return craft findings ranked error → warn → info (gradient text, side-stripe borders, stripe backgrounds, cramped tracking, nested cards, transition:all, emoji-as-icon, italic headings, over-rounded cards, …). Offline and instant — no `npx`, no network
 - `arta_get_view` — your active tab, prototype screen, store, and any prototype errors
