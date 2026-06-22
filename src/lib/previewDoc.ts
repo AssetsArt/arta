@@ -108,12 +108,9 @@ body{background:#f7f8f8;color:#1f2328;font-family:'Geist','Noto Sans Thai',syste
 .pv-device--phone{border-radius:44px;border:1px solid #ececec}
 .pv-device--flat{border-radius:0;border:0}
 #pv{display:block;border:0;width:100%;height:100%;background:#fff}
-/* Floating toggle — a translucent pill that opens the navigator; shows the current screen as
-   context, then slides out of the way once the panel is open. */
-.pv-fab{position:fixed;left:18px;top:18px;z-index:30;display:flex;align-items:center;gap:8px;height:38px;padding:0 13px;border-radius:11px;background:rgba(255,255,255,.88);border:1px solid #ececec;box-shadow:0 1px 2px rgba(15,17,21,.04),0 8px 24px -8px rgba(15,17,21,.12);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);cursor:pointer;color:#1f2328;font:inherit;font-size:12.5px;font-weight:500;transition:background .12s,opacity .18s,transform .18s}
-.pv-fab:hover{background:#fff}
-.pv-fab svg{color:#5e6168;flex:0 0 auto}
-.pv-fab-label{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Floating icon toggle — opens the navigator sidebar; hides itself while the panel is open. */
+.pv-fab{position:fixed;left:16px;top:16px;z-index:30;display:grid;place-items:center;width:36px;height:36px;border-radius:9px;background:rgba(255,255,255,.88);border:1px solid #ececec;box-shadow:0 1px 2px rgba(15,17,21,.04),0 8px 24px -8px rgba(15,17,21,.12);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);cursor:pointer;color:#5e6168;transition:background .12s,color .12s,opacity .18s,transform .18s}
+.pv-fab:hover{background:#fff;color:#1f2328}
 .pv-open .pv-fab{opacity:0;pointer-events:none;transform:translateX(-8px)}
 /* Scrim — click anywhere outside the panel to dismiss; barely dims the canvas. */
 .pv-scrim{position:fixed;inset:0;z-index:35;background:rgba(15,17,21,.06);opacity:0;pointer-events:none;transition:opacity .2s}
@@ -220,8 +217,6 @@ export function buildPrototypePreview(proto: Prototype, opts: { name?: string } 
   }
   function markActive(id){
     document.querySelectorAll('.pv-screen').forEach(function(b){ b.classList.toggle('is-active', b.getAttribute('data-goto') === id); });
-    var lab = document.getElementById('pv-fab-label');
-    if(lab) lab.textContent = (META[id] || {}).title || id;
   }
   function openSide(){ document.body.classList.add('pv-open'); }
   function closeSide(){ document.body.classList.remove('pv-open'); }
@@ -260,7 +255,7 @@ export function buildPrototypePreview(proto: Prototype, opts: { name?: string } 
 <style>${PREVIEW_CSS}</style>
 </head><body>
 <div class="pv-stage"><div class="pv-device" id="pv-device"><iframe id="pv" title="prototype"></iframe></div></div>
-<button class="pv-fab" id="pv-fab" title="Screens" aria-label="Screens">${ICON_PANEL}<span class="pv-fab-label" id="pv-fab-label"></span></button>
+<button class="pv-fab" id="pv-fab" title="Screens" aria-label="Screens">${ICON_PANEL}</button>
 <div class="pv-scrim" id="pv-scrim"></div>
 <aside class="pv-side" id="pv-side" aria-label="Screens">
 <div class="pv-side-top"><span class="pv-dot"></span><span class="pv-name">${esc(name)}</span><button class="pv-close" id="pv-close" title="Close" aria-label="Close">${ICON_X}</button></div>
