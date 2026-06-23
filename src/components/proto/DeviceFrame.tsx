@@ -474,7 +474,7 @@ function BrowserStatusBar({ island, safeArea }: { island: boolean; safeArea?: st
   // half (the Dynamic Island floats in the top gap), generous side margins.
   return (
     <div
-      className="relative flex h-[42px] shrink-0 items-center justify-between px-6"
+      className="relative flex h-[50px] shrink-0 items-center justify-between px-6"
       style={{ background: safeArea || LIGHT.bg }}
     >
       <div className="flex items-center gap-1.5">
