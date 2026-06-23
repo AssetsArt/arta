@@ -19858,6 +19858,12 @@ function readJson(file, fallback = null) {
     return fallback;
   }
 }
+function pluginVersion() {
+  return readJson(path.join(PLUGIN_ROOT, ".claude-plugin", "plugin.json"))?.version || null;
+}
+function staleSkillNudge(v) {
+  return `Running plugin${v ? ` v${v}` : ""}. A viewer restart does NOT reload skills — if this session started before the plugin updated, your in-context SKILL.md may be stale. Re-read skills/arta/SKILL.md (in ${PLUGIN_ROOT}) to pick up new capabilities, or restart Claude Code to reload everything.`;
+}
 function readRaw(file) {
   try {
     return fs.readFileSync(file, "utf8");
@@ -20535,8 +20541,10 @@ server.registerTool("arta_start_viewer", {
       ok: true,
       alreadyRunning: true,
       url,
+      version: pluginVersion(),
       project: readJson(STATE_FILE)?.meta?.name || path.basename(path.resolve(PROJECT_DIR)),
-      note: `A viewer is already running on this port — reuse it. Open ${url} to land on this project (it hosts several; the ?project link picks this one). (Serving an old build after an update? use arta_restart_viewer.)`
+      note: `A viewer is already running on this port — reuse it. Open ${url} to land on this project (it hosts several; the ?project link picks this one). (Serving an old build after an update? use arta_restart_viewer.)`,
+      rereadSkill: staleSkillNudge(pluginVersion())
     });
   killAllViewers();
   const r = spawnViewer(p);
@@ -20546,9 +20554,11 @@ server.registerTool("arta_start_viewer", {
     ok: true,
     started: true,
     url,
+    version: pluginVersion(),
     watching: path.join(PROJECT_DIR, ".arta"),
     from: PLUGIN_ROOT,
-    note: `Viewer starting from the installed plugin. First run installs its deps (a few seconds) — open ${url} in a moment. Logs: ${r.logFile}`
+    note: `Viewer starting from the installed plugin. First run installs its deps (a few seconds) — open ${url} in a moment. Logs: ${r.logFile}`,
+    rereadSkill: staleSkillNudge(pluginVersion())
   });
 });
 server.registerTool("arta_restart_viewer", {
@@ -20583,9 +20593,11 @@ server.registerTool("arta_restart_viewer", {
     wasRunning,
     stoppedPids: killed,
     url,
+    version: pluginVersion(),
     watching: path.join(PROJECT_DIR, ".arta"),
     from: PLUGIN_ROOT,
-    note: `Stopped ${killed.length} stale Arta process(es) and relaunched from the installed plugin — now matching the installed version. Reload ${url} in a moment (hard-refresh if your browser cached the old assets). Logs: ${r.logFile}`
+    note: `Stopped ${killed.length} stale Arta process(es) and relaunched from the installed plugin — now matching the installed version. Reload ${url} in a moment (hard-refresh if your browser cached the old assets). Logs: ${r.logFile}`,
+    rereadSkill: staleSkillNudge(pluginVersion())
   });
 });
 server.registerTool("arta_export", {
