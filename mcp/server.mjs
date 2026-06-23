@@ -142,6 +142,21 @@ function readJson(file, fallback = null) {
     return fallback;
   }
 }
+// The installed plugin's version, read from the manifest that ships next to this server.
+// Surfaced in the viewer start/restart replies so the agent can tell whether its in-context
+// SKILL.md predates the running build (skills load once at session start; a viewer restart
+// does NOT reload them).
+function pluginVersion() {
+  return readJson(path.join(PLUGIN_ROOT, ".claude-plugin", "plugin.json"))?.version || null;
+}
+// Nudge for the start/restart replies: a viewer restart picks up new viewer code, but the
+// agent's skill/MCP guidance is whatever loaded at Claude Code session start. After a plugin
+// update the running session can be operating on stale SKILL.md (reinventing things the new
+// version made native), so point it back at the doc. Generic on purpose — no feature list to
+// rot; the agent reads the current SKILL.md for what actually changed.
+function staleSkillNudge(v) {
+  return `Running plugin${v ? ` v${v}` : ""}. A viewer restart does NOT reload skills — if this session started before the plugin updated, your in-context SKILL.md may be stale. Re-read skills/arta/SKILL.md (in ${PLUGIN_ROOT}) to pick up new capabilities, or restart Claude Code to reload everything.`;
+}
 function readRaw(file) {
   try {
     return fs.readFileSync(file, "utf8");
@@ -1027,8 +1042,10 @@ server.registerTool(
         ok: true,
         alreadyRunning: true,
         url,
+        version: pluginVersion(),
         project: readJson(STATE_FILE)?.meta?.name || path.basename(path.resolve(PROJECT_DIR)),
         note: `A viewer is already running on this port — reuse it. Open ${url} to land on this project (it hosts several; the ?project link picks this one). (Serving an old build after an update? use arta_restart_viewer.)`,
+        rereadSkill: staleSkillNudge(pluginVersion()),
       });
     // Port is free → we're spawning THE viewer. First clear any strays left by older
     // versions / bumped ports so they don't pile up (one viewer hosts every project).
@@ -1042,9 +1059,11 @@ server.registerTool(
       ok: true,
       started: true,
       url,
+      version: pluginVersion(),
       watching: path.join(PROJECT_DIR, ".arta"),
       from: PLUGIN_ROOT,
       note: `Viewer starting from the installed plugin. First run installs its deps (a few seconds) — open ${url} in a moment. Logs: ${r.logFile}`,
+      rereadSkill: staleSkillNudge(pluginVersion()),
     });
   }
 );
@@ -1092,9 +1111,11 @@ server.registerTool(
       wasRunning,
       stoppedPids: killed,
       url,
+      version: pluginVersion(),
       watching: path.join(PROJECT_DIR, ".arta"),
       from: PLUGIN_ROOT,
       note: `Stopped ${killed.length} stale Arta process(es) and relaunched from the installed plugin — now matching the installed version. Reload ${url} in a moment (hard-refresh if your browser cached the old assets). Logs: ${r.logFile}`,
+      rereadSkill: staleSkillNudge(pluginVersion()),
     });
   }
 );
