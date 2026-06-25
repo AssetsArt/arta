@@ -52,9 +52,19 @@ export function resolveScreenHtml(proto: Prototype, screen: Screen): string {
   const vars: TemplateVars = { ...(proto.vars || {}), ...(screen.vars || {}) };
   const body = expand(screen.html ?? "", components, vars);
 
-  const layoutTpl = screen.layout === false || screen.layout === "none" ? "{{slot}}" : screen.layout ?? proto.layout ?? "{{slot}}";
+  // A blank layout (`""` or whitespace, at the screen OR prototype level) means "no layout",
+  // same as missing. `??` alone keeps `""` (an empty string is not nullish), which wrapped
+  // every screen in an empty shell with no {{slot}} — the body was dropped and the screen
+  // rendered blank white (a real bug hit when a prototype shipped `layout: ""`). Coerce blanks
+  // to undefined so the `??` chain falls through to the default.
+  const norm = <T,>(v: T): T | undefined => (typeof v === "string" && v.trim() === "" ? undefined : v);
+  const layoutTpl = screen.layout === false || screen.layout === "none" ? "{{slot}}" : norm(screen.layout) ?? norm(proto.layout) ?? "{{slot}}";
 
   const shell = expand(layoutTpl, components, vars);
+  // Defense in depth: a layout with no {{slot}} at all (a malformed template, not just blank)
+  // would still drop the whole body. If the shell can't host the screen, render the body
+  // directly — a screen never silently disappears because its layout was wrong.
+  if (!/\{\{\s*slot\s*\}\}/.test(shell)) return body;
   return shell.replace(/\{\{\s*slot\s*\}\}/g, body);
 }
 

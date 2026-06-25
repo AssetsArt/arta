@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 import { renderToString } from "react-dom/server";
 import { createElement as h } from "react";
 import { grade } from "./grade.mjs";
-import { compileTokens, tokensFromCss, darkVars } from "../src/lib/prototype.ts";
+import { compileTokens, tokensFromCss, darkVars, resolveScreenHtml } from "../src/lib/prototype.ts";
 import { buildPrototypePreview } from "../src/lib/previewDoc.ts";
 import { ThemeProvider } from "../src/lib/theme.tsx";
 import { SpecRail } from "../src/components/tabs/SpecRail.tsx";
@@ -191,6 +191,17 @@ function runFrameSpecs() {
   // backdrop-blur` bar smears the content behind it. The capture neutralizes it (blur off +
   // opaque bg) so bars render solid. Lock the helper in for both the framed and full shots.
   spec("snapshot neutralizes backdrop-filter (no frosted-glass smear)", src.includes("neutralizeBackdropBlur") && src.includes('backdropFilter="none"'), "backdrop-blur neutralize");
+
+  // White-screen regression (hit in a real project that shipped `layout: ""`): resolveScreenHtml
+  // wrapped every screen in an EMPTY layout shell — `??` keeps `""` (not nullish), so the body
+  // was dropped and the screen rendered blank. A blank layout (at screen OR proto level) must
+  // be treated as "no layout" → the body renders. And a malformed layout with no {{slot}} must
+  // fall back to the body, never a blank page.
+  const scr = { id: "s", title: "S", html: "<h1>HELLO-BODY</h1>" };
+  spec("empty proto.layout still renders the screen body (not blank)", resolveScreenHtml({ layout: "", components: {} }, scr).includes("HELLO-BODY"));
+  spec("empty screen.layout still renders the screen body (not blank)", resolveScreenHtml({}, { ...scr, layout: "   " }).includes("HELLO-BODY"));
+  spec("a layout with no {{slot}} falls back to the body (never blank)", resolveScreenHtml({ layout: "<div>chrome</div>" }, scr).includes("HELLO-BODY"));
+  spec("a real layout still wraps the body in its {{slot}}", (() => { const r = resolveScreenHtml({ layout: "<main>{{slot}}</main>" }, scr); return r.includes("<main>") && r.includes("HELLO-BODY"); })());
   return { ok: rows.every((r) => r.ok), rows };
 }
 
