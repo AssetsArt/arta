@@ -28,5 +28,10 @@ export default defineConfig({
   server: {
     port: 7317,
     strictPort: false,
+    // Bind to all interfaces so the viewer is reachable over LAN / tunnels (ngrok).
+    host: "0.0.0.0",
+    // Allow any Host header (ngrok subdomains change every session). Tighten to a
+    // specific host array if you want to lock it down.
+    allowedHosts: true,
   },
 });
