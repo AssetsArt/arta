@@ -19681,7 +19681,9 @@ var REGEX_GATES = [
   { id: "overshoot-easing", severity: "warn", re: /cubic-bezier\(\s*[\d.]+\s*,\s*1\.[5-9]/gi, message: "overshoot easing on a UI transition" },
   { id: "placeholder-name", severity: "warn", re: /\bJane Doe\b|\bJohn Smith\b|\bAcme\b|\bLorem ipsum\b/gi, message: "placeholder name / cliché — use real or plausible copy" },
   { id: "dead-image-host", severity: "warn", re: /picsum\.photos|source\.unsplash\.com/gi, message: "dead image host (picsum.photos / source.unsplash.com are retired) → blank; use images.unsplash.com/photo-<id> or loremflickr.com/<W>/<H>/<keyword>" },
-  { id: "brand-lucide-icon", severity: "warn", re: /data-lucide\s*=\s*["'](?:facebook|instagram|twitter|x|linkedin|youtube|github|gitlab|discord|slack|tiktok|dribbble|figma|twitch|whatsapp|telegram|pinterest|snapchat|reddit|medium|behance|threads)["']/gi, message: 'brand icon dropped from lucide core → renders blank; use Iconify: <iconify-icon icon="simple-icons:<name>">' }
+  { id: "brand-lucide-icon", severity: "warn", re: /data-lucide\s*=\s*["'](?:facebook|instagram|twitter|x|linkedin|youtube|github|gitlab|discord|slack|tiktok|dribbble|figma|twitch|whatsapp|telegram|pinterest|snapchat|reddit|medium|behance|threads)["']/gi, message: 'brand icon dropped from lucide core → renders blank; use Iconify: <iconify-icon icon="simple-icons:<name>">' },
+  { id: "unmodified-kit-default", severity: "warn", re: /#(?:b3321a|6e7bf2|c0522e|0e8f86|d8fe3e)\b/gi, message: "kit default accent used unchanged — give the project its OWN accent hue so two builds don't share a palette (the kit hex is an example, not the default)" },
+  { id: "marketing-buzzword", severity: "warn", re: /\b(?:streamline your|empower your|supercharge your|unleash (?:your|the power)|leverage the power|built for the modern|trusted by (?:leading|the world)|best-in-class|industry-leading|world-class|enterprise-grade|next-generation|cutting-edge|revolutioniz\w+|game-chang\w+|mission-critical|future-proof|seamless(?:ly)? (?:experience|integrat\w+)|unlock your potential)\b/gi, message: "marketing buzzword — say what the product literally does, with a specific verb + noun" }
 ];
 function findUniformHoverScale(doc2, push) {
   const hits = [];
@@ -19733,6 +19735,45 @@ function findOverRounded(doc2, push) {
       push("over-rounded", "info", m.index, "rounded-3xl card (24px) — cards top out ~16px");
   }
 }
+function isCreamHex(hex) {
+  const h = hex.replace("#", "");
+  if (h.length !== 6)
+    return false;
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return Math.min(r, g, b) >= 209 && r >= g && g >= b && r - b >= 6 && r - b <= 48;
+}
+function findCreamPalette(doc2, push) {
+  let m;
+  const reCss = /(?:--color-bg|--bg|background(?:-color)?)\s*:\s*(#[0-9a-fA-F]{6})\b/g;
+  while (m = reCss.exec(doc2))
+    if (isCreamHex(m[1]))
+      push("cream-palette", "warn", m.index, "warm off-white / cream page background (" + m[1] + ") — the AI-default neutral; choose a true off-white or a committed brand surface");
+  const reArb = /\bbg-\[(#[0-9a-fA-F]{6})\]/g;
+  while (m = reArb.exec(doc2))
+    if (isCreamHex(m[1]))
+      push("cream-palette", "warn", m.index, "cream bg-[" + m[1] + "] — the AI-default warm beige; pick a deliberate surface");
+  const reTw = /\bbg-(?:amber|orange|yellow)-(?:50|100)\b/g;
+  while (m = reTw.exec(doc2))
+    push("cream-palette", "warn", m.index, m[0] + " — warm off-white default; choose a deliberate surface, not the safe beige");
+}
+function findAiPalette(doc2, push) {
+  let m;
+  const reHex = /#(?:7c3aed|8b5cf6|a855f7|9333ea|7e22ce|6d28d9|6366f1|818cf8|764ba2|667eea)\b/gi;
+  while (m = reHex.exec(doc2))
+    push("ai-color-palette", "warn", m.index, "generic AI purple / indigo hex (" + doc2.substr(m.index, 7) + ") — choose a distinctive brand colour");
+  for (const c of classAttrs(doc2)) {
+    if (/\bbg-gradient-to-/.test(c.value) && /\b(?:from|via|to)-(?:purple|violet|fuchsia)-/.test(c.value))
+      push("ai-color-palette", "warn", c.index, "purple/violet gradient (" + (c.value.match(/\b(?:from|via|to)-(?:purple|violet|fuchsia)-\d+/) || [""])[0] + ") — the most recognizable AI palette");
+  }
+}
+function findEmDashOveruse(doc2, push) {
+  const idxs = [];
+  let i = -1;
+  while ((i = doc2.indexOf("—", i + 1)) !== -1)
+    idxs.push(i);
+  if (idxs.length >= 5)
+    push("em-dash-overuse", "warn", idxs[0], "em-dash overuse (" + idxs.length + ") — vary with commas, colons, periods, parentheses");
+}
 var CUSTOM_GATES = [
   findGradientText,
   findSideStripe,
@@ -19744,7 +19785,10 @@ var CUSTOM_GATES = [
   findEmojiIcon,
   findItalicHeading,
   findMixedIconLibs,
-  findOverRounded
+  findOverRounded,
+  findCreamPalette,
+  findAiPalette,
+  findEmDashOveruse
 ];
 var TITLES = {
   "gradient-text": "Gradient text headline",
@@ -19762,7 +19806,12 @@ var TITLES = {
   "emoji-icon": "Emoji used as an icon",
   "italic-heading": "Italic heading",
   "mixed-icon-libs": "Mixed icon libraries",
-  "over-rounded": "Over-rounded card"
+  "over-rounded": "Over-rounded card",
+  "cream-palette": "Cream / warm off-white default background",
+  "ai-color-palette": "Generic AI purple / indigo palette",
+  "em-dash-overuse": "Em-dash overuse",
+  "unmodified-kit-default": "Kit default accent (make it the project's own)",
+  "marketing-buzzword": "Marketing buzzword copy"
 };
 function detectSlop(doc2, opts = {}) {
   const file = opts.file || "";
