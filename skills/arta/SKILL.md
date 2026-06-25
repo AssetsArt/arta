@@ -599,6 +599,11 @@ Use them; do not hand-roll what they give you, and **never use emoji as icons.**
     coloured `border-left` bar** — that's the banned side-stripe, and an active nav / sidebar /
     list row is exactly where the reflex sneaks in. Tint the row's background (optionally a
     1px full border or a subtle inset highlight via `box-shadow: inset`), never a left accent stripe.
+  - *No hero eyebrow chip.* The little pill above the headline — a tiny dot (often a pulsing
+    `animate-ping`) plus a tracked-uppercase micro-label ("● NOW IN PRIVATE BETA", "✨ NEW") —
+    is one of the loudest AI landing tells, and the same chip then reappears as a kicker on
+    every section. `arta_design_review` reds it (`hero-eyebrow-chip`). Lead with the headline;
+    if a status genuinely matters, state it in plain words inline — never pulse a dot for decoration.
 - **Images: decide deliberately — a REAL image, or an intentional skeleton+colour. Never a
   bare solid fill.** A flat coloured/gray rectangle dropped where a photo belongs is one of
   the loudest "an AI made this" tells; it makes every other decision read as unfinished.
@@ -722,9 +727,13 @@ build the screen — it's the Variety axis of the self-critique):
   band (login, confirmation, zero-data).
 - **Table / data-dense** — a real table or spec sheet when the data is the point (don't
   fake it as cards).
-- **Marketing / landing** — only when it genuinely *is* one; then vary the **hero** itself
-  (a single bold statement, a stat-led number, a split diptych, a product mockup) rather
-  than defaulting to centered-everything.
+- **Marketing / landing** — only when it genuinely *is* one; then vary the **hero** itself.
+  The **headline-left / image-right split diptych is a perfectly good hero** — the catch is
+  it's the one nearly every build reaches for *first*, so unrelated briefs come back sharing
+  one silhouette. It's not banned; just don't let it be the default. Pick the hero shape on
+  purpose from the full range — a full-bleed immersive hero, a stat/number-led hero, a
+  type-only statement, an asymmetric editorial front page, the product UI *as* the hero, or
+  the split when it genuinely fits — and don't let two builds in a row share the same one.
 
 **Reach-for component archetypes (default away from the AI-fingerprint chrome).** For
 ready-to-adapt, slop-free building blocks — side rail, top bar, ⌘K, page header, stat tile,

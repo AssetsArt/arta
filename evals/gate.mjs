@@ -306,6 +306,27 @@ function runSlopDetectorSpecs() {
   spec("soft convergence nudges stay out of the serious set (never gate A5)", ["unmodified-kit-default", "marketing-buzzword", "em-dash-overuse"].every((id) => !SERIOUS.has(id)));
   spec("cream-palette + ai-color-palette DO gate A5 (in the serious set)", SERIOUS.has("cream-palette") && SERIOUS.has("ai-color-palette"));
 
+  // ── formerly-phantom serious ids — declared serious with NO detector (never fired).
+  // Now implemented: hero-eyebrow-chip stays serious (unambiguous); the other six are warn
+  // and were removed from the serious set. Lock that every serious id has a real detector.
+  spec("flags hero-eyebrow-chip (pulsing ping-dot status pill)", has('<span class="animate-ping rounded-full"></span><span class="h-2 w-2 rounded-full"></span><span>Beta</span><h1>Hi</h1>', "hero-eyebrow-chip"));
+  spec("flags hero-eyebrow-chip (dot pill above the hero h1)", has('<div class="rounded-full"><span class="h-2 w-2 rounded-full"></span>NEW</div><h1>Title</h1>', "hero-eyebrow-chip"));
+  spec("hero-eyebrow-chip DOES gate A5 (in the serious set)", SERIOUS.has("hero-eyebrow-chip"));
+  spec("flags repeated-section-kickers (≥3 uppercase tracked labels)", has('<p class="text-xs uppercase tracking-widest">A</p><p class="text-xs uppercase tracking-widest">B</p><p class="text-xs uppercase tracking-widest">C</p>', "repeated-section-kickers"));
+  spec("flags icon-tile-stack (≥3 icon-in-rounded-square tiles)", has('<div class="h-10 w-10 rounded-xl flex items-center justify-center"></div><div class="h-10 w-10 rounded-xl flex items-center justify-center"></div><div class="h-10 w-10 rounded-xl flex items-center justify-center"></div>', "icon-tile-stack"));
+  spec("flags oversized-h1 (text-8xl hero)", has('<h1 class="text-8xl font-bold">Big</h1>', "oversized-h1"));
+  spec("flags border-accent-on-rounded (≥2 accent-bordered cards)", has('<div class="rounded-xl border border-[var(--color-accent)]">a</div><div class="rounded-xl border border-[var(--color-accent)]">b</div>', "border-accent-on-rounded"));
+  spec("flags low-contrast (light-gray text on a light surface)", has('<p class="text-gray-300">faint body copy</p>', "low-contrast"));
+  spec("flags gray-on-color (muted gray text on a brand surface)", has('<div class="bg-[var(--color-accent)] text-gray-400">x</div>', "gray-on-color"));
+  // The six newly-implemented tells are WARN — none gate A5 (a good design can use them).
+  spec("the six warn tells stay OUT of the serious set", ["repeated-section-kickers", "icon-tile-stack", "oversized-h1", "border-accent-on-rounded", "low-contrast", "gray-on-color"].every((id) => !SERIOUS.has(id)));
+  // Threshold discrimination — a single kicker / tile / accent border is NOT the templated tell.
+  spec("a single section kicker is not flagged (needs ≥3)", !has('<p class="text-xs uppercase tracking-widest">Solo</p>', "repeated-section-kickers"));
+  spec("a single icon tile is not flagged (needs ≥3)", !has('<div class="h-10 w-10 rounded-xl flex items-center justify-center"></div>', "icon-tile-stack"));
+  spec("one featured accent-bordered card is not flagged (needs ≥2)", !has('<div class="rounded-xl border border-[var(--color-accent)]">only featured</div>', "border-accent-on-rounded"));
+  spec("a status dot in a table row is not a hero eyebrow", !has('<tr><td><span class="h-2 w-2 rounded-full bg-green-500"></span> Active</td></tr>', "hero-eyebrow-chip"));
+  spec("light-gray text ON a dark surface is not low-contrast", !has('<div class="bg-zinc-900"><p class="text-zinc-400">muted on dark</p></div>', "low-contrast"));
+
   // Discrimination: clean markup is silent, AND emits nothing in the serious set.
   const clean = '<section class="p-6"><h1 class="font-bold text-2xl">Welcome</h1><p class="text-zinc-700">A real, readable sentence.</p><button class="rounded-lg bg-blue-600 text-white px-4 py-2">Continue</button></section>';
   spec("clean markup yields zero findings", detectSlop(clean).length === 0, `${detectSlop(clean).length} findings`);

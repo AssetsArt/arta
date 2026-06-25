@@ -240,10 +240,105 @@ function findEmDashOveruse(doc, push) {
   if (idxs.length >= 5) push("em-dash-overuse", "warn", idxs[0], "em-dash overuse (" + idxs.length + ") — vary with commas, colons, periods, parentheses");
 }
 
+// ── formerly-phantom tells — declared in briefs.json's serious set but with NO detector,
+// so they never fired. Now implemented. Only `hero-eyebrow-chip` stays serious (it's
+// unambiguous: a clean design never needs a pulsing status eyebrow). The rest are `warn`
+// (real tells, but a good design CAN use a 3-up feature grid, an oversized display hero,
+// a featured-tier accent border, or muted-on-dark text) — so they enrich the live review
+// without gating the eval, and were removed from briefs.json serious_antipatterns to match.
+
+// hero eyebrow chip — a pulsing ping-dot status pill, or a rounded-full dot+micro-label
+// chip sitting right above the hero <h1>. The canonical AI landing eyebrow ("● NOW IN BETA").
+function findHeroEyebrowChip(doc, push) {
+  let m;
+  const rePing = /\banimate-ping\b/g;
+  while ((m = rePing.exec(doc))) push("hero-eyebrow-chip", "error", m.index, "pulsing ping-dot status chip — the AI 'live/beta/new' eyebrow; state the status in plain words or drop it");
+  const reChip = /<[^>]*\brounded-full\b[^>]*>[\s\S]{0,240}?<h1\b/gi;
+  while ((m = reChip.exec(doc))) {
+    if (/\b[hw]-(?:1|1\.5|2)\b[^>]*rounded-full|[•●]/.test(m[0]))
+      push("hero-eyebrow-chip", "error", m.index, "eyebrow chip (dot + micro-label pill) above the hero — lead with the headline, not a badge");
+  }
+}
+
+// repeated section kickers — a tiny uppercase, wide-tracked micro-label opening section
+// after section ("WHY TEAMS SWITCH" / "THE PROCESS"). One is fine; ≥3 is the templated tell.
+function findRepeatedKickers(doc, push) {
+  const idxs = [];
+  for (const c of classAttrs(doc)) {
+    const v = c.value;
+    if (/\buppercase\b/.test(v) && (/\btracking-(?:wider|widest)\b/.test(v) || /\btracking-\[0?\.[12]\d*em\]/.test(v)) && /\btext-(?:\[1[01]px\]|xs|\[0\.\d+rem\])\b/.test(v))
+      idxs.push(c.index);
+  }
+  if (idxs.length >= 3) for (const i of idxs) push("repeated-section-kickers", "warn", i, "repeated uppercase tracked section kicker (" + idxs.length + "×) — the 'eyebrow on every section' template; let the headings open sections");
+}
+
+// icon-tile-stack — ≥3 feature blocks each led by an icon inside a small rounded SQUARE
+// tile (not a circle). The AI "three features in a row" fingerprint.
+function findIconTileStack(doc, push) {
+  const tiles = [];
+  for (const c of classAttrs(doc)) {
+    const v = c.value;
+    if (/\b(?:h-|w-|size-)(?:8|9|10|11|12|14|16)\b/.test(v) && /\brounded-(?:md|lg|xl|2xl)\b/.test(v) && !/\brounded-full\b/.test(v) && /\bitems-center\b/.test(v) && /\bjustify-center\b/.test(v))
+      tiles.push(c.index);
+  }
+  if (tiles.length >= 3) for (const i of tiles) push("icon-tile-stack", "warn", i, "icon-in-rounded-tile stack (" + tiles.length + "×) — the AI feature-grid fingerprint; vary the blocks or drop the tile chrome");
+}
+
+// oversized display h1 — text-8xl/9xl or an inline font-size ≥ ~6rem on the hero. WARN only:
+// a bold-display brand uses oversized type on purpose, so this flags it to re-check mobile.
+function findOversizedH1(doc, push) {
+  let m;
+  const reTw = /<h1\b[^>]*\b(text-(?:8xl|9xl))\b/gi;
+  while ((m = reTw.exec(doc))) push("oversized-h1", "warn", m.index, m[1] + " hero — verify it doesn't overflow on a phone; oversized type is fine if it's the brand");
+  const reH1 = /<h1\b[^>]*style\s*=\s*"([^"]*)"/gi;
+  while ((m = reH1.exec(doc))) {
+    if ([...m[1].matchAll(/(\d+(?:\.\d+)?)rem/g)].some((x) => +x[1] >= 6)) push("oversized-h1", "warn", m.index, "hero font-size ≥6rem — verify mobile wrapping; oversized is fine if intentional");
+  }
+}
+
+// border-accent-on-rounded — a brand-COLOURED full border on a rounded card. One featured
+// tier is legit, so WARN (not gate): ≥2 such cards is the "accent border on everything" tell.
+function findBorderAccentRounded(doc, push) {
+  const hits = [];
+  for (const c of classAttrs(doc)) {
+    const v = c.value;
+    const rounded = /\brounded-(?:md|lg|xl|2xl|3xl)\b/.test(v);
+    const hasBorder = /\bborder(?:-2|-4)?\b/.test(v);
+    const accent = /\bborder-\[var\(--color-(?:accent|primary|brand)\)\]/.test(v) || /\bborder-(?:purple|violet|fuchsia|indigo|blue|sky|cyan|emerald|teal|green|lime|amber|orange|red|rose|pink)-(?:3|4|5|6)00\b/.test(v);
+    const neutral = /\bborder-(?:gray|zinc|slate|neutral|stone|white|black)\b/.test(v);
+    if (rounded && hasBorder && accent && !neutral) hits.push(c.index);
+  }
+  if (hits.length >= 2) for (const i of hits) push("border-accent-on-rounded", "warn", i, "accent-coloured border on a rounded card (" + hits.length + "×) — reserve the brand border for the selected/featured card; tint or hairline the rest");
+}
+
+// low-contrast — needs a full colour engine to gate; we flag the precise, unambiguous
+// subset: a known light-gray text utility (-300/-400) NOT in a dark-surface context.
+function findLowContrast(doc, push) {
+  const re = /\btext-(?:gray|zinc|slate|neutral|stone)-(?:300|400)\b/g;
+  let m;
+  while ((m = re.exec(doc))) {
+    const around = doc.slice(Math.max(0, m.index - 180), m.index + 60);
+    if (!/\bbg-(?:black|(?:gray|zinc|slate|neutral|stone)-(?:8|9)00)\b|\bbg-\[#0[0-9a-f]|\bdark\b/.test(around))
+      push("low-contrast", "warn", m.index, m[0] + " as text — below 4.5:1 on a light surface; use -600/-700 for body copy");
+  }
+}
+
+// gray-on-color — muted gray text on a saturated/brand surface reads muddy. Precise
+// co-occurrence in one class (gray text + a brand/saturated bg).
+function findGrayOnColor(doc, push) {
+  for (const c of classAttrs(doc)) {
+    const v = c.value;
+    if (/\btext-(?:gray|zinc|slate|neutral|stone)-(?:300|400|500)\b/.test(v) && (/\bbg-\[var\(--color-(?:accent|primary|brand)\)\]/.test(v) || /\bbg-(?:purple|violet|indigo|blue|sky|cyan|emerald|teal|green|lime|amber|orange|red|rose|pink)-(?:5|6|7)00\b/.test(v)))
+      push("gray-on-color", "warn", c.index, "muted gray text on a brand-coloured surface — use white / near-white or a tint of the surface colour");
+  }
+}
+
 const CUSTOM_GATES = [
   findGradientText, findSideStripe, findStripes, findTracking, findNestedCards,
   findThinBorderWideShadow, findUniformHoverScale, findEmojiIcon, findItalicHeading,
   findMixedIconLibs, findOverRounded, findCreamPalette, findAiPalette, findEmDashOveruse,
+  findHeroEyebrowChip, findRepeatedKickers, findIconTileStack, findOversizedH1,
+  findBorderAccentRounded, findLowContrast, findGrayOnColor,
 ];
 
 // Human-readable titles for ids the live review surfaces.
@@ -269,6 +364,13 @@ const TITLES = {
   "em-dash-overuse": "Em-dash overuse",
   "unmodified-kit-default": "Kit default accent (make it the project's own)",
   "marketing-buzzword": "Marketing buzzword copy",
+  "hero-eyebrow-chip": "Hero eyebrow chip (dot + micro-label)",
+  "repeated-section-kickers": "Repeated uppercase section kickers",
+  "icon-tile-stack": "Icon-in-tile feature grid",
+  "oversized-h1": "Oversized display hero",
+  "border-accent-on-rounded": "Accent border on a rounded card",
+  "low-contrast": "Low-contrast text",
+  "gray-on-color": "Gray text on a coloured surface",
 };
 
 /**

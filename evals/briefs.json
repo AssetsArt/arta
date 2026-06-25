@@ -1,12 +1,11 @@
 {
   "$schema": "Design-brief eval set for the arta skill. Each brief is built by a builder agent following the skill, then graded deterministically by evals/grade.mjs. 'approvedDirection' lets the build-quality arm skip the interactive brainstorm (brainstorm-first is graded separately, cold-open). split: train = diagnose+fix on these; heldout = stop-condition only, never fit to them.",
   "serious_antipatterns": [
-    "gradient-text", "side-tab", "border-accent-on-rounded", "gpt-thin-border-wide-shadow",
-    "repeating-stripes-gradient", "repeated-section-kickers",
-    "hero-eyebrow-chip", "low-contrast", "gray-on-color", "cream-palette", "ai-color-palette",
-    "nested-cards", "icon-tile-stack", "extreme-negative-tracking", "oversized-h1"
+    "gradient-text", "side-tab", "gpt-thin-border-wide-shadow",
+    "repeating-stripes-gradient", "hero-eyebrow-chip", "cream-palette", "ai-color-palette",
+    "nested-cards", "extreme-negative-tracking"
   ],
-  "_serious_note": "These gate A5 (any one = fail). 'numbered-section-markers' was REMOVED from gating: in data-dense APP screens it false-positives on numeric data (metric values like 0.02/0.08, Tailwind opacity utilities like bg-white/[.02]) — it's a marketing-page tell, unreliable for app UIs. It still appears in the full findings (designReview.byId) for visibility, just non-gating.",
+  "_serious_note": "These gate A5 (any one = fail). EVERY id here has a precise detector in mcp/slop-detect.mjs that is verified to stay silent on the clean shipped demo — a serious id with no detector is a phantom gate that never fires. SIX ids that were previously listed serious but had NO detector (so never gated) are now IMPLEMENTED but as `warn`, and moved OUT of this set: repeated-section-kickers, icon-tile-stack, oversized-h1, border-accent-on-rounded, low-contrast, gray-on-color. They're real tells, but a good design CAN legitimately use a 3-up feature grid, an oversized display hero, a featured-tier accent border, or muted-on-dark text — so they enrich the live arta_design_review without failing the eval. Only hero-eyebrow-chip stayed serious (a pulsing status eyebrow is unambiguous slop). 'numbered-section-markers' was REMOVED earlier from gating: in data-dense APP screens it false-positives on numeric data (metric values like 0.02/0.08, Tailwind opacity utilities like bg-white/[.02]).",
   "briefs": [
     {
       "id": "checkout",
