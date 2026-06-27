@@ -118,9 +118,23 @@ function runDesignSystemSpecs() {
   spec("tokensFromCss recovers fonts + radii from :root", (parsed.fonts || []).length === 1 && (parsed.radii || []).length === 1);
   spec("tokensFromCss ignores non-:root rules", tokensFromCss(".card{color:red}").colors === undefined);
 
+  // The frequent report: a system authored with FREEFORM var names (--mac-accent, --bg —
+  // no `--color-` prefix) left the tab on the bare placeholder. Recover those by value shape.
+  const freeform = tokensFromCss(":root{--mac-accent:#0a84ff;--bg:#f5f5f7;--sidebar:rgb(245,245,247)}");
+  spec("tokensFromCss recovers UNPREFIXED colours by value", (freeform.colors || []).length === 3 && (freeform.colors || []).some((x) => x.value === "#0a84ff"), (freeform.colors || []).map((x) => x.name).join(","));
+  // rgba(...) is a colour, not a font (it has commas); a multi-part shadow is a shadow, not a colour.
+  const shapes = tokensFromCss(":root{--accent:rgba(10,132,255,1);--shadow-soft:0 1px 3px rgba(0,0,0,.1);--card-shadow:0 8px 24px rgba(0,0,0,.12);--font-ui:'Geist',sans-serif}");
+  spec("rgba value classified as colour, not font", (shapes.colors || []).some((x) => x.name === "accent"));
+  spec("multi-part value classified as shadow, not colour", (shapes.shadows || []).some((x) => x.name === "card-shadow") && !(shapes.colors || []).some((x) => x.name === "card-shadow"));
+  // Tokens hung off html/body/:host (not just :root) are recovered too.
+  spec("tokensFromCss reads html/body root rules", (tokensFromCss("html{--color-accent:#b3321a}").colors || []).length === 1 && (tokensFromCss("body{--accent:#0a84ff}").colors || []).length === 1);
+
   // CSS-authored system (no structured tokens) → tab shows the colours, not the empty state.
   const cssOnly = render({ designSystem: ":root{--color-accent:#b3321a;--color-bg:#fbfaf8}", screens: [] });
   spec("CSS-only system renders its tokens (not the empty state)", cssOnly.includes("#b3321a") && !cssOnly.includes("No design system yet"));
+  // …and the same when the colours are UNPREFIXED (the screenshot case).
+  const freeformRender = render({ designSystem: ":root{--mac-accent:#0a84ff;--bg:#f5f5f7}", screens: [] });
+  spec("CSS-only system with unprefixed colours renders swatches, not the placeholder", freeformRender.includes("#0a84ff") && !freeformRender.includes("authored as CSS without structured tokens"));
 
   // CSS with no :root vars (class rules only) → the stylesheet itself is shown, not blank.
   const classOnly = render({ designSystem: ".btn{background:#111;color:#fff}", screens: [] });

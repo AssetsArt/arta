@@ -135,22 +135,54 @@ export function designSheet(proto: Prototype): string {
 // design system existed. Parsing the authored CSS's `:root` vars back into tokens makes the
 // tab reflect the system whichever way it was authored. Reads ONLY `:root` blocks, so
 // per-component custom properties don't leak in.
+// A value is a colour if it's a hex, a colour function, or a common named colour. Anchored
+// so a multi-part value (a shadow like `0 1px 2px #0003`) is NOT mistaken for a colour.
+const isColorVal = (v: string) =>
+  /^#[0-9a-f]{3,8}$/i.test(v) ||
+  /^(rgb|rgba|hsl|hsla|hwb|lab|lch|oklab|oklch|color|color-mix)\s*\(/i.test(v) ||
+  /^(transparent|currentcolor|black|white|red|green|blue|orange|purple|pink|gray|grey|yellow|teal|cyan|magenta|indigo|violet|slate|navy|gold|brown|beige|cream|coral|salmon|lime|olive|maroon|aqua|silver|crimson|tomato|turquoise|azure|ivory|khaki|plum|tan|wheat)$/i.test(v);
+const isLenVal = (v: string) => /^-?[\d.]+(px|rem|em|%|vh|vw|vmin|vmax|pt|ch|ex|q|cm|mm|in|pc)$/i.test(v);
+const looksShadow = (n: string, v: string) => /shadow|elevation/i.test(n) || /\binset\b/i.test(v) || /(?:[\d.][\w.%-]*\s+){2,}(?:rgb|hsl|#|oklch|color)/i.test(v);
+const looksFontStack = (n: string, v: string) => /font|family|typeface/i.test(n) || v.includes(",") || /\b(serif|sans-serif|monospace|system-ui|ui-sans-serif|ui-serif|ui-monospace|cursive)\b/i.test(v);
+const looksRadius = (n: string) => /radius|rounded|corner|radii/i.test(n) || /(^|[-_])r($|[-_\d])/i.test(n);
+
 export function tokensFromCss(css?: string): DesignTokens {
   const out: DesignTokens = {};
   if (!css || !css.trim()) return out;
-  const body = [...css.matchAll(/:root\s*\{([^}]*)\}/g)].map((m) => m[1]).join(";");
+  // Gather custom properties from the GLOBAL root rules only — :root is canonical, but
+  // agents commonly hang tokens off html/body/:host too (or a `:root,:host` list). Per-
+  // component/class rules are skipped so their local vars don't leak in. `.dark{}` is the
+  // dark-theme overlay (handled by darkVars), not the light palette, so exclude it here.
+  const isRootSel = (sel: string) =>
+    !/\.dark\b/.test(sel) &&
+    sel.split(",").some((s) => {
+      const t = s.trim();
+      return t === ":root" || t === "html" || t === "body" || t === ":host" || /(^|[\s>~+]):root\b/.test(t);
+    });
+  const body = [...css.matchAll(/([^{}]+)\{([^}]*)\}/g)]
+    .filter((m) => isRootSel(m[1]))
+    .map((m) => m[2])
+    .join(";");
   const seen = new Set<string>();
   for (const m of body.matchAll(/--([\w-]+)\s*:\s*([^;]+)/g)) {
     const name = m[1].trim();
     const value = m[2].trim();
     if (!value || seen.has(name)) continue;
     seen.add(name);
+    // Prefix naming wins (the inverse of compileTokens); otherwise classify by the value's
+    // shape so a freeform `--accent: #0a84ff` / `--mac-bg` still renders as a swatch instead
+    // of leaving the tab on the bare "define tokens" placeholder (the #1 recurring report).
     if (name.startsWith("color-")) (out.colors ||= []).push({ name: name.slice(6), value });
     else if (name.startsWith("font-")) (out.fonts ||= []).push({ name: name.slice(5), value });
     else if (name.startsWith("radius-")) (out.radii ||= []).push({ name: name.slice(7), value });
     else if (name.startsWith("shadow-")) (out.shadows ||= []).push({ name: name.slice(7), value });
     else if (name.startsWith("space-") || name.startsWith("spacing-")) (out.spacing ||= []).push({ name: name.replace(/^spac(?:e|ing)-/, ""), value });
     else if (name.startsWith("text-")) (out.typography ||= []).push({ name: name.slice(5), size: value });
+    else if (looksShadow(name, value)) (out.shadows ||= []).push({ name, value });
+    else if (isColorVal(value)) (out.colors ||= []).push({ name, value });
+    else if (looksFontStack(name, value)) (out.fonts ||= []).push({ name, value });
+    else if (looksRadius(name) && isLenVal(value)) (out.radii ||= []).push({ name, value });
+    else if (isLenVal(value) && /space|spacing|gap|gutter|inset|pad|margin|size/i.test(name)) (out.spacing ||= []).push({ name, value });
   }
   return out;
 }

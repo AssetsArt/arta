@@ -23,6 +23,13 @@ Never describe a screen in prose when you could render it. Show, ask, adjust.
 
 ## Tools (MCP server: arta)
 
+- `arta_doctor` — **call this FIRST, before any other `arta_*` write**, when you start
+  designing. It guarantees this project is in the shared registry so it actually shows
+  up in the viewer's switcher (without it, a design built design-system-first can be
+  invisible — "I built a prototype but there's no project to select"), seeds a minimal
+  `state.json` if there's none yet so it's immediately switchable, and returns the
+  project **`id`**. Tell the dev that id / the `?project=<id>` URL it returns. It never
+  overwrites an existing canvas.
 - `arta_start_viewer` — **call this once at the very start of a session** to open
   the viewer for the dev. It launches the viewer that ships **inside the installed
   plugin** (so it always matches the plugin version — no stale `npx`/`bunx` cache),
@@ -169,10 +176,11 @@ screen list, an impact×effort scope cut — load
 
 The brainstorm, in order:
 
-1. **Open the viewer & ground yourself** — `arta_start_viewer` (so the dev can
-   see, and so your lo-fi sketches land somewhere visible), then `arta_get_state`
-   / `arta_get_view` and skim the project (files, recent work) so you don't ask
-   what you could read.
+1. **Register the project & open the viewer, then ground yourself** — `arta_doctor`
+   FIRST (registers this project so it's selectable in the switcher and hands you its
+   `id`), then `arta_start_viewer` (so the dev can see, and so your lo-fi sketches land
+   somewhere visible), then `arta_get_state` / `arta_get_view` and skim the project
+   (files, recent work) so you don't ask what you could read.
 2. **Check scope.** If the request is really several independent products
    (chat + billing + analytics…), say so first and help split it — don't refine the
    details of something that needs decomposing. Brainstorm the first piece, then build.
