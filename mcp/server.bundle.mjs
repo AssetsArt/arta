@@ -19981,22 +19981,25 @@ function idForDir(dir) {
   return h.toString(36);
 }
 var didRegister = false;
-function registerProject() {
-  if (didRegister)
-    return;
+function registerProject(force = false) {
+  const dir = path.resolve(ARTA_DIR);
+  const id = idForDir(dir);
+  const name = readJson(STATE_FILE)?.meta?.name || path.basename(path.dirname(dir));
+  if (didRegister && !force)
+    return { ok: true, id, name, dir, skipped: true };
   try {
-    const dir = path.resolve(ARTA_DIR);
-    const id = idForDir(dir);
-    const name = readJson(STATE_FILE)?.meta?.name || path.basename(path.dirname(dir));
     let list = readJson(REGISTRY_FILE);
     if (!Array.isArray(list))
       list = [];
-    list = list.filter((e) => e && typeof e.dir === "string" && e.id !== id && fs.existsSync(path.join(e.dir, "state.json")));
+    list = list.filter((e) => e && typeof e.dir === "string" && e.id !== id && fs.existsSync(e.dir));
     list.push({ id, name, dir, at: new Date().toISOString() });
     fs.mkdirSync(path.dirname(REGISTRY_FILE), { recursive: true });
     fs.writeFileSync(REGISTRY_FILE, JSON.stringify(list, null, 2));
     didRegister = true;
-  } catch {}
+    return { ok: true, id, name, dir };
+  } catch (e) {
+    return { ok: false, id, name, dir, error: String(e?.message || e) };
+  }
 }
 function ensureDir() {
   fs.mkdirSync(ARTA_DIR, { recursive: true });
@@ -20471,6 +20474,8 @@ server.registerTool("arta_set_component", {
   if (state && state.prototype && state.prototype.components && name in state.prototype.components) {
     delete state.prototype.components[name];
     writeState(state);
+  } else {
+    registerProject();
   }
   return text({ ok: true, name, wrote: componentFile(name) });
 });
@@ -20489,6 +20494,7 @@ server.registerTool("arta_set_design_system", {
 }, async ({ css }) => {
   fs.mkdirSync(PROTO_DIR, { recursive: true });
   fs.writeFileSync(CSS_FILE, css);
+  registerProject();
   return text({ ok: true, wrote: CSS_FILE });
 });
 server.registerTool("arta_get_design_tokens", {
@@ -20770,6 +20776,44 @@ server.registerTool("arta_restart_viewer", {
     rereadSkill: staleSkillNudge(pluginVersion())
   });
 });
+server.registerTool("arta_doctor", {
+  description: "Project/registry doctor — CALL THIS FIRST, before any other arta_* write, at the start of a design session. It GUARANTEES this project is registered in the shared registry (~/.arta/registry.json) so it shows up in the viewer's project switcher (the #1 'I built a design but there's no project to select' bug), seeds a minimal state.json if none exists yet so the project is immediately switchable, and returns this project's `id`. Report that `id` to the dev — it's the `?project=<id>` deep-link the viewer opens onto. Also returns the full list of registered projects and whether the viewer can see this one. Safe + idempotent: it NEVER overwrites an existing state.json.",
+  inputSchema: {
+    port: exports_external.number().int().optional().describe("Viewer port for the returned URL (default: last started, else 7317).")
+  }
+}, async ({ port }) => {
+  const p = Number(port) || lastViewerPort;
+  const dir = path.resolve(ARTA_DIR);
+  const id = idForDir(dir);
+  let seeded = false;
+  if (!fs.existsSync(STATE_FILE)) {
+    ensureDir();
+    const name = path.basename(path.dirname(dir));
+    fs.writeFileSync(STATE_FILE, JSON.stringify({ meta: { name, phase: "prototype" }, prototype: { screens: [] } }, null, 2) + `
+`);
+    seeded = true;
+  }
+  const reg = registerProject(true);
+  const list = readJson(REGISTRY_FILE);
+  const projects = Array.isArray(list) ? list.filter((e) => e && typeof e.dir === "string").map((e) => ({ id: e.id, name: e.name, dir: e.dir })) : [];
+  const inRegistry = projects.some((e) => e.id === id);
+  const url = `http://localhost:${p}/?project=${id}`;
+  return text({
+    ok: reg.ok && inRegistry,
+    id,
+    name: reg.name,
+    dir,
+    hasState: fs.existsSync(STATE_FILE),
+    seededState: seeded,
+    registered: reg.ok,
+    inRegistry,
+    url,
+    registryFile: REGISTRY_FILE,
+    projects,
+    version: pluginVersion(),
+    note: inRegistry ? `This project is registered as "${reg.name}" (id ${id}). It will appear in the viewer's switcher; open ${url} to land on it. ${seeded ? "Seeded an empty state.json — write the real spec/screens next." : ""}`.trim() : `Could not confirm the project landed in the registry (${reg.error || "unknown"}). The viewer may not list it; ${REGISTRY_FILE} could be unwritable.`
+  });
+});
 server.registerTool("arta_export", {
   description: "Pack the WHOLE clickable prototype into a static, deployable folder you can hand a client. Writes <out>/index.html (default <project>/dist) — one self-contained page, same faithful render as /preview, but WITHOUT the Arta navigator: no floating button, no sidebar. The viewer is navigated only by the prototype's OWN data-to clicks, so it looks like a finished demo, not the editor. Drop the folder onto any static host: Cloudflare Pages (`npx wrangler pages deploy <out>`), Netlify, GitHub Pages, or Vercel. Needs the viewer running (it does the assembling) — call arta_start_viewer first if it isn't. The .arta/ source is never touched.",
   inputSchema: {
@@ -20801,5 +20845,7 @@ server.registerTool("arta_export", {
     return err(`Couldn't reach the viewer on port ${p} to assemble the export. Start it with arta_start_viewer (or pass the right port), then try again.`);
   }
 });
+if (fs.existsSync(ARTA_DIR))
+  registerProject();
 var transport = new StdioServerTransport;
 await server.connect(transport);
